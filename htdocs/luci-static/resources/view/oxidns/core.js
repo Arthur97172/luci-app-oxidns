@@ -34,6 +34,13 @@ var callCoreUploadInstall = rpc.declare({
 	expect: {}
 });
 
+var callCoreWebuiUpload = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'core_webui_upload',
+	params: [ 'path' ],
+	expect: {}
+});
+
 var callCoreProgress = rpc.declare({
 	object: 'luci.oxidns',
 	method: 'core_progress',
@@ -98,6 +105,7 @@ function refreshStatus() {
 		setText('oxidns-core-bundle', core.bundle);
 		setText('oxidns-core-target', core.target);
 		setText('oxidns-core-binary', core.binary_path);
+		setText('oxidns-core-webui', boolText(webuiInstalled(statusState)));
 		setText('oxidns-core-service', serviceRunning(statusState) ? _('Running') : _('Stopped'));
 		refreshActionButtons();
 	});
@@ -137,7 +145,8 @@ function coreErrorStageLabel(stage) {
 		unpack_archive: _('Unpack core archive'),
 		install_files: _('Install core files'),
 		restart_service: _('Restart service'),
-		validate_uploaded_core: _('Validate uploaded core')
+		validate_uploaded_core: _('Validate uploaded core'),
+		validate_uploaded_webui: _('Validate uploaded WebUI files')
 	};
 
 	return labels[stage] || stage || '-';
@@ -345,8 +354,22 @@ function handleUploadInstall() {
 			return callCoreUploadInstall(uploadPath);
 		}, 300, function(result) {
 			if (result && result.webui_installed === false && !webuiInstalled(statusState))
-				ui.addNotification(null, E('p', {}, _('Core installed, but the uploaded file contains no WebUI files. Upload an official full or standard archive to install the WebUI.')), 'warning');
+				ui.addNotification(null, E('p', {}, _('Core installed, but the uploaded file contains no WebUI files. Use Install WebUI to add them from an official full or standard archive.')), 'warning');
 		});
+	}).catch(function(err) {
+		if (err && err.message && err.message.indexOf(_('Upload has been cancelled')) >= 0)
+			return;
+		ui.addNotification(null, E('p', {}, (err && err.message) || String(err)), 'danger');
+	});
+}
+
+function handleWebuiUpload() {
+	var uploadPath = '/tmp/oxidns-core-upload-%d-%d'.format(Date.now(), Math.floor(Math.random() * 1000000));
+
+	return ui.uploadFile(uploadPath).then(function() {
+		return runCoreAction(_('Installing OxiDNS WebUI files...'), function() {
+			return callCoreWebuiUpload(uploadPath);
+		}, 120);
 	}).catch(function(err) {
 		if (err && err.message && err.message.indexOf(_('Upload has been cancelled')) >= 0)
 			return;
@@ -427,12 +450,17 @@ function actionButton(label, handler, style) {
 
 function actionButtons(status) {
 	if (coreInstalled(status)) {
-		return [
+		var buttons = [
 			actionButton(_('Repair Reinstall'), handleReinstall, 'action'),
-			actionButton(_('Update Core'), handleUpdate, 'positive'),
-			actionButton(_('Upload Core'), handleUploadInstall, 'action'),
-			actionButton(_('Remove Core'), handleRemove, 'negative')
+			actionButton(_('Update Core'), handleUpdate, 'positive')
 		];
+
+		if (!webuiInstalled(status))
+			buttons.push(actionButton(_('Install WebUI'), handleWebuiUpload, 'action'));
+
+		buttons.push(actionButton(_('Upload Core'), handleUploadInstall, 'action'));
+		buttons.push(actionButton(_('Remove Core'), handleRemove, 'negative'));
+		return buttons;
 	}
 
 	return [
@@ -461,6 +489,7 @@ return view.extend({
 			renderRow(_('Bundle'), core.bundle, 'oxidns-core-bundle'),
 			renderRow(_('Target'), core.target, 'oxidns-core-target'),
 			renderRow(_('Binary path'), core.binary_path, 'oxidns-core-binary'),
+			renderRow(_('WebUI'), boolText(webuiInstalled(statusState)), 'oxidns-core-webui'),
 			renderRow(_('Service status'), serviceRunning(statusState) ? _('Running') : _('Stopped'), 'oxidns-core-service')
 		];
 
@@ -475,7 +504,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Actions')),
 				E('div', { 'class': 'cbi-section-descr' },
-					_('LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary.')),
+					_('LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI adds only the WebUI files from an official full or standard archive.')),
 				E('div', {
 					'id': 'oxidns-core-actions',
 					'class': 'cbi-button-row',

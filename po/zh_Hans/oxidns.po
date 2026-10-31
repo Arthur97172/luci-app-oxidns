@@ -76,8 +76,8 @@ msgstr "内核状态"
 msgid "Core bundle"
 msgstr "内核 bundle"
 
-msgid "Core installed, but the uploaded file contains no WebUI files. Upload an official full or standard archive to install the WebUI."
-msgstr "内核已安装，但上传文件不包含 WebUI 文件。请上传官方 full 或 standard 归档以安装 WebUI。"
+msgid "Core installed, but the uploaded file contains no WebUI files. Use Install WebUI to add them from an official full or standard archive."
+msgstr "内核已安装，但上传文件不包含 WebUI 文件。请使用“安装 WebUI”从官方 full 或 standard 归档中添加 WebUI。"
 
 msgid "Core operation failed"
 msgstr "内核操作失败"
@@ -130,6 +130,9 @@ msgstr "GitHub Token"
 msgid "Install Core"
 msgstr "安装内核"
 
+msgid "Install WebUI"
+msgstr "安装 WebUI"
+
 msgid "Install core files"
 msgstr "安装内核文件"
 
@@ -141,6 +144,9 @@ msgstr "请先安装 OxiDNS 内核，再编辑配置。"
 
 msgid "Install the OxiDNS core before using service controls."
 msgstr "请先安装 OxiDNS 内核，再使用服务控制。"
+
+msgid "Install the OxiDNS core before using WebUI."
+msgstr "使用 WebUI 前请先安装 OxiDNS 内核。"
 
 msgid "Install, update, or repair the OxiDNS core binary."
 msgstr "安装、更新或修复 OxiDNS 内核二进制。"
@@ -154,14 +160,17 @@ msgstr "正在安装 OxiDNS 内核..."
 msgid "Installing uploaded OxiDNS core..."
 msgstr "正在安装上传的 OxiDNS 内核..."
 
+msgid "Installing OxiDNS WebUI files..."
+msgstr "正在安装 OxiDNS WebUI 文件..."
+
 msgid "Logs"
 msgstr "日志"
 
 msgid "LuCI backend"
 msgstr "LuCI 后端"
 
-msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary."
-msgstr "LuCI 可以安装最新 OxiDNS release、更新已安装的内核，也可以安装上传的 .tar.gz archive 或单个 oxidns 二进制。"
+msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI adds only the WebUI files from an official full or standard archive."
+msgstr "LuCI 可以安装最新 OxiDNS release、更新已安装的内核，也可以安装上传的 .tar.gz archive 或单个 oxidns 二进制。“安装 WebUI”只会从官方 full 或 standard 归档中安装 WebUI 文件。"
 
 msgid "Manage the OxiDNS runtime, service, configuration, and logs from LuCI."
 msgstr "在 LuCI 中管理 OxiDNS 运行时、服务、配置和日志。"
@@ -328,6 +337,9 @@ msgstr "目标架构"
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
 
+msgid "The installed minimal core bundle does not include WebUI files. Install the WebUI from the Core page, or install a full or standard bundle."
+msgstr "已安装的 minimal 内核 bundle 不包含 WebUI 文件。请在“内核”页面安装 WebUI，或安装 full 或 standard bundle。"
+
 msgid "Details"
 msgstr "详情"
 
@@ -358,6 +370,9 @@ msgstr "校验内核压缩包"
 msgid "Validate uploaded core"
 msgstr "校验上传的内核"
 
+msgid "Validate uploaded WebUI files"
+msgstr "校验上传的 WebUI 文件"
+
 msgid "Validating configuration..."
 msgstr "正在校验配置..."
 
@@ -379,8 +394,8 @@ msgstr "查看 OpenWrt logread 中最近的 OxiDNS 条目。"
 msgid "WebUI"
 msgstr "WebUI"
 
-msgid "WebUI files are not installed."
-msgstr "WebUI 文件尚未安装。"
+msgid "WebUI files are not installed. Install them from the Core page using Install WebUI."
+msgstr "WebUI 文件尚未安装。请在“内核”页面使用“安装 WebUI”进行安装。"
 
 msgid "WebUI listens on loopback only. Configure the HTTP listen address to a LAN-reachable address, or use an SSH tunnel."
 msgstr "WebUI 仅监听 loopback。请把 HTTP 监听地址配置为局域网可访问地址，或使用 SSH 隧道。"

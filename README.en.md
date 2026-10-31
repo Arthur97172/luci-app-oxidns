@@ -79,14 +79,14 @@ apk del oxidns
 
 LuCI selects the OxiDNS Linux musl release archive for the current CPU architecture, such as `oxidns-x86_64-unknown-linux-musl.tar.gz`. The GitHub release asset SHA256 digest is verified before installation.
 
-Note: the `full` and `standard` archives include the WebUI files, while the `minimal` archive does not; uploading a single `oxidns` binary does not install the WebUI either. Upload an official `full` or `standard` archive when you need the WebUI.
+Note: the `full` and `standard` archives include the WebUI files, while the `minimal` archive does not; uploading a single `oxidns` binary does not install the WebUI either. When no WebUI is installed, LuCI rejects an uploaded `full` or `standard` core that lacks `webui/`, so a new binary cannot be left without its WebUI.
 
-When the core is already installed, the `Core` page offers `Update Core`, `Repair Reinstall`, and `Upload Core`. `Update Core` checks the latest official release and only downloads and installs when a newer version exists, keeping the currently installed bundle. `Repair Reinstall` and `Upload Core` repair the binary or WebUI files by downloading the current installed version again or using an uploaded file.
+When the core is already installed, the `Core` page offers `Update Core`, `Repair Reinstall`, `Install WebUI`, and `Upload Core`. `Update Core` checks the latest official release and only downloads and installs when a newer version exists, keeping the currently installed bundle. `Repair Reinstall` and `Upload Core` repair the binary or WebUI files by downloading the current installed version again or using an uploaded file. When the WebUI is missing, `Install WebUI` installs only `/usr/share/oxidns/webui` from an official `full` or `standard` archive without changing the core binary or configuration.
 
 ## Main Pages
 
 - `Overview`: core, service, WebUI entry, config path, and log status.
-- `Core`: install, update, upload install, repair reinstall, or remove the OxiDNS core binary.
+- `Core`: install, update, upload install, repair reinstall, install WebUI only, or remove the OxiDNS core binary.
 - `Configuration`: view, save, and validate the config file.
 - `Logs`: view runtime logs with refresh and pause controls.
 - `Settings`: configure core repository, bundle, proxy, config path, and working directory.
@@ -115,6 +115,7 @@ The router must be able to reach GitHub Releases and release archives directly. 
 
 - Only published OxiDNS Linux musl release targets are supported.
 - `Update Core` only installs strictly newer stable releases. It never downgrades a newer or custom installed build; versions that cannot be parsed are treated as needing no update.
+- Before replacing the core or WebUI, LuCI stages and verifies the new files. If a copy fails, the previous core binary and WebUI are restored, so a new binary is not left running without its WebUI.
 - The `Overview` WebUI entry is generated from the HTTP listen address in the config file. If it listens on `127.0.0.1`, LuCI keeps the link and shows a hint that local access or an SSH tunnel is required.
 - The log page reads OxiDNS service stdout/stderr output from OpenWrt `logread`.
 - `Settings` includes a "Write to system log" switch, enabled by default. OxiDNS must be restarted after saving a change. LuCI stops the service, waits up to 10 seconds for the old procd instance to be removed, and then starts a new instance so the stdout/stderr settings are applied. A failed state query or stop timeout aborts the restart. The same stop wait is used before replacing a running core.

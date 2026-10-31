@@ -74,7 +74,7 @@ msgstr ""
 msgid "Core bundle"
 msgstr ""
 
-msgid "Core installed, but the uploaded file contains no WebUI files. Upload an official full or standard archive to install the WebUI."
+msgid "Core installed, but the uploaded file contains no WebUI files. Use Install WebUI to add them from an official full or standard archive."
 msgstr ""
 
 msgid "Core operation failed"
@@ -128,6 +128,9 @@ msgstr ""
 msgid "Install Core"
 msgstr ""
 
+msgid "Install WebUI"
+msgstr ""
+
 msgid "Install core files"
 msgstr ""
 
@@ -138,6 +141,9 @@ msgid "Install the OxiDNS core before editing the configuration."
 msgstr ""
 
 msgid "Install the OxiDNS core before using service controls."
+msgstr ""
+
+msgid "Install the OxiDNS core before using WebUI."
 msgstr ""
 
 msgid "Install, update, or repair the OxiDNS core binary."
@@ -152,13 +158,16 @@ msgstr ""
 msgid "Installing uploaded OxiDNS core..."
 msgstr ""
 
+msgid "Installing OxiDNS WebUI files..."
+msgstr ""
+
 msgid "Logs"
 msgstr ""
 
 msgid "LuCI backend"
 msgstr ""
 
-msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary."
+msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI adds only the WebUI files from an official full or standard archive."
 msgstr ""
 
 msgid "Manage the OxiDNS runtime, service, configuration, and logs from LuCI."
@@ -323,6 +332,9 @@ msgstr ""
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr ""
 
+msgid "The installed minimal core bundle does not include WebUI files. Install the WebUI from the Core page, or install a full or standard bundle."
+msgstr ""
+
 msgid "Details"
 msgstr ""
 
@@ -353,6 +365,9 @@ msgstr ""
 msgid "Validate uploaded core"
 msgstr ""
 
+msgid "Validate uploaded WebUI files"
+msgstr ""
+
 msgid "Validating configuration..."
 msgstr ""
 
@@ -374,7 +389,7 @@ msgstr ""
 msgid "WebUI"
 msgstr ""
 
-msgid "WebUI files are not installed."
+msgid "WebUI files are not installed. Install them from the Core page using Install WebUI."
 msgstr ""
 
 msgid "WebUI listens on loopback only. Configure the HTTP listen address to a LAN-reachable address, or use an SSH tunnel."

@@ -90,8 +90,13 @@ function webuiReady(status) {
 }
 
 function webuiHint(status) {
-	if (!status || !status.webui || !status.webui.installed)
-		return _('WebUI files are not installed.');
+	if (!status || !status.webui || !status.webui.installed) {
+		if (!coreInstalled(status))
+			return _('Install the OxiDNS core before using WebUI.');
+		if (status.core && status.core.bundle === 'minimal')
+			return _('The installed minimal core bundle does not include WebUI files. Install the WebUI from the Core page, or install a full or standard bundle.');
+		return _('WebUI files are not installed. Install them from the Core page using Install WebUI.');
+	}
 	if (!serviceRunning(status))
 		return _('Start the OxiDNS service before opening WebUI.');
 	if (status.webui.local_only)

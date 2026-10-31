@@ -9,7 +9,7 @@ This repository does not contain the OxiDNS Rust core source code, and it does n
 ## Main Responsibilities
 
 - LuCI pages: overview, core binary management, configuration, logs, and settings.
-- rpcd backend: status, service control, boot enablement, core install/update/reinstall/upload/remove actions, config read/write/validate, log access, and LuCI integration settings.
+- rpcd backend: status, service control, boot enablement, core install/update/reinstall/upload/remove actions, WebUI-only install, config read/write/validate, log access, and LuCI integration settings.
 - Target mapping contract files used to align supported OpenWrt architectures with OxiDNS release targets.
 - LuCI package builds: local scripts can produce `luci-app-oxidns` `ipk` and `apk` artifacts.
 - Internationalization: Simplified Chinese translations are shipped as `luci-i18n-oxidns-zh-cn`.

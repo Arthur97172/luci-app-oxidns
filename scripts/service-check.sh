@@ -178,9 +178,11 @@ case "$test_mode" in
 	release)
 		load_settings
 		mkdir -p "$SERVICE_TEST_DIR/release"
+		mkdir -p "$SERVICE_TEST_DIR/release/webui"
 		cp "$OXIDNS_BIN" "$SERVICE_TEST_DIR/release/oxidns"
 		printf '# replacement\n' >> "$SERVICE_TEST_DIR/release/oxidns"
-		tar -czf "$SERVICE_TEST_DIR/release.tar.gz" -C "$SERVICE_TEST_DIR/release" oxidns
+		printf '<html></html>\n' > "$SERVICE_TEST_DIR/release/webui/index.html"
+		tar -czf "$SERVICE_TEST_DIR/release.tar.gz" -C "$SERVICE_TEST_DIR/release" oxidns webui
 		require_download_transport() { return 0; }
 		download_file() {
 			if [ "$1" = 'fixture://archive' ]; then
