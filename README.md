@@ -13,21 +13,7 @@
 
 ## 安装 LuCI 插件
 
-推荐在 OpenWrt 上以 root 用户执行官方安装脚本：
-
-```sh
-curl -fsSL https://oxidns.org/install.sh | sh
-```
-
-如果系统没有 `curl`，也可以使用 `wget`：
-
-```sh
-wget -O- https://oxidns.org/install.sh | sh
-```
-
-脚本会检测 OpenWrt 包管理器，从 `luci-app-oxidns` Releases 读取最新包，按系统选择 `.ipk` 或 `.apk`，安装 `luci-app-oxidns` 和可选简体中文语言包，并自动重启 `rpcd`。更多脚本选项见 <https://oxidns.org/openwrt>。
-
-也可以从本仓库 Release 下载对应的 LuCI 包后手动安装：
+推荐从本仓库 Release 下载对应的 LuCI 包后手动安装：
 把安装包上传到设备（例如 `/tmp`），然后安装：
 
 OpenWrt 24.10：
@@ -49,6 +35,24 @@ apk add --allow-untrusted /tmp/luci-app-oxidns_*.apk
 
 apk add --allow-untrusted /tmp/luci-i18n-oxidns-zh-cn_*.apk
 ```
+
+### 从源码编译
+
+要把本包裁剪进固件或自行调整时，把它放进 OpenWrt 构建树，和其他包一起编译：
+
+```sh
+cd openwrt
+./scripts/feeds update -a
+./scripts/feeds install -a
+git clone https://github.com/Arthur97172/luci-app-oxidns.git package/luci-app-oxidns
+make menuconfig   # LuCI → Applications → luci-app-oxidns
+make package/luci-app-oxidns/compile V=s
+```
+
+产物在 `bin/packages/<架构>/` 下。同一份源码在 24.10 的构建树里得到 `.ipk`，在 25.12
+的构建树里得到 `.apk`；`VERSION` 与 `PKG_RELEASE` 决定包名中的版本号。
+
+---
 
 如果安装后菜单没有出现，重启 `rpcd`：
 

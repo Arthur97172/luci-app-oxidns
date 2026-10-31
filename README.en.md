@@ -13,21 +13,7 @@ This repository provides only a simple implementation for installing and managin
 
 ## Install The LuCI App
 
-On OpenWrt, the recommended path is the official one-command installer. Run it as root:
-
-```sh
-curl -fsSL https://oxidns.org/install.sh | sh
-```
-
-If `curl` is not installed, use `wget`:
-
-```sh
-wget -O- https://oxidns.org/install.sh | sh
-```
-
-The script detects the OpenWrt package manager, reads the latest package from `luci-app-oxidns` Releases, selects `.ipk` or `.apk` for the system, installs `luci-app-oxidns` plus the optional Simplified Chinese translation package, and restarts `rpcd`. See <https://oxidns.org/openwrt> for more script options.
-
-You can also download the LuCI release artifact from this repository and install it manually. Upload the package to the device (for example, `/tmp`), then install it:
+The recommended path is to download the corresponding LuCI package from this repository's Releases and install it manually. Upload the package to the device (for example, `/tmp`), then install it:
 
 OpenWrt 24.10:
 
@@ -48,6 +34,23 @@ apk add --allow-untrusted /tmp/luci-app-oxidns_*.apk
 
 apk add --allow-untrusted /tmp/luci-i18n-oxidns-zh-cn_*.apk
 ```
+
+### Build From Source
+
+To include the package in firmware or customize it, place it in an OpenWrt build tree and compile it together with the other packages:
+
+```sh
+cd openwrt
+./scripts/feeds update -a
+./scripts/feeds install -a
+git clone https://github.com/Arthur97172/luci-app-oxidns.git package/luci-app-oxidns
+make menuconfig   # LuCI -> Applications -> luci-app-oxidns
+make package/luci-app-oxidns/compile V=s
+```
+
+The artifacts appear under `bin/packages/<arch>/`. The same sources produce an `.ipk` in a 24.10 build tree and an `.apk` in a 25.12 build tree; `VERSION` and `PKG_RELEASE` determine the version in the package name.
+
+---
 
 If the menu does not appear after installation, restart `rpcd`:
 
