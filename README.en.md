@@ -121,3 +121,7 @@ The router must be able to reach GitHub Releases and release archives directly. 
 ## License
 
 This project is licensed under the GNU General Public License v3.0 or later (`GPL-3.0-or-later`). See [LICENSE](LICENSE) for the full license text.
+
+## Acknowledgements
+
+This repository is cloned from [svenshi/luci-app-oxidns](https://github.com/svenshi/luci-app-oxidns) and optimized on top of it.
