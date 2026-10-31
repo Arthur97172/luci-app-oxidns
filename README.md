@@ -25,11 +25,11 @@ opkg install /tmp/luci-i18n-oxidns-zh-cn_*.ipk
 OpenWrt 25.12：
 
 ```sh
-apk add --allow-untrusted /tmp/luci-app-oxidns_*.apk
+apk add --allow-untrusted /tmp/luci-app-oxidns-*.apk
 
 #可选，安装简体中文语言包：
 
-apk add --allow-untrusted /tmp/luci-i18n-oxidns-zh-cn_*.apk
+apk add --allow-untrusted /tmp/luci-i18n-oxidns-zh-cn-*.apk
 ```
 
 ### 从源码编译
@@ -75,20 +75,20 @@ apk del oxidns
 ```
 
 1. 打开 `Services -> OxiDNS -> Settings`，确认 `Core repository` 为 `svenshi/oxidns`，`Core bundle` 为 `full`。
-2. 打开 `Services -> OxiDNS -> Core`，点击 `Install Core`；离线环境也可以点击 `Upload Core` 上传官方 `.tar.gz` archive 或单个 `oxidns` 二进制。
+2. 在同一页面顶部的 `Core Actions` 中点击 `Install Core`；离线环境也可以点击 `Upload Core` 上传官方 `.tar.gz` archive 或单个 `oxidns` 二进制。
 3. 安装成功后，到 `基本设置` 页面启动并启用服务。
 
 LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例如 `oxidns-x86_64-unknown-linux-musl.tar.gz`。安装时会校验 GitHub release asset 的 SHA256 digest。
 
 注意：`full` 和 `standard` 归档包含 WebUI 文件，`minimal` 归档不包含。上传单个 `oxidns` 二进制不会安装 WebUI；如果当前没有已安装的 WebUI，LuCI 会拒绝 `full` / `standard` 内核但缺少 `webui/` 的上传，避免出现“内核已安装但 WebUI 缺失”的半安装状态。
 
-如果内核已经安装，`Core` 页面提供 `更新内核`、`重新安装`、`Install WebUI` 和 `Upload Core`。`更新内核` 会检查官方最新 release，只有存在更新版本时才自动下载并安装，且保持当前已安装的 bundle；`重新安装` 和 `Upload Core` 用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件。WebUI 缺失时，`Install WebUI` 会从 GitHub 下载官方最新 release，并同时替换内核二进制和 `/usr/share/oxidns/webui`。bundle 的选择顺序是：当前已安装的 bundle 若是 `full` / `standard` 则保持不变；否则使用设置中的 bundle；两者都不包含 WebUI 时回退到 `standard`。该操作需要设备能访问 GitHub，配置文件中已有的设置不会被覆盖。
+如果内核已经安装，`Settings` 页面顶部的 `Core Actions` 提供 `更新内核`、`重新安装`、`Install WebUI` 和 `Upload Core`。`更新内核` 会检查官方最新 release，只有存在更新版本时才自动下载并安装，且保持当前已安装的 bundle；`重新安装` 和 `Upload Core` 用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件。WebUI 缺失时，`Install WebUI` 会从 GitHub 下载官方最新 release，并同时替换内核二进制和 `/usr/share/oxidns/webui`。bundle 的选择顺序是：当前已安装的 bundle 若是 `full` / `standard` 则保持不变；否则使用设置中的 bundle；两者都不包含 WebUI 时回退到 `standard`。该操作需要设备能访问 GitHub，配置文件中已有的设置不会被覆盖。
 
 ## 让 OxiDNS 成为系统 DNS
 
 OxiDNS 的 `udp_server` / `tcp_server` 插件默认监听 `:5335`，而 OpenWrt 的 53 端口由 dnsmasq 占用，DHCP 也由它提供。推荐保留 dnsmasq，让它把查询转发给 OxiDNS：LAN 客户端的 DHCP、`xxx.lan` 主机名和租约名解析都不受影响，客户端也无需改动。
 
-1. 打开 `Services -> OxiDNS -> Configuration`，把两个 DNS 服务改为只监听本机，保存后重启 OxiDNS：
+1. 打开 `Services -> OxiDNS -> DNS Configuration`，把两个 DNS 服务改为只监听本机，保存后重启 OxiDNS：
 
 ```yaml
   - tag: udp_server
@@ -142,9 +142,8 @@ uci commit dhcp
 ## 常用页面
 
 - `基本设置`：查看内核状态、服务状态、WebUI 入口、配置路径和工作目录，并启停服务。
-- `Core`：首次安装、更新、上传安装、重新安装、单独安装 WebUI 或删除 OxiDNS 内核。
-- `Configuration`：查看、校验、保存配置文件，并可下载当前配置或上传 `config.yaml` 覆盖。
-- `Settings`：设置 core repository、bundle、代理、配置路径和工作目录。
+- `DNS Configuration`：用普通模式编辑常用设置，或用完整的 YAML 编辑器修改配置；可校验、保存、下载配置，或上传 `config.yaml` 覆盖。
+- `Settings`：顶部提供首次安装、更新、上传安装、重新安装、单独安装 WebUI 和删除 OxiDNS 内核的操作；下方设置 core repository、bundle、配置路径、日志路径、工作目录和下载凭据。
 - `Logs`：设置日志文件路径，查看运行日志，支持刷新和暂停。
 
 ## 默认路径
@@ -158,15 +157,15 @@ uci commit dhcp
 
 ## 升级与删除
 
-升级 OxiDNS 内核可以在 LuCI 的 `Core` 页面点击 `更新内核`，它会检查官方最新 release 并在有更新时自动安装；也可以使用 OxiDNS 自带的升级功能，例如内核 WebUI / API / CLI 中的升级能力。
+升级 OxiDNS 内核可以在 LuCI 的 `Settings` 页面顶部点击 `更新内核`，它会检查官方最新 release 并在有更新时自动安装；也可以使用 OxiDNS 自带的升级功能，例如内核 WebUI / API / CLI 中的升级能力。
 
 升级 LuCI 插件时，下载新版本 `luci-app-oxidns` 包并重新安装即可。LuCI 页面内不提供自升级。
 
-删除 OxiDNS 内核可以在 LuCI 的 `Core` 页面点击 `Remove Core`。该操作会停止并禁用服务，删除 `/usr/bin/oxidns` 和 `/usr/share/oxidns/webui`，但保留 `/etc/oxidns/config.yaml` 和 `/var/lib/oxidns`。
+删除 OxiDNS 内核可以在 LuCI 的 `Settings` 页面顶部点击 `Remove Core`。该操作会停止并禁用服务，删除 `/usr/bin/oxidns` 和 `/usr/share/oxidns/webui`，但保留 `/etc/oxidns/config.yaml` 和 `/var/lib/oxidns`。
 
 ## 私有仓库与下载
 
-路由器需要能直接访问 GitHub Releases 和 release archive。私有仓库或受限网络环境可以在 `Settings` 中配置 GitHub token 或下载代理。Token 和代理值保存后不会在 LuCI 页面中回显，需要清除时请勾选对应清除选项。配置下载代理时需要安装 `curl`，否则 LuCI 会返回明确错误；也可以在 `Core` 页面手动上传 release archive 或二进制进行离线安装。
+路由器需要能直接访问 GitHub Releases 和 release archive。私有仓库或受限网络环境可以在 `Settings` 中配置 GitHub token 或下载代理。Token 和代理值保存后不会在 LuCI 页面中回显，需要清除时请勾选对应清除选项。配置下载代理时需要安装 `curl`，否则 LuCI 会返回明确错误；也可以在 `Settings` 页面顶部手动上传 release archive 或二进制进行离线安装。
 
 ## 已知限制
 
@@ -174,7 +173,8 @@ uci commit dhcp
 - `更新内核` 只会安装严格更新的正式版本，不会降级已安装的较新或自定义构建；无法解析的版本号会被视为无需更新。
 - 替换内核或 WebUI 前会先完整暂存新文件并校验；复制失败时会恢复旧的内核二进制和 WebUI，避免留下新内核搭配缺失 WebUI 的状态。
 - `基本设置` 的 WebUI 入口根据配置文件中的 HTTP listen 地址生成；如果监听 `127.0.0.1`，LuCI 会保留链接并提示需要本机访问或 SSH 隧道。
-- 日志页优先读取配置文件中 `log.file` 指定的日志文件，默认为 `/tmp/oxidns/oxidns.log`；文件不存在或不可读时回退到 OpenWrt `logread`。日志页顶部的“日志路径”可修改日志目录，保存时会把 `log.file` 写入配置文件；服务正在运行时自动重启 OxiDNS 使设置生效。内核安装时默认写入 `/tmp/oxidns/oxidns.log`，重启后该目录会被清空。
+- 日志页优先读取配置文件中 `log.file` 指定的日志文件，默认为 `/tmp/oxidns/oxidns.log`；文件不存在或不可读时回退到 OpenWrt `logread`。`Settings` 中的“日志路径”可修改日志目录，保存设置时会把 `log.file` 写入配置文件；服务正在运行时自动重启 OxiDNS 使设置生效。内核安装时默认写入 `/tmp/oxidns/oxidns.log`，重启后该目录会被清空。
+- 配置页默认打开普通模式，覆盖日志、API/WebUI、监听地址、forward 上游和插件概览；其他选项请在高级模式中编辑。普通模式保存时会重新序列化配置，保留注释、字段顺序和表单未管理的字段，但可能轻微调整空白格式；高级模式按原文保存。
 - 可在 `Settings` 中关闭“写入系统日志”（默认开启），保存后需重启 OxiDNS 才会生效。LuCI 会停止服务，等待旧 procd 实例被移除（最多 10 秒），再启动新实例，以应用 stdout/stderr 设置。状态查询失败或停止超时时，重启会中止。替换正在运行的内核前也会执行相同的停止等待。
 - `基本设置` 上的服务操作（Start / Stop / Restart / Enable / Disable）始终会向系统日志写入一条以 `luci-app-oxidns` 为 tag 的审计记录，包含动作和成功或失败结果。内核未安装、init 脚本缺失或操作失败时同样会记录。这些记录可在 `logread` 原始输出和 LuCI 系统日志页看到；由于日志页只显示 `oxidns[PID]:` 格式的内核输出，审计记录不会出现在 OxiDNS 日志页。
 

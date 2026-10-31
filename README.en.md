@@ -23,11 +23,11 @@ opkg install /tmp/luci-i18n-oxidns-zh-cn_*.ipk
 OpenWrt 25.12:
 
 ```sh
-apk add --allow-untrusted /tmp/luci-app-oxidns_*.apk
+apk add --allow-untrusted /tmp/luci-app-oxidns-*.apk
 
 # Optional, install the Simplified Chinese language pack
 
-apk add --allow-untrusted /tmp/luci-i18n-oxidns-zh-cn_*.apk
+apk add --allow-untrusted /tmp/luci-i18n-oxidns-zh-cn-*.apk
 ```
 
 ### Build From Source
@@ -72,20 +72,20 @@ apk del oxidns
 ```
 
 1. Open `Services -> OxiDNS -> Settings` and confirm `Core repository` is `svenshi/oxidns` and `Core bundle` is `full`.
-2. Open `Services -> OxiDNS -> Core` and click `Install Core`. For offline installs, click `Upload Core` to upload an official `.tar.gz` archive or a single `oxidns` binary.
+2. In the `Core Actions` section at the top of the same page, click `Install Core`. For offline installs, click `Upload Core` to upload an official `.tar.gz` archive or a single `oxidns` binary.
 3. After installation succeeds, use `Basic Settings` to start and enable the service.
 
 LuCI selects the OxiDNS Linux musl release archive for the current CPU architecture, such as `oxidns-x86_64-unknown-linux-musl.tar.gz`. The GitHub release asset SHA256 digest is verified before installation.
 
 Note: the `full` and `standard` archives include the WebUI files, while the `minimal` archive does not; uploading a single `oxidns` binary does not install the WebUI either. When no WebUI is installed, LuCI rejects an uploaded `full` or `standard` core that lacks `webui/`, so a new binary cannot be left without its WebUI.
 
-When the core is already installed, the `Core` page offers `Update Core`, `Repair Reinstall`, `Install WebUI`, and `Upload Core`. `Update Core` checks the latest official release and only downloads and installs when a newer version exists, keeping the currently installed bundle. `Repair Reinstall` and `Upload Core` repair the binary or WebUI files by downloading the current installed version again or using an uploaded file. When the WebUI is missing, `Install WebUI` downloads the latest official release from GitHub and replaces both the core binary and `/usr/share/oxidns/webui`. It keeps the installed bundle when that is `full` or `standard`; otherwise it uses the bundle configured in `Settings`, falling back to `standard` when neither includes WebUI. The device must be able to reach GitHub, and existing configuration is preserved.
+When the core is already installed, the `Core Actions` section at the top of the `Settings` page offers `Update Core`, `Repair Reinstall`, `Install WebUI`, and `Upload Core`. `Update Core` checks the latest official release and only downloads and installs when a newer version exists, keeping the currently installed bundle. `Repair Reinstall` and `Upload Core` repair the binary or WebUI files by downloading the current installed version again or using an uploaded file. When the WebUI is missing, `Install WebUI` downloads the latest official release from GitHub and replaces both the core binary and `/usr/share/oxidns/webui`. It keeps the installed bundle when that is `full` or `standard`; otherwise it uses the bundle configured in `Settings`, falling back to `standard` when neither includes WebUI. The device must be able to reach GitHub, and existing configuration is preserved.
 
 ## Make OxiDNS The System DNS
 
 OxiDNS's `udp_server` / `tcp_server` plugins listen on `:5335` by default, while port 53 on OpenWrt belongs to dnsmasq, which also serves DHCP. The recommended setup keeps dnsmasq and lets it forward queries to OxiDNS, so LAN DHCP, `xxx.lan` hostnames and lease names keep working and clients need no changes.
 
-1. Open `Services -> OxiDNS -> Configuration`, make the two DNS servers listen on the loopback address only, save, and restart OxiDNS:
+1. Open `Services -> OxiDNS -> DNS Configuration`, make the two DNS servers listen on the loopback address only, save, and restart OxiDNS:
 
 ```yaml
   - tag: udp_server
@@ -139,10 +139,9 @@ Either way, never expose port 53 or 5335 to the WAN, or the router becomes an op
 ## Main Pages
 
 - `Basic Settings`: core, service, WebUI entry, config path, and working directory, with service controls.
-- `Core`: install, update, upload install, repair reinstall, install WebUI only, or remove the OxiDNS core binary.
-- `Configuration`: view, validate, and save the config file, and download it or upload a `config.yaml` to replace it.
-- `Settings`: configure core repository, bundle, proxy, config path, and working directory.
-- `Logs`: set the log file path and view runtime logs with refresh and pause controls.
+- `DNS Configuration`: edit common settings with the normal mode or the full YAML editor, validate and save the config, and download it or upload a `config.yaml` to replace it.
+- `Settings`: install, update, upload install, repair reinstall, install WebUI only, or remove the OxiDNS core binary at the top of the page; below that, configure core repository, bundle, config path, log path, working directory, and download credentials.
+- `Logs`: view runtime logs with refresh and pause controls.
 
 ## Default Paths
 
@@ -155,15 +154,15 @@ Either way, never expose port 53 or 5335 to the WAN, or the router becomes an op
 
 ## Upgrade And Remove
 
-To upgrade the OxiDNS core, click `Update Core` on the LuCI `Core` page; it checks the latest official release and installs it when a newer version exists. You can also use the upgrade feature built into OxiDNS itself, such as the core WebUI / API / CLI upgrade flow.
+To upgrade the OxiDNS core, click `Update Core` at the top of the LuCI `Settings` page; it checks the latest official release and installs it when a newer version exists. You can also use the upgrade feature built into OxiDNS itself, such as the core WebUI / API / CLI upgrade flow.
 
 To upgrade the LuCI app, download and install the newer `luci-app-oxidns` package. The LuCI UI does not provide self-upgrade.
 
-To remove the OxiDNS core, click `Remove Core` on the LuCI `Core` page. This stops and disables the service, removes `/usr/bin/oxidns` and `/usr/share/oxidns/webui`, and preserves `/etc/oxidns/config.yaml` and `/var/lib/oxidns`.
+To remove the OxiDNS core, click `Remove Core` at the top of the LuCI `Settings` page. This stops and disables the service, removes `/usr/bin/oxidns` and `/usr/share/oxidns/webui`, and preserves `/etc/oxidns/config.yaml` and `/var/lib/oxidns`.
 
 ## Private Repositories And Downloads
 
-The router must be able to reach GitHub Releases and release archives directly. For private repositories or restricted networks, configure a GitHub token or download proxy in `Settings`. Token and proxy values are never shown again after saving; use the matching clear option to remove them. A configured download proxy requires `curl`; otherwise LuCI returns a clear error. You can also use `Upload Core` on the `Core` page to install an archive or binary offline.
+The router must be able to reach GitHub Releases and release archives directly. For private repositories or restricted networks, configure a GitHub token or download proxy in `Settings`. Token and proxy values are never shown again after saving; use the matching clear option to remove them. A configured download proxy requires `curl`; otherwise LuCI returns a clear error. You can also use `Upload Core` at the top of the `Settings` page to install an archive or binary offline.
 
 ## Known Limitations
 
@@ -171,7 +170,8 @@ The router must be able to reach GitHub Releases and release archives directly. 
 - `Update Core` only installs strictly newer stable releases. It never downgrades a newer or custom installed build; versions that cannot be parsed are treated as needing no update.
 - Before replacing the core or WebUI, LuCI stages and verifies the new files. If a copy fails, the previous core binary and WebUI are restored, so a new binary is not left running without its WebUI.
 - The `Basic Settings` WebUI entry is generated from the HTTP listen address in the config file. If it listens on `127.0.0.1`, LuCI keeps the link and shows a hint that local access or an SSH tunnel is required.
-- The log page reads the log file configured as `log.file`, which defaults to `/tmp/oxidns/oxidns.log`, and falls back to OpenWrt `logread` when the file does not exist or is not readable. The "Log path" field at the top of the log page sets the log directory and writes `log.file` into the config file; when OxiDNS is running it is restarted so the setting takes effect. Core installation writes `/tmp/oxidns/oxidns.log` by default, which is cleared on reboot.
+- The log page reads the log file configured as `log.file`, which defaults to `/tmp/oxidns/oxidns.log`, and falls back to OpenWrt `logread` when the file does not exist or is not readable. The "Log path" field on the `Settings` page sets the log directory and writes `log.file` into the config file when settings are saved; when OxiDNS is running it is restarted so the setting takes effect. Core installation writes `/tmp/oxidns/oxidns.log` by default, which is cleared on reboot.
+- The Configuration page opens in normal mode, which covers log, API/WebUI, listen addresses, forward upstreams, and a plugin overview. Edit other options in Advanced mode. Saving from normal mode re-serializes the file: comments, field order, and fields the form does not manage are preserved, but whitespace formatting may be adjusted slightly. Saving from Advanced mode writes the text exactly as written.
 - `Settings` includes a "Write to system log" switch, enabled by default. OxiDNS must be restarted after saving a change. LuCI stops the service, waits up to 10 seconds for the old procd instance to be removed, and then starts a new instance so the stdout/stderr settings are applied. A failed state query or stop timeout aborts the restart. The same stop wait is used before replacing a running core.
 - Service actions on `Basic Settings` (Start / Stop / Restart / Enable / Disable) always write a `luci-app-oxidns` tagged audit record to the system log, including the action and whether it succeeded. It is written even when the core is not installed, the init script is missing, or the action fails. These records are visible in raw `logread` output and in the LuCI system log page; they do not appear on the OxiDNS log page, which only renders `oxidns[PID]:` output from the core.
 
