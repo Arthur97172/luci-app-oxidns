@@ -237,9 +237,7 @@ function handleServiceAction(action) {
 			ui.addNotification(null, E('p', {}, (result && (result.message || result.error)) || _('Service action failed')), 'danger');
 			return;
 		}
-		return refreshStatus().then(function() {
-			ui.addNotification(null, E('p', {}, _('Service action completed.')), 'info');
-		});
+		return refreshStatus();
 	}).catch(function(err) {
 		ui.hideModal();
 		ui.addNotification(null, E('p', {}, err.message || String(err)), 'danger');

@@ -71,9 +71,6 @@ msgstr ""
 msgid "Core bundle"
 msgstr ""
 
-msgid "Core operation completed."
-msgstr ""
-
 msgid "Core operation failed"
 msgstr ""
 
@@ -273,9 +270,6 @@ msgid "Saving settings..."
 msgstr ""
 
 msgid "Service"
-msgstr ""
-
-msgid "Service action completed."
 msgstr ""
 
 msgid "Service action failed"

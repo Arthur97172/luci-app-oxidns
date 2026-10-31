@@ -73,9 +73,6 @@ msgstr "内核状态"
 msgid "Core bundle"
 msgstr "内核 bundle"
 
-msgid "Core operation completed."
-msgstr "内核操作已完成。"
-
 msgid "Core operation failed"
 msgstr "内核操作失败"
 
@@ -279,9 +276,6 @@ msgstr "正在保存设置..."
 
 msgid "Service"
 msgstr "服务"
-
-msgid "Service action completed."
-msgstr "服务操作已完成。"
 
 msgid "Service action failed"
 msgstr "服务操作失败"

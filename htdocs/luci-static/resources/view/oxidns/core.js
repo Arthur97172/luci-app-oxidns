@@ -291,11 +291,12 @@ function runCoreAction(label, call, timeout) {
 			});
 		}
 
-		return progress.refresh().then(function() {
-			return L.resolveDefault(refreshStatus(), null).then(function() {
-				setCoreProgressFinished(nodes, _('Core operation completed.'), E('p', {}, _('Core operation completed.')));
-				ui.addNotification(null, E('p', {}, _('Core operation completed.')), 'info');
-			});
+		/* Success needs no acknowledgement: the refreshed page already shows
+		 * the new state, so drop the progress dialog instead of leaving it
+		 * open until the user finds its Close button. Failures below keep it
+		 * open, where the log and error details are the point. */
+		return L.resolveDefault(refreshStatus(), null).then(function() {
+			ui.hideModal();
 		});
 	}).catch(function(err) {
 		progress.stop();
