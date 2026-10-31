@@ -71,6 +71,9 @@ msgstr ""
 msgid "Core bundle"
 msgstr ""
 
+msgid "Core installed, but the uploaded file contains no WebUI files. Upload an official full or standard archive to install the WebUI."
+msgstr ""
+
 msgid "Core operation failed"
 msgstr ""
 
@@ -309,6 +312,9 @@ msgid "Stopped"
 msgstr ""
 
 msgid "Target"
+msgstr ""
+
+msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr ""
 
 msgid "Details"

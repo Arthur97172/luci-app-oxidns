@@ -80,6 +80,8 @@ apk del oxidns
 
 LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例如 `oxidns-x86_64-unknown-linux-musl.tar.gz`。安装时会校验 GitHub release asset 的 SHA256 digest。
 
+注意：`full` 和 `standard` 归档包含 WebUI 文件，`minimal` 归档不包含；上传单个 `oxidns` 二进制也不会安装 WebUI。需要 WebUI 时请上传官方 `full` 或 `standard` 归档。
+
 如果内核已经安装，`Core` 页面提供 `重新安装` 和 `Upload Core`，用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件；它不会安装 latest，也不会作为升级入口。
 
 ## 常用页面

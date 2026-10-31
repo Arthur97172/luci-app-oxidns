@@ -79,6 +79,8 @@ apk del oxidns
 
 LuCI selects the OxiDNS Linux musl release archive for the current CPU architecture, such as `oxidns-x86_64-unknown-linux-musl.tar.gz`. The GitHub release asset SHA256 digest is verified before installation.
 
+Note: the `full` and `standard` archives include the WebUI files, while the `minimal` archive does not; uploading a single `oxidns` binary does not install the WebUI either. Upload an official `full` or `standard` archive when you need the WebUI.
+
 When the core is already installed, the `Core` page offers `Repair Reinstall` and `Upload Core`, which repair the binary or WebUI files by downloading the current installed version again or using an uploaded file. It does not install latest and is not an upgrade entry point.
 
 ## Main Pages

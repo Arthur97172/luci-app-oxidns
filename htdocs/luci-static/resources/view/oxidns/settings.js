@@ -196,7 +196,11 @@ return view.extend({
 			E('div', { 'class': 'cbi-section' }, [
 				E('div', { 'class': 'table cbi-section-table' }, [
 					row(_('Core repository'), textInput('oxidns-setting-core-repository', settings.core_repository || 'svenshi/oxidns')),
-					row(_('Core bundle'), bundleSelect('oxidns-setting-core-bundle', settings.core_bundle || 'full')),
+					row(_('Core bundle'), E('div', {}, [
+						bundleSelect('oxidns-setting-core-bundle', settings.core_bundle || 'full'),
+						E('div', { 'class': 'cbi-value-description' },
+							_('The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not.'))
+					])),
 					row(_('Config path'), textInput('oxidns-setting-config-path', settings.config_path || '/etc/oxidns/config.yaml')),
 					row(_('Working directory'), textInput('oxidns-setting-working-dir', settings.working_dir || '/var/lib/oxidns')),
 					row(_('Write to system log'), E('div', {}, [

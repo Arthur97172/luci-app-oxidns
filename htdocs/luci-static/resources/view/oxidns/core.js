@@ -57,6 +57,10 @@ function coreInstalled(status) {
 	return !!(status && status.core && status.core.installed);
 }
 
+function webuiInstalled(status) {
+	return !!(status && status.webui && status.webui.installed);
+}
+
 function serviceRunning(status) {
 	return !!(status && status.service_status && status.service_status.running);
 }
@@ -279,7 +283,7 @@ function startCoreProgressPolling(logNode) {
 	};
 }
 
-function runCoreAction(label, call, timeout) {
+function runCoreAction(label, call, timeout, onSuccess) {
 	var nodes = showCoreProgressModal(label);
 	var progress = startCoreProgressPolling(nodes.log);
 
@@ -297,6 +301,8 @@ function runCoreAction(label, call, timeout) {
 		 * open, where the log and error details are the point. */
 		return L.resolveDefault(refreshStatus(), null).then(function() {
 			ui.hideModal();
+			if (typeof onSuccess === 'function')
+				onSuccess(result);
 		});
 	}).catch(function(err) {
 		progress.stop();
@@ -324,7 +330,10 @@ function handleUploadInstall() {
 	return ui.uploadFile(uploadPath).then(function() {
 		return runCoreAction(_('Installing uploaded OxiDNS core...'), function() {
 			return callCoreUploadInstall(uploadPath);
-		}, 300);
+		}, 300, function(result) {
+			if (result && result.webui_installed === false && !webuiInstalled(statusState))
+				ui.addNotification(null, E('p', {}, _('Core installed, but the uploaded file contains no WebUI files. Upload an official full or standard archive to install the WebUI.')), 'warning');
+		});
 	}).catch(function(err) {
 		if (err && err.message && err.message.indexOf(_('Upload has been cancelled')) >= 0)
 			return;
