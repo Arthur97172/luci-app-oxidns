@@ -6,10 +6,6 @@
 
 本仓库仅提供用于安装和管理 OxiDNS 的简单实现。欢迎其他开发者在此基础上扩展，或重新实现覆盖现有功能、提供更多功能的 LuCI 插件。
 
-## 你需要安装什么
-
-- `luci-app-oxidns`：LuCI 管理页面、rpcd 后端和 OpenWrt init 服务脚本。
-- `luci-i18n-oxidns-zh-cn`：可选简体中文语言包。
 
 ## 安装 LuCI 插件
 

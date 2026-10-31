@@ -6,11 +6,6 @@ Language: [中文](./README.md) | English
 
 This repository provides only a simple implementation for installing and managing OxiDNS. Other developers are welcome to extend it or build alternative LuCI plugins that cover the existing functionality and offer more features.
 
-## What To Install
-
-- `luci-app-oxidns`: LuCI pages, rpcd backend, and OpenWrt init service script.
-- `luci-i18n-oxidns-zh-cn`: optional Simplified Chinese translation package.
-
 ## Install The LuCI App
 
 The recommended path is to download the corresponding LuCI package from this repository's Releases and install it manually. Upload the package to the device (for example, `/tmp`), then install it:
