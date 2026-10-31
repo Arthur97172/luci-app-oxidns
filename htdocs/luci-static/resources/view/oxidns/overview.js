@@ -2,6 +2,7 @@
 'require view';
 'require rpc';
 'require ui';
+'require oxidns.i18n as i18n';
 'require poll';
 
 var callStatus = rpc.declare({
@@ -94,8 +95,8 @@ function webuiHint(status) {
 		if (!coreInstalled(status))
 			return _('Install the OxiDNS core before using WebUI.');
 		if (status.core && status.core.bundle === 'minimal')
-			return _('The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI.');
-		return _('WebUI files are not installed. Install them from the Core page using Install WebUI.');
+			return _('The installed minimal core bundle does not include WebUI files. Install WebUI on the Settings page to replace it with a bundle that includes WebUI.');
+		return _('WebUI files are not installed. Install them from the Settings page using Install WebUI.');
 	}
 	if (!serviceRunning(status))
 		return _('Start the OxiDNS service before opening WebUI.');
@@ -239,7 +240,7 @@ function handleServiceAction(action) {
 	return L.resolveDefault(call(), null).then(function(result) {
 		ui.hideModal();
 		if (!result || result.ok === false) {
-			ui.addNotification(null, E('p', {}, (result && (result.message || result.error)) || _('Service action failed')), 'danger');
+			ui.addNotification(null, E('p', {}, i18n.message(result) || _('Service action failed')), 'danger');
 			return;
 		}
 		return refreshStatus();
@@ -345,15 +346,12 @@ return view.extend({
 		];
 
 		if (status.error)
-			rows.push(renderRow(_('Error'), status.error));
+			rows.push(renderRow(_('Error'), i18n.translate(status.error)));
 
 		serviceActionsKey = serviceActionStateKey(statusState);
 		poll.add(refreshStatus, 5);
 
 		return E('div', { 'class': 'cbi-map' }, [
-			E('h2', {}, _('OxiDNS')),
-			E('div', { 'class': 'cbi-map-descr' },
-				_('Manage the OxiDNS runtime, service, configuration, and logs from LuCI.')),
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Basic Settings')),
 				E('div', { 'class': 'table cbi-section-table' }, rows)
@@ -365,7 +363,7 @@ return view.extend({
 				E('div', {
 					'id': 'oxidns-service-actions',
 					'class': 'cbi-button-row',
-					'style': 'display: flex; flex-wrap: wrap; gap: .5em; padding-inline: var(--section-inset, .75em); padding-bottom: var(--field-gap, 1em);'
+					'style': 'display: flex; flex-wrap: wrap; gap: .5em; padding-inline: var(--section-inset, 0); padding-bottom: var(--field-gap, 1em);'
 				}, serviceActionButtons(statusState))
 			])
 		]);

@@ -11,10 +11,16 @@ msgstr ""
 msgid "A token is currently configured. Enter a new value to replace it."
 msgstr ""
 
-msgid "Actions"
+msgid "Add upstream DNS"
+msgstr ""
+
+msgid "API"
 msgstr ""
 
 msgid "Applying service action..."
+msgstr ""
+
+msgid "Arguments"
 msgstr ""
 
 msgid "Available"
@@ -23,16 +29,13 @@ msgstr ""
 msgid "Basic Settings"
 msgstr ""
 
-msgid "Binary path"
-msgstr ""
-
 msgid "Build"
 msgstr ""
 
 msgid "Cancel"
 msgstr ""
 
-msgid "Bundle"
+msgid "Change Preview"
 msgstr ""
 
 msgid "Checking for OxiDNS core updates..."
@@ -56,25 +59,16 @@ msgstr ""
 msgid "Config path"
 msgstr ""
 
-msgid "Configuration"
-msgstr ""
-
 msgid "Configuration and working directory data are preserved unless selected below."
 msgstr ""
 
 msgid "Configuration downloaded."
 msgstr ""
 
-msgid "Configure OxiDNS core download sources, runtime paths, and optional download credentials."
-msgstr ""
-
 msgid "Confirm"
 msgstr ""
 
 msgid "Core"
-msgstr ""
-
-msgid "Core Status"
 msgstr ""
 
 msgid "Core bundle"
@@ -87,6 +81,9 @@ msgid "Core operation failed"
 msgstr ""
 
 msgid "Core repository"
+msgstr ""
+
+msgid "Define which address and entry the UDP and TCP server plugins listen on."
 msgstr ""
 
 msgid "Delete configuration file"
@@ -108,9 +105,6 @@ msgid "Download core archive"
 msgstr ""
 
 msgid "Download release metadata"
-msgstr ""
-
-msgid "Edit, validate, and save the full OxiDNS YAML configuration file."
 msgstr ""
 
 msgid "Enable on boot"
@@ -146,9 +140,6 @@ msgstr ""
 msgid "Install core files"
 msgstr ""
 
-msgid "Install it from Services → OxiDNS → Core, then return to this page."
-msgstr ""
-
 msgid "Install the OxiDNS core before editing the configuration."
 msgstr ""
 
@@ -156,9 +147,6 @@ msgid "Install the OxiDNS core before using service controls."
 msgstr ""
 
 msgid "Install the OxiDNS core before using WebUI."
-msgstr ""
-
-msgid "Install, update, or repair the OxiDNS core binary."
 msgstr ""
 
 msgid "Installed"
@@ -179,12 +167,6 @@ msgstr ""
 msgid "Log path is required."
 msgstr ""
 
-msgid "Log path saved."
-msgstr ""
-
-msgid "Log path saved. OxiDNS service restarted."
-msgstr ""
-
 msgid "Logs"
 msgstr ""
 
@@ -192,9 +174,6 @@ msgid "LuCI backend"
 msgstr ""
 
 msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI downloads the latest official release and replaces the core binary together with the WebUI files."
-msgstr ""
-
-msgid "Manage the OxiDNS runtime, service, configuration, and logs from LuCI."
 msgstr ""
 
 msgid "No"
@@ -218,22 +197,10 @@ msgstr ""
 msgid "OxiDNS"
 msgstr ""
 
-msgid "OxiDNS Configuration"
-msgstr ""
-
-msgid "OxiDNS Core"
-msgstr ""
-
 msgid "OxiDNS core and WebUI installed: %s (%s)."
 msgstr ""
 
 msgid "OxiDNS core is already up to date."
-msgstr ""
-
-msgid "OxiDNS Logs"
-msgstr ""
-
-msgid "OxiDNS Settings"
 msgstr ""
 
 msgid "OxiDNS is already disabled on boot."
@@ -249,9 +216,6 @@ msgid "OxiDNS is already stopped."
 msgstr ""
 
 msgid "OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Saving restarts OxiDNS when it is running."
-msgstr ""
-
-msgid "Path"
 msgstr ""
 
 msgid "Pause"
@@ -284,6 +248,9 @@ msgstr ""
 msgid "Repair reinstalling OxiDNS core..."
 msgstr ""
 
+msgid "Reset"
+msgstr ""
+
 msgid "Restart"
 msgstr ""
 
@@ -299,13 +266,16 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
+msgid "Save and Apply"
+msgstr ""
+
 msgid "Save Settings"
 msgstr ""
 
-msgid "Saving configuration..."
+msgid "Saving and applying configuration..."
 msgstr ""
 
-msgid "Saving log path..."
+msgid "Saving configuration..."
 msgstr ""
 
 msgid "Saving settings..."
@@ -323,7 +293,13 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
+msgid "Settings saved, but the log path could not be checked."
+msgstr ""
+
 msgid "Settings saved."
+msgstr ""
+
+msgid "Settings saved. OxiDNS was restarted to apply the log path."
 msgstr ""
 
 msgid "Select release archive"
@@ -350,9 +326,6 @@ msgstr ""
 msgid "Stopped"
 msgstr ""
 
-msgid "Target"
-msgstr ""
-
 msgid "The file must be named config.yaml."
 msgstr ""
 
@@ -362,19 +335,82 @@ msgstr ""
 msgid "The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page."
 msgstr ""
 
-msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI."
+msgid "Details"
 msgstr ""
 
-msgid "Details"
+msgid "Entry"
+msgstr ""
+
+msgid "HTTP listen"
+msgstr ""
+
+msgid "Leave empty to stop writing to a log file."
+msgstr ""
+
+msgid "Listen"
+msgstr ""
+
+msgid "Listen Addresses"
+msgstr ""
+
+msgid "Log"
+msgstr ""
+
+msgid "Log file"
+msgstr ""
+
+msgid "Log level"
+msgstr ""
+
+msgid "No changes."
+msgstr ""
+
+msgid "No forward plugins were found."
+msgstr ""
+
+msgid "No plugins are configured."
+msgstr ""
+
+msgid "No UDP or TCP server plugins were found."
+msgstr ""
+
+msgid "No upstream servers configured."
+msgstr ""
+
+msgid "Plugin"
+msgstr ""
+
+msgid "Plugins"
+msgstr ""
+
+msgid "Queries are forwarded to these upstream servers."
+msgstr ""
+
+msgid "Remove"
+msgstr ""
+
+msgid "Show change preview"
+msgstr ""
+
+msgid "Tag"
+msgstr ""
+
+msgid "The configuration file is empty."
+msgstr ""
+
+msgid "The forward plugin %s needs at least one upstream server."
+msgstr ""
+
+msgid "The YAML is invalid: %s"
+msgstr ""
+
+msgid "Type"
 msgstr ""
 
 msgid "Unable to query OxiDNS status"
 msgstr ""
 
 msgid "Unable to load configuration."
-msgstr ""
-
-msgid "Unable to load the log path."
 msgstr ""
 
 msgid "Unable to read the selected file."
@@ -387,6 +423,9 @@ msgid "Upload Config"
 msgstr ""
 
 msgid "Upload has been cancelled"
+msgstr ""
+
+msgid "Unsaved changes were discarded."
 msgstr ""
 
 msgid "Update Core"
@@ -413,28 +452,31 @@ msgstr ""
 msgid "Unpack core archive"
 msgstr ""
 
+msgid "Upstream address"
+msgstr ""
+
+msgid "Upstream address %d of the forward plugin %s cannot be empty."
+msgstr ""
+
+msgid "Upstream DNS"
+msgstr ""
+
 msgid "Verify checksum"
 msgstr ""
 
 msgid "Verify release digest"
 msgstr ""
 
-msgid "Version"
-msgstr ""
-
-msgid "View recent OxiDNS log entries."
-msgstr ""
-
 msgid "WebUI"
-msgstr ""
-
-msgid "WebUI files are not installed. Install them from the Core page using Install WebUI."
 msgstr ""
 
 msgid "WebUI listens on loopback only. Configure the HTTP listen address to a LAN-reachable address, or use an SSH tunnel."
 msgstr ""
 
 msgid "Waiting for command output..."
+msgstr ""
+
+msgid "WebUI root"
 msgstr ""
 
 msgid "Working directory"
@@ -450,4 +492,346 @@ msgid "YAML"
 msgstr ""
 
 msgid "Yes"
+msgstr ""
+
+msgid "Core Actions"
+msgstr ""
+
+msgid "DNS Configuration"
+msgstr ""
+
+msgid "Install it from Services → OxiDNS → Settings, then return to this page."
+msgstr ""
+
+msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Settings page to replace it with a bundle that includes WebUI."
+msgstr ""
+
+msgid "WebUI files are not installed. Install them from the Settings page using Install WebUI."
+msgstr ""
+
+msgid "A download proxy is configured, but curl is not installed. Install curl or clear the download proxy."
+msgstr ""
+
+msgid "Another OxiDNS core operation is already running."
+msgstr ""
+
+msgid "Configuration content is required."
+msgstr ""
+
+msgid "Configuration file not found."
+msgstr ""
+
+msgid "Configuration is valid."
+msgstr ""
+
+msgid "Configuration saved, but service restart failed: %s"
+msgstr ""
+
+msgid "Configuration saved, but the init script was not found."
+msgstr ""
+
+msgid "Configuration saved."
+msgstr ""
+
+msgid "Configuration saved. OxiDNS was restarted."
+msgstr ""
+
+msgid "Failed to download the OxiDNS core archive."
+msgstr ""
+
+msgid "Failed to fetch OxiDNS release metadata."
+msgstr ""
+
+msgid "Failed to install the OxiDNS core files; the existing installation was left unchanged."
+msgstr ""
+
+msgid "Failed to install the uploaded core files; the existing installation was left unchanged."
+msgstr ""
+
+msgid "Failed to prepare the core operation lock directory."
+msgstr ""
+
+msgid "Failed to preserve the configuration before removing the working directory."
+msgstr ""
+
+msgid "Failed to save the OxiDNS settings."
+msgstr ""
+
+msgid "Failed to stage the OxiDNS WebUI files."
+msgstr ""
+
+msgid "Failed to unpack the OxiDNS core archive."
+msgstr ""
+
+msgid "Failed to unpack the uploaded OxiDNS archive."
+msgstr ""
+
+msgid "Init script not found: %s"
+msgstr ""
+
+msgid "Log directory is required."
+msgstr ""
+
+msgid "Log path saved, but service restart failed: %s"
+msgstr ""
+
+msgid "Log path saved, but the init script was not found."
+msgstr ""
+
+msgid "Log path saved."
+msgstr ""
+
+msgid "Log path saved. OxiDNS was restarted."
+msgstr ""
+
+msgid "No configuration content or file is available."
+msgstr ""
+
+msgid "Refusing to delete an unsafe configuration path."
+msgstr ""
+
+msgid "Refusing to delete an unsafe working directory."
+msgstr ""
+
+msgid "Remove configuration"
+msgstr ""
+
+msgid "Remove working directory"
+msgstr ""
+
+msgid "Service action failed."
+msgstr ""
+
+msgid "Service restart failed."
+msgstr ""
+
+msgid "Service stop failed."
+msgstr ""
+
+msgid "Settings values must be single-line strings."
+msgstr ""
+
+msgid "Stop service"
+msgstr ""
+
+msgid "Tar extraction failed."
+msgstr ""
+
+msgid "The GitHub token must be a single-line value."
+msgstr ""
+
+msgid "The OxiDNS configuration file was not found."
+msgstr ""
+
+msgid "The OxiDNS core archive SHA256 does not match the release digest."
+msgstr ""
+
+msgid "The OxiDNS core archive contains unsafe paths or links."
+msgstr ""
+
+msgid "The OxiDNS core archive does not contain an oxidns binary."
+msgstr ""
+
+msgid "The OxiDNS core archive does not contain config.yaml."
+msgstr ""
+
+msgid "The OxiDNS core is already installed. Use Repair Reinstall instead."
+msgstr ""
+
+msgid "The OxiDNS core is not installed or cannot report its version."
+msgstr ""
+
+msgid "The OxiDNS release archive does not contain WebUI files."
+msgstr ""
+
+msgid "The config path must be an absolute OxiDNS-related file path."
+msgstr ""
+
+msgid "The configuration file changed since it was loaded. Reload it and try again."
+msgstr ""
+
+msgid "The core bundle must be one of full, standard, or minimal."
+msgstr ""
+
+msgid "The core repository contains unsupported characters."
+msgstr ""
+
+msgid "The core repository must use the owner/repo format."
+msgstr ""
+
+msgid "The core was installed, but the service restart failed."
+msgstr ""
+
+msgid "The core was not replaced because the service could not be stopped."
+msgstr ""
+
+msgid "The current CPU architecture does not match a published OxiDNS Linux musl release."
+msgstr ""
+
+msgid "The log directory is not writable."
+msgstr ""
+
+msgid "The log directory must be an absolute OxiDNS-related directory path."
+msgstr ""
+
+msgid "The release config.yaml cannot be adapted for OpenWrt defaults."
+msgstr ""
+
+msgid "The selected OxiDNS release asset does not include a valid SHA256 digest."
+msgstr ""
+
+msgid "The selected OxiDNS release does not contain the required archive."
+msgstr ""
+
+msgid "The system log setting must be 0 or 1."
+msgstr ""
+
+msgid "The uci command was not found."
+msgstr ""
+
+msgid "The uploaded archive contains unsafe paths or links."
+msgstr ""
+
+msgid "The uploaded archive does not contain an oxidns binary."
+msgstr ""
+
+msgid "The uploaded config.yaml cannot be adapted for OpenWrt defaults."
+msgstr ""
+
+msgid "The uploaded core does not contain WebUI files."
+msgstr ""
+
+msgid "The uploaded file must be a readable /tmp/oxidns-core-upload-* file."
+msgstr ""
+
+msgid "The uploaded oxidns binary cannot report build information."
+msgstr ""
+
+msgid "The working directory must be an absolute OxiDNS-related directory path."
+msgstr ""
+
+msgid "Unable to create the log directory."
+msgstr ""
+
+msgid "Unable to update the configuration file."
+msgstr ""
+
+msgid "Unknown"
+msgstr ""
+
+msgid "%s exited with code %s: %s"
+msgstr ""
+
+msgid "Failed to fetch release assets from github.com."
+msgstr ""
+
+msgid "Failed to resolve the latest release tag from github.com."
+msgstr ""
+
+msgid "None of curl, uclient-fetch, or wget is installed."
+msgstr ""
+
+msgid "The github.com release page does not contain a SHA256 digest for %s."
+msgstr ""
+
+msgid "The release tag cannot be used in a github.com URL: %s."
+msgstr ""
+
+msgid "Unknown download error."
+msgstr ""
+
+msgid "jsonfilter is not installed or unavailable; wanted asset=%s repository=%s release=%s."
+msgstr ""
+
+msgid "Advanced Mode"
+msgstr ""
+
+msgid "Normal Mode"
+msgstr ""
+
+msgid "Advanced mode saves the text exactly as written. Normal mode rewrites only the fields it manages."
+msgstr ""
+
+msgid "Edit the OxiDNS configuration with form-based editing, or use the full YAML editor."
+msgstr ""
+
+msgid "Normal mode covers common settings only. Use Advanced Mode to edit plugins and options not listed here."
+msgstr ""
+
+msgid "Normal mode edits common settings and keeps the remaining YAML, including comments, unchanged."
+msgstr ""
+
+msgid "Normal mode is unavailable: %s"
+msgstr ""
+
+msgid "Normal mode needs valid YAML. Fix the YAML in advanced mode first."
+msgstr ""
+
+msgid "360 Public DNS (DNS over HTTPS)"
+msgstr ""
+
+msgid "Aliyun Public DNS (223.5.5.5)"
+msgstr ""
+
+msgid "Aliyun Public DNS (223.6.6.6)"
+msgstr ""
+
+msgid "Aliyun Public DNS (DNS over HTTPS)"
+msgstr ""
+
+msgid "Aliyun Public DNS (DNS over QUIC)"
+msgstr ""
+
+msgid "Baidu Public DNS (180.76.76.76)"
+msgstr ""
+
+msgid "Cisco Public DNS (208.67.220.220)"
+msgstr ""
+
+msgid "Cisco Public DNS (208.67.222.222)"
+msgstr ""
+
+msgid "Cloudflare Public DNS (1.0.0.1)"
+msgstr ""
+
+msgid "Cloudflare Public DNS (1.1.1.1)"
+msgstr ""
+
+msgid "Cloudflare Public DNS (DNS over HTTPS)"
+msgstr ""
+
+msgid "Enter a custom upstream address"
+msgstr ""
+
+msgid "Google Public DNS (8.8.4.4)"
+msgstr ""
+
+msgid "Google Public DNS (8.8.8.8)"
+msgstr ""
+
+msgid "Google Public DNS (DNS over HTTPS)"
+msgstr ""
+
+msgid "Quad9 Public DNS (149.112.112.112)"
+msgstr ""
+
+msgid "Quad9 Public DNS (9.9.9.9)"
+msgstr ""
+
+msgid "Quad9 Public DNS (DNS over HTTPS)"
+msgstr ""
+
+msgid "Select an upstream DNS server"
+msgstr ""
+
+msgid "Tencent Public DNS (119.28.28.28)"
+msgstr ""
+
+msgid "Tencent Public DNS (119.29.29.29)"
+msgstr ""
+
+msgid "Tencent Public DNS (DNS over HTTPS)"
+msgstr ""
+
+msgid "Xinfeng Public DNS (114.114.114.114)"
 msgstr ""

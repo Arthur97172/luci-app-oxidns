@@ -23,7 +23,7 @@ This repository does not contain the OxiDNS Rust core source code, and it does n
 
 - `root/usr/share/oxidns/targets.json` is an interface contract for mapping OpenWrt device architectures to OxiDNS release targets.
 - Frontend pages must call system operations through the rpcd backend. Do not perform shell/system actions directly in LuCI JavaScript.
-- The configuration page is a full YAML editor. It may edit any part of the OxiDNS config, including plugin configuration, but must validate through the rpcd backend before saving.
+- The configuration page has two modes. Guided mode edits common settings through forms and must keep the rest of the YAML, including comments, unchanged. Advanced mode is a full YAML editor that may edit any part of the OxiDNS config, including plugin configuration. Both modes must validate through the rpcd backend before saving.
 - GitHub tokens and other secrets must not be echoed to UI, logs, or RPC error messages.
 - Development must consider both OpenWrt LuCI package environments: `opkg` / `ipk` on older releases and `apk` / `apk` packages on newer releases. LuCI app package build, install, upgrade, removal, validation, and LuCI Software upload behavior should remain compatible with both unless a change explicitly scopes one environment out.
 

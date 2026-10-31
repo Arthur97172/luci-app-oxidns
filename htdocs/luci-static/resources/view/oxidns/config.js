@@ -2,6 +2,9 @@
 'require view';
 'require rpc';
 'require ui';
+'require oxidns.yaml as yaml';
+'require view.oxidns.config-guided as guided';
+'require oxidns.i18n as i18n';
 
 var callConfigRead = rpc.declare({
 	object: 'luci.oxidns',
@@ -29,18 +32,27 @@ var callConfigSave = rpc.declare({
 	expect: {}
 });
 
-var configState = {};
+var DIFF_MAX_LINES = 800;
+var DIFF_CONTEXT = 3;
+
+var state = {
+	raw: '',
+	doc: null,
+	parseError: null,
+	serializeError: null,
+	mtime: '',
+	mode: 'guided',
+	preview: true,
+	bindings: [],
+	advancedDraft: ''
+};
+
+var previewTimer = null;
 
 function loadErrorMessage(err) {
 	if (err && (err.message || err.error))
 		return err.message || err.error;
 	return _('Unable to load configuration.');
-}
-
-function valueOrDash(value) {
-	if (value === null || value === undefined || value === '')
-		return '-';
-	return value;
 }
 
 function coreInstalled(status) {
@@ -49,7 +61,7 @@ function coreInstalled(status) {
 
 function textareaValue() {
 	var textarea = document.getElementById('oxidns-config-content');
-	return textarea ? textarea.value : '';
+	return textarea ? textarea.value : state.advancedDraft;
 }
 
 function setStatus(message, danger) {
@@ -60,18 +72,66 @@ function setStatus(message, danger) {
 	node.className = danger ? 'alert-message error' : 'alert-message info';
 }
 
-function configTextarea(content) {
-	var value = content || '';
-	var textarea = E('textarea', {
-		'id': 'oxidns-config-content',
-		'class': 'cbi-input-textarea',
-		'style': 'width: 100%; min-height: 420px; font-family: monospace;',
-		'spellcheck': 'false'
-	});
+function parseContent(content) {
+	state.doc = null;
+	state.parseError = null;
 
-	textarea.defaultValue = value;
-	textarea.value = value;
-	return textarea;
+	try {
+		var doc = yaml.parseDocument(content || '');
+
+		if (doc.errors && doc.errors.length) {
+			state.parseError = doc.errors[0].message || String(doc.errors[0]);
+		}
+		else if (!doc.contents) {
+			state.parseError = _('The configuration file is empty.');
+		}
+		else {
+			state.doc = doc;
+		}
+	}
+	catch (err) {
+		state.parseError = err && err.message ? err.message : String(err);
+	}
+
+	return !state.parseError;
+}
+
+function guidedContent() {
+	state.serializeError = null;
+
+	if (!state.doc)
+		return state.raw;
+
+	guided.apply(state.doc, state.bindings);
+
+	try {
+		return state.doc.toString({ lineWidth: 0 });
+	}
+	catch (err) {
+		state.serializeError = err && err.message ? err.message : String(err);
+		return state.raw;
+	}
+}
+
+function currentContent() {
+	if (state.mode === 'advanced')
+		return textareaValue();
+
+	return guidedContent();
+}
+
+function guidedProblems() {
+	if (state.mode !== 'guided' || !state.doc)
+		return [];
+
+	guided.apply(state.doc, state.bindings);
+
+	var problems = typeof guided.validate === 'function' ? guided.validate(state.doc) : [];
+
+	if (problems.length)
+		setStatus(problems.join(' '), true);
+
+	return problems;
 }
 
 function runConfigCall(label, call, args, onSuccess) {
@@ -82,12 +142,12 @@ function runConfigCall(label, call, args, onSuccess) {
 	return L.resolveDefault(call.apply(null, args || []), null).then(function(result) {
 		ui.hideModal();
 		if (!result || result.ok === false) {
-			setStatus((result && (result.message || result.error)) || _('Operation failed'), true);
+			setStatus(i18n.message(result) || _('Operation failed'), true);
 			return;
 		}
 		if (onSuccess)
 			onSuccess(result);
-		setStatus(result.message || _('Operation completed.'), false);
+		setStatus(i18n.message(result) || _('Operation completed.'), false);
 	}).catch(function(err) {
 		ui.hideModal();
 		setStatus(err.message || String(err), true);
@@ -95,27 +155,63 @@ function runConfigCall(label, call, args, onSuccess) {
 }
 
 function validateYaml() {
+	var content = currentContent();
+
+	if (state.serializeError) {
+		setStatus(state.serializeError, true);
+		return Promise.resolve();
+	}
+
+	if (guidedProblems().length)
+		return Promise.resolve();
+
 	return runConfigCall(_('Validating configuration...'), callConfigValidate, [
-		textareaValue()
+		content
 	]);
 }
 
-function saveYaml() {
-	return runConfigCall(_('Saving configuration...'), callConfigSave, [
-		textareaValue(),
-		configState.mtime,
-		false
+function saveYaml(restart) {
+	var content = currentContent();
+
+	if (state.serializeError) {
+		setStatus(state.serializeError, true);
+		return Promise.resolve();
+	}
+
+	if (guidedProblems().length)
+		return Promise.resolve();
+
+	return runConfigCall(restart ? _('Saving and applying configuration...') : _('Saving configuration...'), callConfigSave, [
+		content,
+		state.mtime,
+		!!restart
 	], function(result) {
-		configState.mtime = result.mtime;
+		state.mtime = result.mtime !== undefined ? result.mtime : state.mtime;
+		applySavedContent(content);
 	});
 }
 
-function setTextareaValue(value) {
-	var textarea = document.getElementById('oxidns-config-content');
-	if (!textarea)
-		return;
-	textarea.value = value;
-	textarea.defaultValue = value;
+function resetYaml() {
+	state.serializeError = null;
+	state.advancedDraft = state.raw;
+
+	if (!parseContent(state.raw))
+		state.mode = 'advanced';
+
+	updateModeButtons();
+	renderBody();
+	setStatus(_('Unsaved changes were discarded.'), false);
+}
+
+function applySavedContent(content) {
+	state.raw = content;
+	state.advancedDraft = content;
+
+	if (state.mode === 'guided' && !parseContent(content))
+		state.mode = 'advanced';
+
+	updateModeButtons();
+	renderBody();
 }
 
 function downloadYaml() {
@@ -165,11 +261,11 @@ function uploadYaml(file) {
 	return readTextFile(file).then(function(content) {
 		return runConfigCall(_('Uploading configuration...'), callConfigSave, [
 			content,
-			configState.mtime,
+			state.mtime,
 			false
 		], function(result) {
-			configState.mtime = result.mtime;
-			setTextareaValue(content);
+			state.mtime = result.mtime !== undefined ? result.mtime : state.mtime;
+			applySavedContent(content);
 		});
 	}).catch(function(err) {
 		setStatus(err.message || String(err), true);
@@ -200,6 +296,311 @@ function uploadInput() {
 	]);
 }
 
+function diffText(value) {
+	/* The YAML serializer always ends with a newline; ignore that difference. */
+	return String(value || '').replace(/\r\n/g, '\n').replace(/\s+$/, '');
+}
+
+function diffLines(oldText, newText) {
+	oldText = diffText(oldText);
+	newText = diffText(newText);
+
+	if (oldText === newText)
+		return [];
+
+	var before = oldText.split('\n');
+	var after = newText.split('\n');
+
+	if (before.length > DIFF_MAX_LINES || after.length > DIFF_MAX_LINES)
+		return [];
+
+	var n = before.length;
+	var m = after.length;
+	var table = [];
+	var i, j;
+
+	for (i = 0; i <= n; i++)
+		table.push(new Uint32Array(m + 1));
+
+	for (i = n - 1; i >= 0; i--) {
+		for (j = m - 1; j >= 0; j--) {
+			table[i][j] = before[i] === after[j]
+				? table[i + 1][j + 1] + 1
+				: Math.max(table[i + 1][j], table[i][j + 1]);
+		}
+	}
+
+	var lines = [];
+	i = 0;
+	j = 0;
+
+	while (i < n && j < m) {
+		if (before[i] === after[j]) {
+			lines.push({ 'type': 'ctx', 'text': before[i] });
+			i++;
+			j++;
+		}
+		else if (table[i + 1][j] >= table[i][j + 1]) {
+			lines.push({ 'type': 'del', 'text': before[i] });
+			i++;
+		}
+		else {
+			lines.push({ 'type': 'add', 'text': after[j] });
+			j++;
+		}
+	}
+
+	while (i < n)
+		lines.push({ 'type': 'del', 'text': before[i++] });
+	while (j < m)
+		lines.push({ 'type': 'add', 'text': after[j++] });
+
+	return compactDiff(lines, DIFF_CONTEXT);
+}
+
+function compactDiff(lines, context) {
+	var keep = [];
+
+	lines.forEach(function(line, index) {
+		if (line.type === 'ctx')
+			return;
+
+		var from = Math.max(0, index - context);
+		var to = Math.min(lines.length - 1, index + context);
+
+		for (var i = from; i <= to; i++)
+			keep[i] = true;
+	});
+
+	var result = [];
+
+	for (var i = 0; i < lines.length; i++) {
+		if (keep[i]) {
+			result.push(lines[i]);
+		}
+		else if (result.length && result[result.length - 1].type !== 'gap') {
+			result.push({ 'type': 'gap', 'text': '…' });
+		}
+	}
+
+	return result;
+}
+
+function schedulePreview() {
+	if (previewTimer)
+		window.clearTimeout(previewTimer);
+
+	previewTimer = window.setTimeout(function() {
+		previewTimer = null;
+		updatePreview();
+	}, 250);
+}
+
+function updatePreview() {
+	var node = document.getElementById('oxidns-config-preview-body');
+	if (!node)
+		return;
+
+	while (node.firstChild)
+		node.removeChild(node.firstChild);
+
+	if (!state.preview)
+		return;
+
+	var lines = diffLines(state.raw, currentContent());
+
+	if (!lines.length) {
+		node.appendChild(E('div', { 'class': 'cbi-value-description' }, _('No changes.')));
+		return;
+	}
+
+	node.appendChild(E('pre', {
+		'style': 'margin: 0; padding: .5em; overflow: auto; max-height: 24em; font-size: .9em; font-family: monospace; border: 1px solid var(--border-color-medium, rgba(128,128,128,.35)); border-radius: var(--radius-control, 4px); background: var(--background-color-low, var(--background-color-medium, transparent)); color: var(--text-color-high, var(--text-color, inherit));'
+	}, lines.map(function(line) {
+		var prefix = line.type === 'add' ? '+ ' : line.type === 'del' ? '- ' : line.type === 'gap' ? '' : '  ';
+		var style = line.type === 'add'
+			? 'background: rgba(40,160,80,.18);'
+			: line.type === 'del'
+				? 'background: rgba(200,60,60,.18);'
+				: line.type === 'gap'
+					? 'opacity: .6;'
+					: '';
+
+		return E('div', { 'style': style }, prefix + line.text);
+	})));
+}
+
+function previewSection() {
+	return E('div', { 'class': 'cbi-section', 'style': 'margin-top: 1em;' }, [
+		E('h3', {}, _('Change Preview')),
+		E('label', { 'style': 'display: inline-flex; gap: .5em; align-items: center; padding-inline: var(--section-inset, 0);' }, [
+			E('input', {
+				'id': 'oxidns-config-preview-toggle',
+				'type': 'checkbox',
+				'style': 'position: static; top: auto; right: auto; margin: 0;',
+				'checked': state.preview ? 'checked' : null,
+				'change': function(ev) {
+					state.preview = !!ev.target.checked;
+					updatePreview();
+				}
+			}),
+			_('Show change preview')
+		]),
+		E('div', { 'id': 'oxidns-config-preview-body', 'style': 'margin-top: .75em; padding-inline: var(--section-inset, 0);' })
+	]);
+}
+
+function advancedSection() {
+	var textarea = E('textarea', {
+		'id': 'oxidns-config-content',
+		'class': 'cbi-input-textarea',
+		'style': 'width: 100%; min-height: 420px; font-family: monospace;',
+		'spellcheck': 'false',
+		'input': function(ev) {
+			state.advancedDraft = ev.target.value;
+		}
+	});
+
+	textarea.value = state.advancedDraft;
+	textarea.defaultValue = state.advancedDraft;
+
+	return E('div', { 'class': 'cbi-section' }, [
+		E('h3', {}, _('YAML')),
+		E('div', { 'class': 'cbi-section-descr' },
+			_('Advanced mode saves the text exactly as written. Normal mode rewrites only the fields it manages.')),
+		textarea
+	]);
+}
+
+function modeButton(mode, label) {
+	return E('button', {
+		'id': 'oxidns-mode-' + mode,
+		'class': 'btn cbi-button ' + (state.mode === mode ? 'cbi-button-action' : 'cbi-button-neutral'),
+		'click': function(ev) {
+			ev.preventDefault();
+			switchMode(mode);
+		}
+	}, label);
+}
+
+function updateModeButtons() {
+	var guidedButton = document.getElementById('oxidns-mode-guided');
+	var advancedButton = document.getElementById('oxidns-mode-advanced');
+
+	if (guidedButton)
+		guidedButton.className = 'btn cbi-button ' + (state.mode === 'guided' ? 'cbi-button-action' : 'cbi-button-neutral');
+	if (advancedButton)
+		advancedButton.className = 'btn cbi-button ' + (state.mode === 'advanced' ? 'cbi-button-action' : 'cbi-button-neutral');
+}
+
+function switchMode(mode) {
+	if (mode === state.mode)
+		return;
+
+	if (mode === 'guided') {
+		var content = textareaValue();
+
+		if (!parseContent(content)) {
+			ui.addNotification(null, E('p', {},
+				_('The YAML is invalid: %s').format(state.parseError)), 'danger');
+			return;
+		}
+	}
+	else {
+		state.advancedDraft = guidedContent();
+	}
+
+	state.mode = mode;
+	updateModeButtons();
+	renderBody();
+}
+
+function fillBody(body) {
+	while (body.firstChild)
+		body.removeChild(body.firstChild);
+
+	if (state.mode === 'advanced') {
+		state.bindings = [];
+
+		if (state.parseError) {
+			body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
+				_('Normal mode is unavailable: %s').format(state.parseError)));
+		}
+
+		body.appendChild(advancedSection());
+	}
+	else if (!state.doc) {
+		body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
+			_('Normal mode needs valid YAML. Fix the YAML in advanced mode first.')));
+	}
+	else {
+		var rendered = guided.render(state.doc, {
+			'beforeChange': function() {
+				guided.apply(state.doc, state.bindings);
+			},
+			'rerender': renderBody,
+			'onInput': schedulePreview
+		});
+
+		state.bindings = rendered.bindings;
+		body.appendChild(rendered.node);
+		body.appendChild(previewSection());
+	}
+}
+
+function renderBody() {
+	var body = document.getElementById('oxidns-config-body');
+	if (!body)
+		return;
+
+	fillBody(body);
+	updatePreview();
+}
+
+function actionButtons() {
+	return E('div', {
+		'class': 'cbi-button-row',
+		'style': 'display: flex; flex-wrap: wrap; gap: .5em; margin-top: 1em; padding-inline: var(--section-inset, 0);'
+	}, [
+		E('button', {
+			'class': 'btn cbi-button cbi-button-action',
+			'click': function(ev) {
+				ev.preventDefault();
+				return validateYaml();
+			}
+		}, _('Validate')),
+		E('button', {
+			'class': 'btn cbi-button cbi-button-positive',
+			'click': function(ev) {
+				ev.preventDefault();
+				return saveYaml(true);
+			}
+		}, _('Save and Apply')),
+		E('button', {
+			'class': 'btn cbi-button cbi-button-positive',
+			'click': function(ev) {
+				ev.preventDefault();
+				return saveYaml(false);
+			}
+		}, _('Save')),
+		E('button', {
+			'class': 'btn cbi-button cbi-button-negative',
+			'click': function(ev) {
+				ev.preventDefault();
+				resetYaml();
+			}
+		}, _('Reset')),
+		E('button', {
+			'class': 'btn cbi-button cbi-button-action',
+			'click': function(ev) {
+				ev.preventDefault();
+				return downloadYaml();
+			}
+		}, _('Download Config')),
+		uploadInput()
+	]);
+}
+
 return view.extend({
 	load: function() {
 		var configPromise = L.resolveDefault(callConfigRead(), null).then(function(config) {
@@ -226,77 +627,64 @@ return view.extend({
 	},
 
 	render: function(data) {
-		configState = data && data.config ? data.config : {};
+		var config = data && data.config ? data.config : {};
 		var statusState = data && data.status ? data.status : {};
-		var readFailed = configState.ok === false;
-		var configContent = configState.content || '';
+		var readFailed = config.ok === false;
+		var configContent = config.content || '';
 		var configMessage = readFailed
-			? (configState.message || _('Unable to load configuration.'))
+			? (i18n.message(config) || _('Unable to load configuration.'))
 			: '';
+
+		state.mtime = config.mtime || '';
+		state.raw = configContent;
+		state.advancedDraft = configContent;
+		state.preview = true;
+		state.mode = parseContent(configContent) ? 'guided' : 'advanced';
 
 		if (readFailed && !coreInstalled(statusState)) {
 			return E('div', { 'class': 'cbi-map' }, [
-				E('h2', {}, _('OxiDNS Configuration')),
-				E('div', { 'class': 'cbi-map-descr' },
-					_('Edit, validate, and save the full OxiDNS YAML configuration file.')),
 				E('div', { 'class': 'cbi-section' }, [
 					E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
 						_('Install the OxiDNS core before editing the configuration.')),
 					E('p', { 'class': 'cbi-section-descr' },
-						_('Install it from Services → OxiDNS → Core, then return to this page.'))
+						_('Install it from Services → OxiDNS → Settings, then return to this page.'))
 				])
 			]);
 		}
 
-		return E('div', { 'class': 'cbi-map' }, [
-			E('h2', {}, _('OxiDNS Configuration')),
-			E('div', { 'class': 'cbi-map-descr' },
-				_('Edit, validate, and save the full OxiDNS YAML configuration file.')),
+		var body = E('div', { 'id': 'oxidns-config-body', 'style': 'margin-top: 1em;' });
+		fillBody(body);
+
+		var node = E('div', { 'class': 'cbi-map' }, [
+			E('div', { 'class': 'cbi-section-descr' },
+				_('Edit the OxiDNS configuration with form-based editing, or use the full YAML editor.') + ' ' +
+				_('Normal mode edits common settings and keeps the remaining YAML, including comments, unchanged.')),
 			E('div', { 'class': 'cbi-section' }, [
-				E('h3', {}, _('YAML')),
-				E('div', { 'class': 'cbi-section-descr' },
-					_('The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page.')),
-				E('div', { 'class': 'table cbi-section-table' }, [
-					E('div', { 'class': 'tr' }, [
-						E('div', { 'class': 'td left', 'style': 'width: 240px' }, _('Path')),
-						E('div', { 'class': 'td left' }, valueOrDash(configState.path))
-					])
-				]),
 				readFailed ? E('div', {
 					'class': 'alert-message warning',
 					'style': 'margin: 1em 0;'
 				}, configMessage) : '',
-				configTextarea(configContent),
 				E('div', {
+					'class': 'cbi-section-descr',
+					'style': 'margin-top: .5em;'
+				}, _('The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page.')),
+				E('div', {
+					'id': 'oxidns-config-modes',
 					'class': 'cbi-button-row',
-					'style': 'display: flex; flex-wrap: wrap; gap: .5em; margin-top: 1em; padding-inline: var(--section-inset, .75em);'
+					'style': 'display: flex; flex-wrap: wrap; gap: .5em; margin-top: 1em; padding-inline: var(--section-inset, 0);'
 				}, [
-					E('button', {
-						'class': 'btn cbi-button cbi-button-action',
-						'click': function(ev) {
-							ev.preventDefault();
-							return validateYaml();
-						}
-					}, _('Validate')),
-					E('button', {
-						'class': 'btn cbi-button cbi-button-positive',
-						'click': function(ev) {
-							ev.preventDefault();
-							return saveYaml();
-						}
-					}, _('Save')),
-					E('button', {
-						'class': 'btn cbi-button cbi-button-action',
-						'click': function(ev) {
-							ev.preventDefault();
-							return downloadYaml();
-						}
-					}, _('Download Config')),
-					uploadInput()
+					modeButton('guided', _('Normal Mode')),
+					modeButton('advanced', _('Advanced Mode'))
 				]),
+				body,
+				actionButtons(),
 				E('div', { 'id': 'oxidns-config-status', 'style': 'margin-top: 1em;' })
 			])
 		]);
+
+		window.setTimeout(updatePreview, 0);
+
+		return node;
 	},
 
 	handleSaveApply: null,

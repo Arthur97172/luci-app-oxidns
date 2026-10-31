@@ -109,6 +109,7 @@ write_rpcd_restart_script() {
 [ -n "${IPKG_INSTROOT:-}" ] && exit 0
 rm -f /tmp/luci-indexcache* 2>/dev/null || true
 rm -rf /tmp/luci-modulecache/* 2>/dev/null || true
+rm -f /www/luci-static/resources/view/oxidns/core.js 2>/dev/null || true
 if [ -d /www/luci-static/resources/view/oxidns ]; then
 	find /www/luci-static/resources/view/oxidns -type f -name '*.js' -exec touch {} + 2>/dev/null || true
 fi

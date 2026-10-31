@@ -1,0 +1,419 @@
+'use strict';
+'require baseclass';
+'require ui';
+
+var LOG_LEVELS = [ 'off', 'trace', 'debug', 'info', 'warn', 'error' ];
+var LISTEN_SERVER_TYPES = { udp_server: true, tcp_server: true };
+
+var UPSTREAM_CHOICES = null;
+
+/*
+ * LuCI's closeDropdown() resets the inline width/height of the dropdown node
+ * after a selection, which would otherwise shrink the control to its content.
+ * Pin the sizing through a stylesheet rule so the width stays stable.
+ */
+var UPSTREAM_SELECT_CLASS = 'oxidns-upstream-select';
+var UPSTREAM_SELECT_STYLE = '.' + UPSTREAM_SELECT_CLASS + ' { width: 100% !important; margin: 0; text-align: left; }';
+
+function upstreamChoices() {
+	if (!UPSTREAM_CHOICES) {
+		UPSTREAM_CHOICES = {
+			'223.5.5.5': _('Aliyun Public DNS (223.5.5.5)'),
+			'223.6.6.6': _('Aliyun Public DNS (223.6.6.6)'),
+			'119.29.29.29': _('Tencent Public DNS (119.29.29.29)'),
+			'119.28.28.28': _('Tencent Public DNS (119.28.28.28)'),
+			'114.114.114.114': _('Xinfeng Public DNS (114.114.114.114)'),
+			'180.76.76.76': _('Baidu Public DNS (180.76.76.76)'),
+			'https://dns.alidns.com/dns-query': _('Aliyun Public DNS (DNS over HTTPS)'),
+			'quic://dns.alidns.com': _('Aliyun Public DNS (DNS over QUIC)'),
+			'https://doh.pub/dns-query': _('Tencent Public DNS (DNS over HTTPS)'),
+			'https://doh.360.cn/dns-query': _('360 Public DNS (DNS over HTTPS)'),
+			'tls://1.1.1.1': _('Cloudflare Public DNS (1.1.1.1)'),
+			'tls://1.0.0.1': _('Cloudflare Public DNS (1.0.0.1)'),
+			'tls://8.8.8.8': _('Google Public DNS (8.8.8.8)'),
+			'tls://8.8.4.4': _('Google Public DNS (8.8.4.4)'),
+			'tls://9.9.9.9': _('Quad9 Public DNS (9.9.9.9)'),
+			'tls://149.112.112.112': _('Quad9 Public DNS (149.112.112.112)'),
+			'tls://208.67.222.222': _('Cisco Public DNS (208.67.222.222)'),
+			'tls://208.67.220.220': _('Cisco Public DNS (208.67.220.220)'),
+			'https://cloudflare-dns.com/dns-query': _('Cloudflare Public DNS (DNS over HTTPS)'),
+			'https://dns.google/dns-query': _('Google Public DNS (DNS over HTTPS)'),
+			'https://dns.quad9.net/dns-query': _('Quad9 Public DNS (DNS over HTTPS)')
+		};
+	}
+
+	return UPSTREAM_CHOICES;
+}
+
+function text(value) {
+	if (value === null || value === undefined)
+		return '';
+	if (typeof value === 'object')
+		return '';
+	return String(value);
+}
+
+function hasNodePath(doc, path) {
+	try {
+		return doc.hasIn(path);
+	}
+	catch (err) {
+		return false;
+	}
+}
+
+function pluginItems(doc) {
+	var seq = doc.getIn([ 'plugins' ], true);
+	return seq && seq.items ? seq.items : [];
+}
+
+function pluginType(item) {
+	if (!item || typeof item.get !== 'function')
+		return '';
+	return text(item.get('type'));
+}
+
+function pluginTag(item, index) {
+	if (item && typeof item.get === 'function') {
+		var tag = text(item.get('tag'));
+		if (tag)
+			return tag;
+	}
+	return '#' + (index + 1);
+}
+
+function row(label, control, description) {
+	return E('div', { 'class': 'tr' }, [
+		E('div', { 'class': 'td left', 'style': 'width: 240px' }, label),
+		E('div', { 'class': 'td left' }, [
+			control,
+			description ? E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .35em;' }, description) : ''
+		])
+	]);
+}
+
+function noteRow(message) {
+	return E('div', { 'class': 'tr' }, [
+		E('div', { 'class': 'td left', 'style': 'padding: .5em 0; color: inherit; opacity: .8;' }, message)
+	]);
+}
+
+function section(title, description, rows, tableStyle, footer) {
+	return E('div', { 'class': 'cbi-section' }, [
+		E('h3', {}, title),
+		description ? E('div', { 'class': 'cbi-section-descr' }, description) : '',
+		E('div', { 'class': 'table cbi-section-table', 'style': tableStyle || null }, rows),
+		footer || ''
+	]);
+}
+
+function textInput(id, value, placeholder) {
+	return E('input', {
+		'id': id,
+		'class': 'cbi-input-text',
+		'type': 'text',
+		'value': value || '',
+		'placeholder': placeholder || null
+	});
+}
+
+function upstreamSelect(id, value) {
+	var combobox = new ui.Combobox(value || '', upstreamChoices(), {
+		'id': id,
+		'sort': false,
+		'select_placeholder': _('Select an upstream DNS server'),
+		'custom_placeholder': _('Enter a custom upstream address')
+	});
+
+	var node = combobox.render();
+	node.classList.add(UPSTREAM_SELECT_CLASS);
+	return node;
+}
+
+function levelSelect(id, value) {
+	var levels = LOG_LEVELS.slice();
+	if (value && levels.indexOf(value) === -1)
+		levels.push(value);
+
+	return E('select', { 'id': id, 'class': 'cbi-input-select' },
+		levels.map(function(level) {
+			return E('option', {
+				'value': level,
+				'selected': level === value ? 'selected' : null
+			}, level);
+		}));
+}
+
+function addBinding(bindings, id, path, empty) {
+	bindings.push({
+		'id': id,
+		'path': path,
+		'empty': empty || 'set'
+	});
+}
+
+function applyBindings(doc, bindings) {
+	for (var i = 0; i < bindings.length; i++) {
+		var binding = bindings[i];
+		var input = document.getElementById(binding.id);
+
+		if (!input)
+			continue;
+
+		var value = String(input.value || '').trim();
+
+		try {
+			if (!value) {
+				if (binding.empty === 'delete') {
+					if (hasNodePath(doc, binding.path))
+						doc.deleteIn(binding.path);
+				}
+				else {
+					doc.setIn(binding.path, '');
+				}
+				continue;
+			}
+
+			doc.setIn(binding.path, value);
+		}
+		catch (err) {
+			/* Leave the node untouched; oxidns check reports the real problem. */
+		}
+	}
+}
+
+function logSection(doc, bindings) {
+	var level = text(doc.getIn([ 'log', 'level' ])) || 'info';
+	var file = text(doc.getIn([ 'log', 'file' ]));
+
+	addBinding(bindings, 'oxidns-cfg-log-level', [ 'log', 'level' ]);
+	addBinding(bindings, 'oxidns-cfg-log-file', [ 'log', 'file' ], 'delete');
+
+	return section(_('Log'), null, [
+		row(_('Log level'), levelSelect('oxidns-cfg-log-level', level)),
+		row(_('Log file'), textInput('oxidns-cfg-log-file', file, '/tmp/oxidns/oxidns.log'),
+			_('Leave empty to stop writing to a log file.'))
+	]);
+}
+
+function apiSection(doc, bindings) {
+	var listen = text(doc.getIn([ 'api', 'http', 'listen' ]));
+	var root = text(doc.getIn([ 'api', 'http', 'webui', 'root' ]));
+
+	addBinding(bindings, 'oxidns-cfg-api-listen', [ 'api', 'http', 'listen' ], 'delete');
+	addBinding(bindings, 'oxidns-cfg-api-root', [ 'api', 'http', 'webui', 'root' ], 'delete');
+
+	return section(_('API'), null, [
+		row(_('HTTP listen'), textInput('oxidns-cfg-api-listen', listen, '0.0.0.0:9199')),
+		row(_('WebUI root'), textInput('oxidns-cfg-api-root', root, '/usr/share/oxidns/webui'))
+	]);
+}
+
+function listenSection(doc, bindings) {
+	var rows = [];
+
+	pluginItems(doc).forEach(function(item, index) {
+		if (!LISTEN_SERVER_TYPES[pluginType(item)])
+			return;
+
+		var tag = pluginTag(item, index);
+		var entryId = 'oxidns-cfg-entry-%d'.format(index);
+		var listenId = 'oxidns-cfg-listen-%d'.format(index);
+
+		addBinding(bindings, entryId, [ 'plugins', index, 'args', 'entry' ], 'delete');
+		addBinding(bindings, listenId, [ 'plugins', index, 'args', 'listen' ], 'delete');
+
+		rows.push(row(_('Entry') + ' (' + tag + ')',
+			textInput(entryId, text(doc.getIn([ 'plugins', index, 'args', 'entry' ])))));
+		rows.push(row(_('Listen') + ' (' + tag + ')',
+			textInput(listenId, text(doc.getIn([ 'plugins', index, 'args', 'listen' ])), ':5335')));
+	});
+
+	if (!rows.length)
+		rows.push(noteRow(_('No UDP or TCP server plugins were found.')));
+
+	return section(_('Listen Addresses'),
+		_('Define which address and entry the UDP and TCP server plugins listen on.'), rows);
+}
+
+function upstreamButton(label, onClick, options) {
+	return E('button', {
+		'class': 'btn cbi-button cbi-button-neutral',
+		'click': function(ev) {
+			ev.preventDefault();
+			options.beforeChange();
+			onClick();
+			options.rerender();
+		}
+	}, label);
+}
+
+function upstreamSection(doc, bindings, options) {
+	var rows = [];
+	var footers = [];
+	var found = false;
+
+	pluginItems(doc).forEach(function(item, index) {
+		if (pluginType(item) !== 'forward')
+			return;
+
+		found = true;
+
+		var tag = pluginTag(item, index);
+		var seq = doc.getIn([ 'plugins', index, 'args', 'upstreams' ], true);
+		var upstreams = seq && seq.items ? seq.items : [];
+
+		rows.push(E('div', { 'class': 'tr' }, [
+			E('div', { 'class': 'td left', 'style': 'width: 240px' }, E('strong', {}, _('Plugin') + ': ' + tag)),
+			E('div', { 'class': 'td left' }, '')
+		]));
+
+		upstreams.forEach(function(upstream, position) {
+			var id = 'oxidns-cfg-upstream-%d-%d'.format(index, position);
+			var address = text(doc.getIn([ 'plugins', index, 'args', 'upstreams', position, 'addr' ]));
+
+			addBinding(bindings, id,
+				[ 'plugins', index, 'args', 'upstreams', position, 'addr' ], 'delete');
+
+			rows.push(row(_('Upstream address') + ' ' + (position + 1),
+				E('div', { 'style': 'display: flex; gap: .5em; align-items: center; justify-content: flex-start; width: 100%;' }, [
+					E('div', { 'style': 'flex: 0 0 210px; width: 210px; min-width: 0;' }, [
+						upstreamSelect(id, address)
+					]),
+					upstreamButton(_('Remove'), function() {
+						doc.deleteIn([ 'plugins', index, 'args', 'upstreams', position ]);
+					}, options)
+				])));
+		});
+
+		if (!upstreams.length)
+			rows.push(noteRow(_('No upstream servers configured.')));
+
+		footers.push(E('div', {
+			'style': 'display: flex; justify-content: flex-start; padding-inline: var(--section-inset, 0); margin-top: .75em;'
+		}, [
+			E('button', {
+				'class': 'btn cbi-button cbi-button-action',
+				'click': function(ev) {
+					ev.preventDefault();
+					options.beforeChange();
+					var path = [ 'plugins', index, 'args', 'upstreams' ];
+					if (!hasNodePath(doc, path))
+						doc.setIn(path, doc.createNode([]));
+					doc.addIn(path, doc.createNode({ 'addr': '' }));
+					options.rerender();
+				}
+			}, _('Add upstream DNS'))
+		]));
+	});
+
+	if (!found)
+		rows.push(noteRow(_('No forward plugins were found.')));
+
+	return section(_('Upstream DNS'), _('Queries are forwarded to these upstream servers.'), rows,
+		'table-layout: fixed;', footers.length ? E('div', {}, footers) : null);
+}
+
+function argsSummary(item) {
+	if (!item || typeof item.get !== 'function')
+		return '-';
+
+	var args = item.get('args');
+
+	if (args && typeof args.toJSON === 'function')
+		args = args.toJSON();
+
+	if (Array.isArray(args))
+		return '%d step(s)'.format(args.length);
+
+	if (args && typeof args === 'object') {
+		var keys = Object.keys(args);
+		return keys.length ? keys.join(', ') : '-';
+	}
+
+	return '-';
+}
+
+function pluginSection(doc) {
+	var rows = [
+		E('div', { 'class': 'tr' }, [
+			E('div', { 'class': 'td left', 'style': 'width: 240px' }, E('strong', {}, _('Tag'))),
+			E('div', { 'class': 'td left', 'style': 'width: 160px' }, E('strong', {}, _('Type'))),
+			E('div', { 'class': 'td left' }, E('strong', {}, _('Arguments')))
+		])
+	];
+
+	var items = pluginItems(doc);
+
+	items.forEach(function(item, index) {
+		rows.push(E('div', { 'class': 'tr' }, [
+			E('div', { 'class': 'td left' }, pluginTag(item, index)),
+			E('div', { 'class': 'td left' }, pluginType(item) || '-'),
+			E('div', { 'class': 'td left' }, argsSummary(item))
+		]));
+	});
+
+	if (!items.length)
+		rows.push(noteRow(_('No plugins are configured.')));
+
+	return section(_('Plugins'),
+		_('Normal mode covers common settings only. Use Advanced Mode to edit plugins and options not listed here.'),
+		rows);
+}
+
+function validateConfig(doc) {
+	var problems = [];
+
+	pluginItems(doc).forEach(function(item, index) {
+		if (pluginType(item) !== 'forward')
+			return;
+
+		var tag = pluginTag(item, index);
+		var seq = doc.getIn([ 'plugins', index, 'args', 'upstreams' ], true);
+		var upstreams = seq && seq.items ? seq.items : [];
+
+		if (!upstreams.length) {
+			problems.push(_('The forward plugin %s needs at least one upstream server.').format(tag));
+			return;
+		}
+
+		upstreams.forEach(function(upstream, position) {
+			var addr = text(doc.getIn([ 'plugins', index, 'args', 'upstreams', position, 'addr' ]));
+
+			if (!addr)
+				problems.push(_('Upstream address %d of the forward plugin %s cannot be empty.').format(position + 1, tag));
+		});
+	});
+
+	return problems;
+}
+
+return baseclass.extend({
+	render: function(doc, options) {
+		var bindings = [];
+		var handlers = options || {};
+
+		var node = E('div', {}, [
+			E('style', {}, UPSTREAM_SELECT_STYLE),
+			logSection(doc, bindings),
+			apiSection(doc, bindings),
+			listenSection(doc, bindings),
+			upstreamSection(doc, bindings, handlers),
+			pluginSection(doc)
+		]);
+
+		if (typeof handlers.onInput === 'function') {
+			node.addEventListener('input', handlers.onInput);
+			node.addEventListener('change', handlers.onInput);
+			node.addEventListener('cbi-dropdown-change', handlers.onInput);
+		}
+
+		return {
+			'node': node,
+			'bindings': bindings
+		};
+	},
+
+	apply: applyBindings,
+	validate: validateConfig
+});

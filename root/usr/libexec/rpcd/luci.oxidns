@@ -629,7 +629,7 @@ run_service() {
 }
 
 stat_mtime() {
-	stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || printf ''
+	stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || date -r "$1" +%s 2>/dev/null || printf ''
 }
 
 emit_config_read() {
