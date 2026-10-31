@@ -124,6 +124,9 @@ msgstr "错误码"
 msgid "Example: http://127.0.0.1:7890"
 msgstr "示例：http://127.0.0.1:7890"
 
+msgid "Failed to save the log path."
+msgstr "保存日志路径失败。"
+
 msgid "Failed to save settings"
 msgstr "保存设置失败"
 
@@ -168,6 +171,18 @@ msgstr "正在安装上传的 OxiDNS 内核..."
 
 msgid "Downloading and installing OxiDNS core and WebUI files..."
 msgstr "正在从 GitHub 下载并安装 OxiDNS 内核和 WebUI 文件..."
+
+msgid "Log path"
+msgstr "日志路径"
+
+msgid "Log path is required."
+msgstr "日志路径不能为空。"
+
+msgid "Log path saved."
+msgstr "日志路径已保存。"
+
+msgid "Log path saved. OxiDNS service restarted."
+msgstr "日志路径已保存，OxiDNS 服务已重启。"
 
 msgid "Logs"
 msgstr "日志"
@@ -235,6 +250,9 @@ msgstr "OxiDNS 已经在运行。"
 msgid "OxiDNS is already stopped."
 msgstr "OxiDNS 已经停止。"
 
+msgid "OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Saving restarts OxiDNS when it is running."
+msgstr "OxiDNS 会把日志写入此目录下的 oxidns.log。默认路径：/tmp/oxidns。保存时如果服务正在运行，会自动重启 OxiDNS。"
+
 msgid "Path"
 msgstr "路径"
 
@@ -291,6 +309,9 @@ msgstr "保存设置"
 
 msgid "Saving configuration..."
 msgstr "正在保存配置..."
+
+msgid "Saving log path..."
+msgstr "正在保存日志路径..."
 
 msgid "Saving settings..."
 msgstr "正在保存设置..."
@@ -358,6 +379,9 @@ msgstr "无法查询 OxiDNS 状态"
 msgid "Unable to load configuration."
 msgstr "无法加载配置。"
 
+msgid "Unable to load the log path."
+msgstr "无法加载日志路径。"
+
 msgid "Unable to read the selected file."
 msgstr "无法读取所选文件。"
 
@@ -403,8 +427,8 @@ msgstr "校验 release 摘要"
 msgid "Version"
 msgstr "版本"
 
-msgid "View recent OxiDNS entries from OpenWrt logread."
-msgstr "查看 OpenWrt logread 中最近的 OxiDNS 条目。"
+msgid "View recent OxiDNS log entries."
+msgstr "查看最近的 OxiDNS 日志。"
 
 msgid "WebUI"
 msgstr "WebUI"
@@ -424,8 +448,8 @@ msgstr "工作目录"
 msgid "Write to system log"
 msgstr "写入系统日志"
 
-msgid "When disabled, the LuCI log page no longer shows new runtime logs. Restart OxiDNS after changing this setting."
-msgstr "关闭后，LuCI 日志页不再显示新的运行日志；修改后需重启 OxiDNS 服务。"
+msgid "When disabled, OxiDNS no longer writes runtime output to the system log. Restart OxiDNS after changing this setting."
+msgstr "关闭后，OxiDNS 不再把运行输出写入系统日志；修改后需重启 OxiDNS 服务。"
 
 msgid "YAML"
 msgstr "YAML"

@@ -122,6 +122,9 @@ msgstr ""
 msgid "Example: http://127.0.0.1:7890"
 msgstr ""
 
+msgid "Failed to save the log path."
+msgstr ""
+
 msgid "Failed to save settings"
 msgstr ""
 
@@ -165,6 +168,18 @@ msgid "Installing uploaded OxiDNS core..."
 msgstr ""
 
 msgid "Downloading and installing OxiDNS core and WebUI files..."
+msgstr ""
+
+msgid "Log path"
+msgstr ""
+
+msgid "Log path is required."
+msgstr ""
+
+msgid "Log path saved."
+msgstr ""
+
+msgid "Log path saved. OxiDNS service restarted."
 msgstr ""
 
 msgid "Logs"
@@ -233,6 +248,9 @@ msgstr ""
 msgid "OxiDNS is already stopped."
 msgstr ""
 
+msgid "OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Saving restarts OxiDNS when it is running."
+msgstr ""
+
 msgid "Path"
 msgstr ""
 
@@ -285,6 +303,9 @@ msgid "Save Settings"
 msgstr ""
 
 msgid "Saving configuration..."
+msgstr ""
+
+msgid "Saving log path..."
 msgstr ""
 
 msgid "Saving settings..."
@@ -353,6 +374,9 @@ msgstr ""
 msgid "Unable to load configuration."
 msgstr ""
 
+msgid "Unable to load the log path."
+msgstr ""
+
 msgid "Unable to read the selected file."
 msgstr ""
 
@@ -398,7 +422,7 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-msgid "View recent OxiDNS entries from OpenWrt logread."
+msgid "View recent OxiDNS log entries."
 msgstr ""
 
 msgid "WebUI"
@@ -419,7 +443,7 @@ msgstr ""
 msgid "Write to system log"
 msgstr ""
 
-msgid "When disabled, the LuCI log page no longer shows new runtime logs. Restart OxiDNS after changing this setting."
+msgid "When disabled, OxiDNS no longer writes runtime output to the system log. Restart OxiDNS after changing this setting."
 msgstr ""
 
 msgid "YAML"

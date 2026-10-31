@@ -210,7 +210,7 @@ return view.extend({
 							'checked': settings.log_syslog !== false ? 'checked' : null
 						}),
 						E('div', { 'class': 'cbi-value-description' },
-							_('When disabled, the LuCI log page no longer shows new runtime logs. Restart OxiDNS after changing this setting.'))
+							_('When disabled, OxiDNS no longer writes runtime output to the system log. Restart OxiDNS after changing this setting.'))
 					])),
 					row(_('Download proxy'), secretSettingInput(
 						textInput('oxidns-setting-download-proxy', settings.download_proxy || '', false, _('Example: http://127.0.0.1:7890')),

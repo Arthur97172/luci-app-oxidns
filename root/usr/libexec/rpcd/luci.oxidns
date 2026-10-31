@@ -9,6 +9,9 @@ WEBUI_DIR="/usr/share/oxidns/webui"
 TARGETS_FILE="${OXIDNS_TARGETS_FILE:-/usr/share/oxidns/targets.json}"
 DEFAULT_CONFIG_PATH="/etc/oxidns/config.yaml"
 DEFAULT_WORKING_DIR="/var/lib/oxidns"
+DEFAULT_LOG_DIR="/tmp/oxidns"
+LOG_FILE_NAME="oxidns.log"
+DEFAULT_LOG_FILE="$DEFAULT_LOG_DIR/$LOG_FILE_NAME"
 DEFAULT_SERVICE_NAME="oxidns"
 DEFAULT_CORE_REPOSITORY="svenshi/oxidns"
 DEFAULT_CORE_BUNDLE="full"
@@ -906,6 +909,100 @@ valid_working_dir_setting() {
 	safe_remove_working_dir "$PATH_VALUE"
 }
 
+valid_log_dir_setting() {
+	PATH_VALUE="$1"
+	[ -n "$PATH_VALUE" ] || return 1
+	case "$PATH_VALUE" in
+		/*) ;;
+		*) return 1 ;;
+	esac
+	path_has_parent_ref "$PATH_VALUE" && return 1
+	case "$PATH_VALUE" in
+		/|/bin|/dev|/etc|/lib|/mnt|/overlay|/proc|/rom|/root|/sbin|/sys|/tmp|/usr|/var|/www)
+			return 1
+			;;
+	esac
+	if printf '%s' "$PATH_VALUE" | grep -q '[^A-Za-z0-9._/-]'; then
+		return 1
+	fi
+	oxidns_named_path "$PATH_VALUE"
+}
+
+# Print the value of the top-level `log:` block's `file:` option, if any.
+config_log_file_value() {
+	[ -r "$CONFIG_PATH" ] || return 1
+	awk '
+		BEGIN { in_log = 0 }
+		/^[^[:space:]#][^:]*:/ {
+			top = $0
+			sub(/:.*/, "", top)
+			gsub(/^["'\'']|["'\'']$/, "", top)
+			gsub(/[[:space:]]+$/, "", top)
+			in_log = (top == "log")
+			next
+		}
+		in_log && /^[[:space:]][[:space:]]file:[[:space:]]*/ {
+			sub(/^[[:space:]][[:space:]]file:[[:space:]]*/, "")
+			sub(/[[:space:]]+#.*$/, "")
+			gsub(/^["'\'']|["'\'']$/, "")
+			print
+			exit
+		}
+	' "$CONFIG_PATH"
+}
+
+# Resolve the configured log file to an absolute path, or fail when unset.
+resolve_log_file() {
+	VALUE="$(config_log_file_value 2>/dev/null || true)"
+	[ -n "$VALUE" ] || return 1
+	case "$VALUE" in
+		/*) printf '%s' "$VALUE" ;;
+		*)
+			VALUE="${VALUE#./}"
+			printf '%s/%s' "${WORKING_DIR%/}" "$VALUE"
+			;;
+	esac
+}
+
+# Copy a config file to stdout with the top-level `log.file` option set.
+write_config_with_log_file() {
+	SOURCE="$1"
+	LOG_VALUE="$2"
+	awk -v log_value="$LOG_VALUE" '
+		BEGIN { in_log = 0; log_seen = 0; file_done = 0 }
+		/^[^[:space:]#][^:]*:/ {
+			if (in_log && !file_done) {
+				print "  file: \"" log_value "\""
+				file_done = 1
+			}
+			top = $0
+			sub(/:.*/, "", top)
+			gsub(/^["'\'']|["'\'']$/, "", top)
+			gsub(/[[:space:]]+$/, "", top)
+			in_log = (top == "log")
+			if (in_log)
+				log_seen = 1
+			print
+			next
+		}
+		in_log && /^[[:space:]][[:space:]]file:[[:space:]]*/ {
+			print "  file: \"" log_value "\""
+			file_done = 1
+			next
+		}
+		{ print }
+		END {
+			if (!log_seen) {
+				print "log:"
+				print "  file: \"" log_value "\""
+			}
+			else if (!file_done) {
+				print "  file: \"" log_value "\""
+			}
+		}
+	' "$SOURCE"
+}
+
 validate_config_file() {
 	FILE="$1"
 	load_settings
@@ -1015,8 +1112,11 @@ emit_config_save() {
 emit_log_lines_json() {
 	SOURCE="$1"
 	FILE="$2"
+	PATH_VALUE="${3:-}"
 	printf '{"ok":true,"source":'
 	json_string "$SOURCE"
+	printf ',"path":'
+	json_string "$PATH_VALUE"
 	printf ',"lines":['
 	SEP=""
 	while IFS= read -r LINE; do
@@ -1055,7 +1155,27 @@ read_logread_logs() {
 	' | tail -n "$LIMIT" > "$OUT_FILE" || true
 }
 
+read_file_logs() {
+	LIMIT="$1"
+	OUT_FILE="$2"
+	FILE="$3"
+	: > "$OUT_FILE"
+	[ -r "$FILE" ] || return 1
+	tail -n "$LIMIT" "$FILE" 2>/dev/null | awk '
+		BEGIN {
+			esc = sprintf("%c", 27);
+			csi = esc "\\[[0-9;?]*[ -/]*[@-~]";
+		}
+		{
+			gsub(csi, "");
+			gsub(/\r/, "");
+			print;
+		}
+	' > "$OUT_FILE" || true
+}
+
 emit_logs_recent() {
+	load_settings
 	INPUT="$(cat)"
 	LIMIT="$(input_value limit "$INPUT")"
 	[ -n "$LIMIT" ] || LIMIT=200
@@ -1063,9 +1183,127 @@ emit_logs_recent() {
 		*[!0-9]*|'') LIMIT=200 ;;
 	esac
 	TMP_FILE="$(mktemp "$TMP_ROOT/oxidns-logs.XXXXXX")"
-	read_logread_logs "$LIMIT" "$TMP_FILE" || true
-	emit_log_lines_json "logread" "$TMP_FILE"
+	LOG_FILE_PATH="$(resolve_log_file 2>/dev/null || true)"
+	if [ -n "$LOG_FILE_PATH" ] && [ -r "$LOG_FILE_PATH" ]; then
+		read_file_logs "$LIMIT" "$TMP_FILE" "$LOG_FILE_PATH" || true
+		emit_log_lines_json "file" "$TMP_FILE" "$LOG_FILE_PATH"
+	else
+		read_logread_logs "$LIMIT" "$TMP_FILE" || true
+		emit_log_lines_json "logread" "$TMP_FILE"
+	fi
 	rm -f "$TMP_FILE"
+}
+
+emit_logs_path_read() {
+	load_settings
+	CONFIGURED=0
+	LOG_FILE_PATH="$(resolve_log_file 2>/dev/null || true)"
+	if [ -n "$LOG_FILE_PATH" ]; then
+		CONFIGURED=1
+	else
+		LOG_FILE_PATH="$DEFAULT_LOG_FILE"
+	fi
+	printf '{"ok":true,"log_dir":'
+	json_string "$(dirname "$LOG_FILE_PATH")"
+	printf ',"log_file":'
+	json_string "$LOG_FILE_PATH"
+	printf ',"configured":'
+	json_bool "$CONFIGURED"
+	printf ',"default_dir":'
+	json_string "$DEFAULT_LOG_DIR"
+	printf ',"config_path":'
+	json_string "$CONFIG_PATH"
+	printf ',"mtime":'
+	json_string "$(stat_mtime "$CONFIG_PATH")"
+	printf '}\n'
+}
+
+emit_logs_path_save() {
+	load_settings
+	INPUT="$(cat)"
+	LOG_DIR_VALUE="$(input_value path "$INPUT")"
+	BASE_MTIME="$(input_value base_mtime "$INPUT")"
+	while [ "${LOG_DIR_VALUE%/}" != "$LOG_DIR_VALUE" ]; do
+		LOG_DIR_VALUE="${LOG_DIR_VALUE%/}"
+	done
+	if [ -z "$LOG_DIR_VALUE" ]; then
+		json_error "missing_log_dir" "log directory is required"
+		return 1
+	fi
+	if ! valid_log_dir_setting "$LOG_DIR_VALUE"; then
+		json_error "invalid_log_dir" "log directory must be an absolute OxiDNS-related directory path"
+		return 1
+	fi
+	if [ ! -r "$CONFIG_PATH" ]; then
+		json_error "config_missing" "OxiDNS configuration file was not found"
+		return 1
+	fi
+	if [ -n "$BASE_MTIME" ] && [ "$BASE_MTIME" != "$(stat_mtime "$CONFIG_PATH")" ]; then
+		json_error "config_conflict" "configuration file changed since it was loaded"
+		return 1
+	fi
+	if ! mkdir -p "$LOG_DIR_VALUE" 2>/dev/null; then
+		json_error "log_dir_unavailable" "unable to create the log directory"
+		return 1
+	fi
+	PROBE_FILE="$(mktemp "$LOG_DIR_VALUE/.oxidns-log-probe.XXXXXX" 2>/dev/null || true)"
+	if [ -z "$PROBE_FILE" ]; then
+		json_error "log_dir_not_writable" "the log directory is not writable"
+		return 1
+	fi
+	rm -f "$PROBE_FILE"
+
+	LOG_FILE_PATH="$LOG_DIR_VALUE/$LOG_FILE_NAME"
+	TMP_FILE="$(mktemp "$TMP_ROOT/oxidns-config.XXXXXX")"
+	if ! write_config_with_log_file "$CONFIG_PATH" "$LOG_FILE_PATH" > "$TMP_FILE"; then
+		rm -f "$TMP_FILE"
+		json_error "config_write_failed" "unable to update the configuration file"
+		return 1
+	fi
+	if ! OUTPUT="$(validate_config_file "$TMP_FILE")"; then
+		rm -f "$TMP_FILE"
+		json_error "config_invalid" "$OUTPUT"
+		return 1
+	fi
+
+	mkdir -p "$WORKING_DIR/config-backups"
+	cp "$CONFIG_PATH" "$WORKING_DIR/config-backups/config.yaml.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+	mv "$TMP_FILE" "$CONFIG_PATH"
+
+	RESTART_STATUS="not_requested"
+	MESSAGE="log path saved"
+	if service_running; then
+		INIT="$(init_script)"
+		SERVICE_OUT="$(mktemp "$TMP_ROOT/oxidns-service.XXXXXX")"
+		if [ ! -x "$INIT" ]; then
+			rm -f "$SERVICE_OUT"
+			json_error "service_unavailable" "log path saved, but init script was not found"
+			return 1
+		fi
+		if run_init_action "$INIT" restart >"$SERVICE_OUT" 2>&1; then
+			RESTART_STATUS="restarted"
+			MESSAGE="log path saved and service restarted"
+		else
+			MSG="$(read_error_detail_file "$SERVICE_OUT" 2>/dev/null || true)"
+			rm -f "$SERVICE_OUT"
+			json_error "service_restart_failed" "log path saved, but service restart failed: ${MSG:-service restart failed}"
+			return 1
+		fi
+		rm -f "$SERVICE_OUT"
+	fi
+
+	printf '{"ok":true,"log_dir":'
+	json_string "$LOG_DIR_VALUE"
+	printf ',"log_file":'
+	json_string "$LOG_FILE_PATH"
+	printf ',"configured":true'
+	printf ',"restart":'
+	json_string "$RESTART_STATUS"
+	printf ',"message":'
+	json_string "$MESSAGE"
+	printf ',"mtime":'
+	json_string "$(stat_mtime "$CONFIG_PATH")"
+	printf '}\n'
 }
 
 read_error_detail_file() {
@@ -1517,7 +1755,7 @@ write_openwrt_default_config() {
 	SOURCE_FILE="$1"
 	OUT_FILE="$2"
 	DEFAULT_LISTEN="$(default_api_listen)"
-	awk -v default_listen="$DEFAULT_LISTEN" '
+	awk -v default_listen="$DEFAULT_LISTEN" -v log_file="$DEFAULT_LOG_FILE" '
 		BEGIN {
 			top = "";
 			second = "";
@@ -1525,16 +1763,31 @@ write_openwrt_default_config() {
 			listen_done = 0;
 			root_done = 0;
 			api_seen = 0;
+			in_log = 0;
+			log_seen = 0;
+			log_file_done = 0;
 		}
 		/^[^[:space:]#][^:]*:/ {
+			if (in_log && !log_file_done) {
+				print "  file: \"" log_file "\"";
+				log_file_done = 1;
+			}
 			top = $0;
 			sub(/:.*/, "", top);
 			gsub(/^["'\'']|["'\'']$/, "", top);
 			gsub(/[[:space:]]+$/, "", top);
 			if (top == "api")
 				api_seen = 1;
+			in_log = (top == "log");
+			if (in_log)
+				log_seen = 1;
 			second = "";
 			third = "";
+		}
+		in_log && /^[[:space:]][[:space:]]file:[[:space:]]*/ {
+			print "  file: \"" log_file "\"";
+			log_file_done = 1;
+			next;
 		}
 		top == "api" && /^[[:space:]][[:space:]]http:[[:space:]]*$/ {
 			second = "http";
@@ -1559,6 +1812,13 @@ write_openwrt_default_config() {
 		}
 		{ print }
 		END {
+			if (!log_seen) {
+				print "log:";
+				print "  file: \"" log_file "\"";
+			}
+			else if (!log_file_done) {
+				print "  file: \"" log_file "\"";
+			}
 			if (api_seen && (!listen_done || !root_done))
 				exit 42;
 		}
@@ -2358,7 +2618,9 @@ case "${1:-}" in
 		printf '"config_save":{"content":"string","base_mtime":"string","restart":"boolean"},'
 		printf '"settings_read":{},'
 		printf '"settings_save":{"core_repository":"string","core_bundle":"string","config_path":"string","working_dir":"string","download_proxy":"string","github_token":"string","clear_download_proxy":"boolean","clear_github_token":"boolean","log_syslog":"string"},'
-		printf '"logs_recent":{"limit":"number"}'
+		printf '"logs_recent":{"limit":"number"},'
+		printf '"logs_path_read":{},'
+		printf '"logs_path_save":{"path":"string","base_mtime":"string"}'
 		printf '}\n'
 		;;
 	call)
@@ -2419,6 +2681,12 @@ case "${1:-}" in
 				;;
 			logs_recent)
 				emit_logs_recent
+				;;
+			logs_path_read)
+				emit_logs_path_read
+				;;
+			logs_path_save)
+				emit_logs_path_save
 				;;
 			*)
 				printf '{"ok":false,"error":"unknown method"}\n'

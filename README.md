@@ -144,8 +144,8 @@ uci commit dhcp
 - `Overview`：查看内核状态、服务状态、WebUI 入口、配置路径和日志状态。
 - `Core`：首次安装、更新、上传安装、重新安装、单独安装 WebUI 或删除 OxiDNS 内核。
 - `Configuration`：查看、校验、保存配置文件，并可下载当前配置或上传 `config.yaml` 覆盖。
-- `Logs`：查看运行日志，支持刷新和暂停。
 - `Settings`：设置 core repository、bundle、代理、配置路径和工作目录。
+- `Logs`：设置日志文件路径，查看运行日志，支持刷新和暂停。
 
 ## 默认路径
 
@@ -153,6 +153,7 @@ uci commit dhcp
 - WebUI：`/usr/share/oxidns/webui`
 - 配置：`/etc/oxidns/config.yaml`
 - 工作目录：`/var/lib/oxidns`
+- 日志文件：`/tmp/oxidns/oxidns.log`
 - 服务脚本：`/etc/init.d/oxidns`
 
 ## 升级与删除
@@ -173,7 +174,7 @@ uci commit dhcp
 - `更新内核` 只会安装严格更新的正式版本，不会降级已安装的较新或自定义构建；无法解析的版本号会被视为无需更新。
 - 替换内核或 WebUI 前会先完整暂存新文件并校验；复制失败时会恢复旧的内核二进制和 WebUI，避免留下新内核搭配缺失 WebUI 的状态。
 - `Overview` 的 WebUI 入口根据配置文件中的 HTTP listen 地址生成；如果监听 `127.0.0.1`，LuCI 会保留链接并提示需要本机访问或 SSH 隧道。
-- 日志页读取 OpenWrt `logread` 中的 OxiDNS 服务 stdout/stderr 输出。
+- 日志页优先读取配置文件中 `log.file` 指定的日志文件，默认为 `/tmp/oxidns/oxidns.log`；文件不存在或不可读时回退到 OpenWrt `logread`。日志页顶部的“日志路径”可修改日志目录，保存时会把 `log.file` 写入配置文件；服务正在运行时自动重启 OxiDNS 使设置生效。内核安装时默认写入 `/tmp/oxidns/oxidns.log`，重启后该目录会被清空。
 - 可在 `Settings` 中关闭“写入系统日志”（默认开启），保存后需重启 OxiDNS 才会生效。LuCI 会停止服务，等待旧 procd 实例被移除（最多 10 秒），再启动新实例，以应用 stdout/stderr 设置。状态查询失败或停止超时时，重启会中止。替换正在运行的内核前也会执行相同的停止等待。
 - `Overview` 上的服务操作（Start / Stop / Restart / Enable / Disable）始终会向系统日志写入一条以 `luci-app-oxidns` 为 tag 的审计记录，包含动作和成功或失败结果。内核未安装、init 脚本缺失或操作失败时同样会记录。这些记录可在 `logread` 原始输出和 LuCI 系统日志页看到；由于日志页只显示 `oxidns[PID]:` 格式的内核输出，审计记录不会出现在 OxiDNS 日志页。
 

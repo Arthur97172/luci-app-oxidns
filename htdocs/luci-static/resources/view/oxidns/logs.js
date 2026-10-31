@@ -10,6 +10,21 @@ var callLogsRecent = rpc.declare({
 	expect: {}
 });
 
+var callLogsPathRead = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'logs_path_read',
+	expect: {}
+});
+
+var callLogsPathSave = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'logs_path_save',
+	params: [ 'path', 'base_mtime' ],
+	expect: {}
+});
+
+var DEFAULT_LOG_DIR = '/tmp/oxidns';
+
 var state = {
 	lines: [],
 	pending: [],
@@ -17,7 +32,9 @@ var state = {
 	paused: false,
 	followTail: true,
 	limit: 100,
-	clearBaseline: null
+	clearBaseline: null,
+	logDir: DEFAULT_LOG_DIR,
+	pathMtime: ''
 };
 
 function byId(id) {
@@ -157,30 +174,149 @@ function controlButton(label, handler, style) {
 	}, label);
 }
 
+function setPathStatus(message, isError) {
+	var node = byId('oxidns-log-path-status');
+	if (!node)
+		return;
+
+	node.textContent = message || '';
+	node.style.color = isError ? 'var(--error-color, #d33)' : '';
+}
+
+function applyPathInfo(info) {
+	if (!info || info.ok === false)
+		return;
+
+	state.logDir = info.log_dir || info.default_dir || DEFAULT_LOG_DIR;
+	state.pathMtime = info.mtime || '';
+
+	var input = byId('oxidns-log-dir');
+	if (input) {
+		input.value = state.logDir;
+		input.placeholder = info.default_dir || DEFAULT_LOG_DIR;
+	}
+}
+
+function loadLogPath() {
+	return L.resolveDefault(callLogsPathRead(), null).then(function(info) {
+		if (!info || info.ok === false) {
+			setPathStatus(_('Unable to load the log path.'), true);
+			return;
+		}
+
+		applyPathInfo(info);
+	});
+}
+
+function saveLogPath() {
+	var input = byId('oxidns-log-dir');
+	var path = input ? (input.value || '').trim() : '';
+	var saveButton = byId('oxidns-log-path-save');
+
+	if (!path) {
+		setPathStatus(_('Log path is required.'), true);
+		if (input)
+			input.focus();
+		return;
+	}
+
+	if (saveButton)
+		saveButton.disabled = true;
+	setPathStatus(_('Saving log path...'));
+
+	return L.resolveDefault(callLogsPathSave(path, state.pathMtime || ''), null).then(function(result) {
+		if (saveButton)
+			saveButton.disabled = false;
+
+		if (!result || result.ok === false) {
+			setPathStatus((result && result.message) || _('Failed to save the log path.'), true);
+			return;
+		}
+
+		applyPathInfo(result);
+		setPathStatus(result.restart === 'restarted'
+			? _('Log path saved. OxiDNS service restarted.')
+			: _('Log path saved.'));
+
+		return refreshLogs();
+	});
+}
+
 return view.extend({
 	load: function() {
-		return Promise.resolve({
-			ok: true,
-			source: 'logread',
-			lines: []
+		return Promise.all([
+			L.resolveDefault(callLogsRecent(state.limit), null),
+			L.resolveDefault(callLogsPathRead(), null)
+		]).then(function(results) {
+			return {
+				logs: results[0] || { ok: true, source: 'logread', lines: [] },
+				path: results[1] || null
+			};
 		});
 	},
 
 	render: function(initial) {
-		state.lines = normalizeLines(initial);
+		var logs = initial && initial.logs ? initial.logs : initial;
+
+		state.lines = normalizeLines(logs);
 		state.pending = [];
 		state.rawLines = state.lines.slice();
 		state.paused = false;
 		state.followTail = true;
 		state.clearBaseline = null;
+		state.logDir = DEFAULT_LOG_DIR;
+		state.pathMtime = '';
+
+		if (initial && initial.path && initial.path.ok !== false)
+			applyPathInfo(initial.path);
+		else
+			window.setTimeout(loadLogPath, 0);
+
 		window.setTimeout(refreshLogs, 0);
 		poll.add(refreshLogs, 1);
 
 		return E('div', { 'class': 'cbi-map' }, [
 			E('h2', {}, _('OxiDNS Logs')),
 			E('div', { 'class': 'cbi-map-descr' },
-				_('View recent OxiDNS entries from OpenWrt logread.')),
+				_('View recent OxiDNS log entries.')),
 			E('div', { 'class': 'cbi-section' }, [
+				E('div', { 'class': 'cbi-value' }, [
+					E('label', { 'class': 'cbi-value-title', 'for': 'oxidns-log-dir' }, _('Log path')),
+					E('div', { 'class': 'cbi-value-field' }, [
+						E('div', { 'style': 'display: flex; flex-wrap: wrap; gap: .5em; align-items: center;' }, [
+							E('input', {
+								'id': 'oxidns-log-dir',
+								'type': 'text',
+								'class': 'cbi-input-text',
+								'value': state.logDir,
+								'placeholder': DEFAULT_LOG_DIR,
+								'spellcheck': 'false',
+								'style': 'flex: 1 1 22em; min-width: 12em;',
+								'keydown': function(ev) {
+									if (ev.key === 'Enter') {
+										ev.preventDefault();
+										return saveLogPath();
+									}
+								}
+							}),
+							E('button', {
+								'id': 'oxidns-log-path-save',
+								'class': 'btn cbi-button cbi-button-action',
+								'click': function(ev) {
+									ev.preventDefault();
+									return saveLogPath();
+								}
+							}, _('Save'))
+						]),
+						E('div', {
+							'id': 'oxidns-log-path-status',
+							'class': 'cbi-value-description',
+							'style': 'min-height: 1.2em;'
+						}, ''),
+						E('div', { 'class': 'cbi-value-description' },
+							_('OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Saving restarts OxiDNS when it is running.'))
+					])
+				]),
 				E('div', {
 					'class': 'cbi-button-row',
 					'style': 'display: flex; flex-wrap: wrap; gap: .5em; margin-bottom: 1.5em; padding-inline: var(--section-inset, .75em);'

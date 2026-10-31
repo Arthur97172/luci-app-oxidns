@@ -95,7 +95,7 @@ rm -rf "$INIT_STUB_DIR"
 scripts/check.sh
 scripts/service-check.sh
 
-root/usr/libexec/rpcd/luci.oxidns list | json_ok "'status' in v && 'core_install' in v && 'core_reinstall' in v && 'core_update' in v && 'core_upload_install' in v && 'core_webui_install' in v && 'core_progress' in v && 'core_remove' in v && 'logs_recent' in v && 'settings_read' in v && !('config_basic_read' in v) && !('config_basic_save' in v)"
+root/usr/libexec/rpcd/luci.oxidns list | json_ok "'status' in v && 'core_install' in v && 'core_reinstall' in v && 'core_update' in v && 'core_upload_install' in v && 'core_webui_install' in v && 'core_progress' in v && 'core_remove' in v && 'logs_recent' in v && 'logs_path_read' in v && 'logs_path_save' in v && 'settings_read' in v && !('config_basic_read' in v) && !('config_basic_save' in v)"
 root/usr/libexec/rpcd/luci.oxidns call status | json_ok "v.ok === true && v.core && v.core.installed === false && v.webui && v.webui.installed === false && typeof v.webui.url === 'string' && typeof v.webui.local_only === 'boolean' && typeof v.webui.wildcard === 'boolean' && !('api' in v) && !('api_base_url' in v) && !('package' in v) && !('package_manager' in v)"
 TARGET_FAKE_BIN="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-target-fake-bin.XXXXXX")"
 TARGET_CASES="$(mktemp "${TMPDIR:-/tmp}/oxidns-target-cases.XXXXXX")"
@@ -312,6 +312,7 @@ EOF
 	rm -rf "$REMOVE_PREFLIGHT_DIR"
 	rm -rf "$FAKE_UCI_DIR"
 printf '%s' '{"limit":"20"}' | root/usr/libexec/rpcd/luci.oxidns call logs_recent | json_ok "v.ok === true && v.source === 'logread' && Array.isArray(v.lines) && !('entries' in v)"
+printf '%s' '{}' | root/usr/libexec/rpcd/luci.oxidns call logs_path_read | json_ok "v.ok === true && typeof v.log_dir === 'string' && v.log_dir.length > 0 && typeof v.log_file === 'string' && v.default_dir === '/tmp/oxidns' && typeof v.configured === 'boolean'"
 SERVICE_LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-service-log-test.XXXXXX")"
 # Records only the last argument, which is the message passed after `-t <tag>`.
 cat > "$SERVICE_LOG_DIR/logger" <<'EOF'

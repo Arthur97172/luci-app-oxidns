@@ -8,7 +8,8 @@
 					"core_progress",
 					"config_read",
 					"settings_read",
-					"logs_recent"
+					"logs_recent",
+					"logs_path_read"
 				]
 			}
 		},
@@ -32,7 +33,8 @@
 					"service_disable",
 					"config_validate",
 					"config_save",
-					"settings_save"
+					"settings_save",
+					"logs_path_save"
 				]
 			}
 		}
