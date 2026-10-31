@@ -74,3 +74,4 @@ sh -n scripts/build-luci-package.sh
 sh -n scripts/integration-check.sh
 sh -n scripts/service-check.sh
 sh -n scripts/release-check.sh
+sh -n scripts/verify-packages.sh

@@ -1,0 +1,37 @@
+name: Validate luci-app-oxidns
+description: Run static checks, build the LuCI packages, run integration checks, and verify package contents
+
+inputs:
+  version:
+    description: Version used for the package build
+    required: false
+    default: "0.1.0"
+  out-dir:
+    description: Directory the built packages are written to
+    required: false
+    default: dist
+
+runs:
+  using: composite
+  steps:
+    - name: Run static checks
+      shell: bash
+      run: scripts/check.sh
+
+    - name: Build LuCI packages
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        OUT_DIR: ${{ inputs.out-dir }}
+      run: scripts/build-luci-package.sh "$VERSION" "$OUT_DIR"
+
+    - name: Run integration checks
+      shell: bash
+      run: scripts/integration-check.sh
+
+    - name: Verify package contents
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        OUT_DIR: ${{ inputs.out-dir }}
+      run: scripts/verify-packages.sh "$VERSION" "$OUT_DIR"

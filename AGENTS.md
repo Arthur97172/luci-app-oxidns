@@ -36,7 +36,7 @@ This repository does not contain the OxiDNS Rust core source code, and it does n
 - `root/usr/share/oxidns/`: OxiDNS LuCI contract files such as target mappings.
 - `po/zh_Hans/oxidns.po`: Simplified Chinese translation.
 - `scripts/build-luci-package.sh`: local LuCI package build script.
-- `scripts/check.sh`, `scripts/integration-check.sh`, `scripts/release-check.sh`: local validation entry points.
+- `scripts/check.sh`, `scripts/integration-check.sh`, `scripts/release-check.sh`, `scripts/verify-packages.sh`: local validation entry points.
 
 ## Common Validation
 

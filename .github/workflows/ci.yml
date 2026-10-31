@@ -16,14 +16,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run static checks
-        run: scripts/check.sh
-
-      - name: Build LuCI packages
-        run: scripts/build-luci-package.sh 0.1.0 dist
-
-      - name: Run integration checks
-        run: scripts/integration-check.sh
+      - name: Validate and build LuCI packages
+        uses: ./.github/actions/validate
+        with:
+          version: "0.1.0"
+          out-dir: dist
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v7

@@ -52,8 +52,11 @@ jobs:
             exit 1
           fi
 
-      - name: Run release checks and build packages
-        run: scripts/release-check.sh "${{ steps.version.outputs.value }}" dist
+      - name: Validate and build release packages
+        uses: ./.github/actions/validate
+        with:
+          version: ${{ steps.version.outputs.value }}
+          out-dir: dist
 
       - name: Publish release
         uses: softprops/action-gh-release@v3
