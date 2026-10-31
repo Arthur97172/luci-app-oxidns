@@ -143,7 +143,7 @@ uci commit dhcp
 
 - `Overview`：查看内核状态、服务状态、WebUI 入口、配置路径和日志状态。
 - `Core`：首次安装、更新、上传安装、重新安装、单独安装 WebUI 或删除 OxiDNS 内核。
-- `Configuration`：查看、保存和校验配置文件。
+- `Configuration`：查看、校验、保存配置文件，并可下载当前配置或上传 `config.yaml` 覆盖。
 - `Logs`：查看运行日志，支持刷新和暂停。
 - `Settings`：设置 core repository、bundle、代理、配置路径和工作目录。
 

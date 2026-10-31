@@ -59,6 +59,9 @@ msgstr ""
 msgid "Configuration and working directory data are preserved unless selected below."
 msgstr ""
 
+msgid "Configuration downloaded."
+msgstr ""
+
 msgid "Configure OxiDNS core download sources, runtime paths, and optional download credentials."
 msgstr ""
 
@@ -93,6 +96,9 @@ msgid "Disable on boot"
 msgstr ""
 
 msgid "Download proxy"
+msgstr ""
+
+msgid "Download Config"
 msgstr ""
 
 msgid "Download core archive"
@@ -275,13 +281,7 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
-msgid "Save & Restart"
-msgstr ""
-
 msgid "Save Settings"
-msgstr ""
-
-msgid "Saving and restarting service..."
 msgstr ""
 
 msgid "Saving configuration..."
@@ -332,7 +332,13 @@ msgstr ""
 msgid "Target"
 msgstr ""
 
+msgid "The file must be named config.yaml."
+msgstr ""
+
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
+msgstr ""
+
+msgid "The saved configuration takes effect after restarting the OxiDNS service from the Overview page."
 msgstr ""
 
 msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI."
@@ -347,7 +353,13 @@ msgstr ""
 msgid "Unable to load configuration."
 msgstr ""
 
+msgid "Unable to read the selected file."
+msgstr ""
+
 msgid "Unavailable"
+msgstr ""
+
+msgid "Upload Config"
 msgstr ""
 
 msgid "Upload has been cancelled"
@@ -357,6 +369,9 @@ msgid "Update Core"
 msgstr ""
 
 msgid "Upload Core"
+msgstr ""
+
+msgid "Uploading configuration..."
 msgstr ""
 
 msgid "Validate"

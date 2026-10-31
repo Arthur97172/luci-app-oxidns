@@ -61,6 +61,9 @@ msgstr "配置"
 msgid "Configuration and working directory data are preserved unless selected below."
 msgstr "除非勾选下面的选项，否则配置和工作目录数据会保留。"
 
+msgid "Configuration downloaded."
+msgstr "配置已下载。"
+
 msgid "Configure OxiDNS core download sources, runtime paths, and optional download credentials."
 msgstr "配置 OxiDNS 内核下载源、运行路径和可选下载凭据。"
 
@@ -96,6 +99,9 @@ msgstr "取消开机自启"
 
 msgid "Download proxy"
 msgstr "下载代理"
+
+msgid "Download Config"
+msgstr "下载配置"
 
 msgid "Download core archive"
 msgstr "下载内核压缩包"
@@ -280,14 +286,8 @@ msgstr "运行中"
 msgid "Save"
 msgstr "保存"
 
-msgid "Save & Restart"
-msgstr "保存并重启"
-
 msgid "Save Settings"
 msgstr "保存设置"
-
-msgid "Saving and restarting service..."
-msgstr "正在保存并重启服务..."
 
 msgid "Saving configuration..."
 msgstr "正在保存配置..."
@@ -340,8 +340,14 @@ msgstr "目标架构"
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
 
+msgid "The saved configuration takes effect after restarting the OxiDNS service from the Overview page."
+msgstr "保存的配置需要到“概览”页面重启 OxiDNS 服务后才会生效。"
+
 msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI."
 msgstr "已安装的 minimal 内核 bundle 不包含 WebUI 文件。请在“内核”页面点击“安装 WebUI”，将内核替换为包含 WebUI 的 bundle。"
+
+msgid "The file must be named config.yaml."
+msgstr "文件名必须为 config.yaml。"
 
 msgid "Details"
 msgstr "详情"
@@ -352,6 +358,9 @@ msgstr "无法查询 OxiDNS 状态"
 msgid "Unable to load configuration."
 msgstr "无法加载配置。"
 
+msgid "Unable to read the selected file."
+msgstr "无法读取所选文件。"
+
 msgid "Unavailable"
 msgstr "不可用"
 
@@ -361,8 +370,14 @@ msgstr "上传已取消"
 msgid "Update Core"
 msgstr "更新内核"
 
+msgid "Upload Config"
+msgstr "上传配置"
+
 msgid "Upload Core"
 msgstr "上传内核"
+
+msgid "Uploading configuration..."
+msgstr "正在上传配置..."
 
 msgid "Validate"
 msgstr "校验"

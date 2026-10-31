@@ -100,14 +100,104 @@ function validateYaml() {
 	]);
 }
 
-function saveYaml(restart) {
-	return runConfigCall(restart ? _('Saving and restarting service...') : _('Saving configuration...'), callConfigSave, [
+function saveYaml() {
+	return runConfigCall(_('Saving configuration...'), callConfigSave, [
 		textareaValue(),
 		configState.mtime,
-		restart
+		false
 	], function(result) {
 		configState.mtime = result.mtime;
 	});
+}
+
+function setTextareaValue(value) {
+	var textarea = document.getElementById('oxidns-config-content');
+	if (!textarea)
+		return;
+	textarea.value = value;
+	textarea.defaultValue = value;
+}
+
+function downloadYaml() {
+	return L.resolveDefault(callConfigRead(), null).then(function(result) {
+		if (!result || result.ok === false || typeof result.content !== 'string') {
+			setStatus((result && (result.message || result.error)) || _('Unable to load configuration.'), true);
+			return;
+		}
+
+		var blob = new Blob([ result.content ], { type: 'application/yaml' });
+		var url = URL.createObjectURL(blob);
+		var link = E('a', { 'href': url, 'download': 'config.yaml' });
+
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		window.setTimeout(function() {
+			URL.revokeObjectURL(url);
+		}, 1000);
+		setStatus(_('Configuration downloaded.'), false);
+	}).catch(function(err) {
+		setStatus(err.message || String(err), true);
+	});
+}
+
+function readTextFile(file) {
+	return new Promise(function(resolve, reject) {
+		var reader = new FileReader();
+		reader.onload = function() {
+			resolve(String(reader.result || ''));
+		};
+		reader.onerror = function() {
+			reject(reader.error || new Error(_('Unable to read the selected file.')));
+		};
+		reader.readAsText(file);
+	});
+}
+
+function uploadYaml(file) {
+	if (!file)
+		return Promise.resolve();
+	if (file.name !== 'config.yaml') {
+		setStatus(_('The file must be named config.yaml.'), true);
+		return Promise.resolve();
+	}
+
+	return readTextFile(file).then(function(content) {
+		return runConfigCall(_('Uploading configuration...'), callConfigSave, [
+			content,
+			configState.mtime,
+			false
+		], function(result) {
+			configState.mtime = result.mtime;
+			setTextareaValue(content);
+		});
+	}).catch(function(err) {
+		setStatus(err.message || String(err), true);
+	});
+}
+
+function uploadInput() {
+	var input = E('input', {
+		'type': 'file',
+		'accept': '.yaml,text/yaml,application/yaml',
+		'style': 'display: none',
+		'change': function(ev) {
+			var file = ev.target.files && ev.target.files[0];
+			ev.target.value = '';
+			return uploadYaml(file);
+		}
+	});
+
+	return E('span', { 'style': 'display: inline-flex' }, [
+		input,
+		E('button', {
+			'class': 'btn cbi-button cbi-button-action',
+			'click': function(ev) {
+				ev.preventDefault();
+				input.click();
+			}
+		}, _('Upload Config'))
+	]);
 }
 
 return view.extend({
@@ -164,6 +254,8 @@ return view.extend({
 				_('Edit, validate, and save the full OxiDNS YAML configuration file.')),
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('YAML')),
+				E('div', { 'class': 'cbi-section-descr' },
+					_('The saved configuration takes effect after restarting the OxiDNS service from the Overview page.')),
 				E('div', { 'class': 'table cbi-section-table' }, [
 					E('div', { 'class': 'tr' }, [
 						E('div', { 'class': 'td left', 'style': 'width: 240px' }, _('Path')),
@@ -190,16 +282,17 @@ return view.extend({
 						'class': 'btn cbi-button cbi-button-positive',
 						'click': function(ev) {
 							ev.preventDefault();
-							return saveYaml(false);
+							return saveYaml();
 						}
 					}, _('Save')),
 					E('button', {
 						'class': 'btn cbi-button cbi-button-action',
 						'click': function(ev) {
 							ev.preventDefault();
-							return saveYaml(true);
+							return downloadYaml();
 						}
-					}, _('Save & Restart'))
+					}, _('Download Config')),
+					uploadInput()
 				]),
 				E('div', { 'id': 'oxidns-config-status', 'style': 'margin-top: 1em;' })
 			])

@@ -142,7 +142,7 @@ Either way, never expose port 53 or 5335 to the WAN, or the router becomes an op
 
 - `Overview`: core, service, WebUI entry, config path, and log status.
 - `Core`: install, update, upload install, repair reinstall, install WebUI only, or remove the OxiDNS core binary.
-- `Configuration`: view, save, and validate the config file.
+- `Configuration`: view, validate, and save the config file, and download it or upload a `config.yaml` to replace it.
 - `Logs`: view runtime logs with refresh and pause controls.
 - `Settings`: configure core repository, bundle, proxy, config path, and working directory.
 
