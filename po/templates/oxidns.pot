@@ -20,6 +20,9 @@ msgstr ""
 msgid "Available"
 msgstr ""
 
+msgid "Basic Settings"
+msgstr ""
+
 msgid "Binary path"
 msgstr ""
 
@@ -212,9 +215,6 @@ msgstr ""
 msgid "Open WebUI"
 msgstr ""
 
-msgid "Overview"
-msgstr ""
-
 msgid "OxiDNS"
 msgstr ""
 
@@ -359,7 +359,7 @@ msgstr ""
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr ""
 
-msgid "The saved configuration takes effect after restarting the OxiDNS service from the Overview page."
+msgid "The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page."
 msgstr ""
 
 msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI."

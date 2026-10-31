@@ -255,7 +255,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('YAML')),
 				E('div', { 'class': 'cbi-section-descr' },
-					_('The saved configuration takes effect after restarting the OxiDNS service from the Overview page.')),
+					_('The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page.')),
 				E('div', { 'class': 'table cbi-section-table' }, [
 					E('div', { 'class': 'tr' }, [
 						E('div', { 'class': 'td left', 'style': 'width: 240px' }, _('Path')),

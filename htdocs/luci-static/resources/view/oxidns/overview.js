@@ -355,7 +355,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-map-descr' },
 				_('Manage the OxiDNS runtime, service, configuration, and logs from LuCI.')),
 			E('div', { 'class': 'cbi-section' }, [
-				E('h3', {}, _('Overview')),
+				E('h3', {}, _('Basic Settings')),
 				E('div', { 'class': 'table cbi-section-table' }, rows)
 			]),
 			E('div', { 'class': 'cbi-section' }, [

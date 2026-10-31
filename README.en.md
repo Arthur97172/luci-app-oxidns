@@ -75,7 +75,7 @@ apk del oxidns
 
 1. Open `Services -> OxiDNS -> Settings` and confirm `Core repository` is `svenshi/oxidns` and `Core bundle` is `full`.
 2. Open `Services -> OxiDNS -> Core` and click `Install Core`. For offline installs, click `Upload Core` to upload an official `.tar.gz` archive or a single `oxidns` binary.
-3. After installation succeeds, use `Overview` to start and enable the service.
+3. After installation succeeds, use `Basic Settings` to start and enable the service.
 
 LuCI selects the OxiDNS Linux musl release archive for the current CPU architecture, such as `oxidns-x86_64-unknown-linux-musl.tar.gz`. The GitHub release asset SHA256 digest is verified before installation.
 
@@ -140,7 +140,7 @@ Either way, never expose port 53 or 5335 to the WAN, or the router becomes an op
 
 ## Main Pages
 
-- `Overview`: core, service, WebUI entry, config path, and log status.
+- `Basic Settings`: core, service, WebUI entry, config path, and working directory, with service controls.
 - `Core`: install, update, upload install, repair reinstall, install WebUI only, or remove the OxiDNS core binary.
 - `Configuration`: view, validate, and save the config file, and download it or upload a `config.yaml` to replace it.
 - `Settings`: configure core repository, bundle, proxy, config path, and working directory.
@@ -172,10 +172,10 @@ The router must be able to reach GitHub Releases and release archives directly. 
 - Only published OxiDNS Linux musl release targets are supported.
 - `Update Core` only installs strictly newer stable releases. It never downgrades a newer or custom installed build; versions that cannot be parsed are treated as needing no update.
 - Before replacing the core or WebUI, LuCI stages and verifies the new files. If a copy fails, the previous core binary and WebUI are restored, so a new binary is not left running without its WebUI.
-- The `Overview` WebUI entry is generated from the HTTP listen address in the config file. If it listens on `127.0.0.1`, LuCI keeps the link and shows a hint that local access or an SSH tunnel is required.
+- The `Basic Settings` WebUI entry is generated from the HTTP listen address in the config file. If it listens on `127.0.0.1`, LuCI keeps the link and shows a hint that local access or an SSH tunnel is required.
 - The log page reads the log file configured as `log.file`, which defaults to `/tmp/oxidns/oxidns.log`, and falls back to OpenWrt `logread` when the file does not exist or is not readable. The "Log path" field at the top of the log page sets the log directory and writes `log.file` into the config file; when OxiDNS is running it is restarted so the setting takes effect. Core installation writes `/tmp/oxidns/oxidns.log` by default, which is cleared on reboot.
 - `Settings` includes a "Write to system log" switch, enabled by default. OxiDNS must be restarted after saving a change. LuCI stops the service, waits up to 10 seconds for the old procd instance to be removed, and then starts a new instance so the stdout/stderr settings are applied. A failed state query or stop timeout aborts the restart. The same stop wait is used before replacing a running core.
-- Service actions on `Overview` (Start / Stop / Restart / Enable / Disable) always write a `luci-app-oxidns` tagged audit record to the system log, including the action and whether it succeeded. It is written even when the core is not installed, the init script is missing, or the action fails. These records are visible in raw `logread` output and in the LuCI system log page; they do not appear on the OxiDNS log page, which only renders `oxidns[PID]:` output from the core.
+- Service actions on `Basic Settings` (Start / Stop / Restart / Enable / Disable) always write a `luci-app-oxidns` tagged audit record to the system log, including the action and whether it succeeded. It is written even when the core is not installed, the init script is missing, or the action fails. These records are visible in raw `logread` output and in the LuCI system log page; they do not appear on the OxiDNS log page, which only renders `oxidns[PID]:` output from the core.
 
 ## License
 

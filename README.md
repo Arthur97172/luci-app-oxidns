@@ -76,7 +76,7 @@ apk del oxidns
 
 1. 打开 `Services -> OxiDNS -> Settings`，确认 `Core repository` 为 `svenshi/oxidns`，`Core bundle` 为 `full`。
 2. 打开 `Services -> OxiDNS -> Core`，点击 `Install Core`；离线环境也可以点击 `Upload Core` 上传官方 `.tar.gz` archive 或单个 `oxidns` 二进制。
-3. 安装成功后，到 `Overview` 启动并启用服务。
+3. 安装成功后，到 `基本设置` 页面启动并启用服务。
 
 LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例如 `oxidns-x86_64-unknown-linux-musl.tar.gz`。安装时会校验 GitHub release asset 的 SHA256 digest。
 
@@ -141,7 +141,7 @@ uci commit dhcp
 
 ## 常用页面
 
-- `Overview`：查看内核状态、服务状态、WebUI 入口、配置路径和日志状态。
+- `基本设置`：查看内核状态、服务状态、WebUI 入口、配置路径和工作目录，并启停服务。
 - `Core`：首次安装、更新、上传安装、重新安装、单独安装 WebUI 或删除 OxiDNS 内核。
 - `Configuration`：查看、校验、保存配置文件，并可下载当前配置或上传 `config.yaml` 覆盖。
 - `Settings`：设置 core repository、bundle、代理、配置路径和工作目录。
@@ -173,10 +173,10 @@ uci commit dhcp
 - 目前只支持 OxiDNS 已发布的 Linux musl release target。
 - `更新内核` 只会安装严格更新的正式版本，不会降级已安装的较新或自定义构建；无法解析的版本号会被视为无需更新。
 - 替换内核或 WebUI 前会先完整暂存新文件并校验；复制失败时会恢复旧的内核二进制和 WebUI，避免留下新内核搭配缺失 WebUI 的状态。
-- `Overview` 的 WebUI 入口根据配置文件中的 HTTP listen 地址生成；如果监听 `127.0.0.1`，LuCI 会保留链接并提示需要本机访问或 SSH 隧道。
+- `基本设置` 的 WebUI 入口根据配置文件中的 HTTP listen 地址生成；如果监听 `127.0.0.1`，LuCI 会保留链接并提示需要本机访问或 SSH 隧道。
 - 日志页优先读取配置文件中 `log.file` 指定的日志文件，默认为 `/tmp/oxidns/oxidns.log`；文件不存在或不可读时回退到 OpenWrt `logread`。日志页顶部的“日志路径”可修改日志目录，保存时会把 `log.file` 写入配置文件；服务正在运行时自动重启 OxiDNS 使设置生效。内核安装时默认写入 `/tmp/oxidns/oxidns.log`，重启后该目录会被清空。
 - 可在 `Settings` 中关闭“写入系统日志”（默认开启），保存后需重启 OxiDNS 才会生效。LuCI 会停止服务，等待旧 procd 实例被移除（最多 10 秒），再启动新实例，以应用 stdout/stderr 设置。状态查询失败或停止超时时，重启会中止。替换正在运行的内核前也会执行相同的停止等待。
-- `Overview` 上的服务操作（Start / Stop / Restart / Enable / Disable）始终会向系统日志写入一条以 `luci-app-oxidns` 为 tag 的审计记录，包含动作和成功或失败结果。内核未安装、init 脚本缺失或操作失败时同样会记录。这些记录可在 `logread` 原始输出和 LuCI 系统日志页看到；由于日志页只显示 `oxidns[PID]:` 格式的内核输出，审计记录不会出现在 OxiDNS 日志页。
+- `基本设置` 上的服务操作（Start / Stop / Restart / Enable / Disable）始终会向系统日志写入一条以 `luci-app-oxidns` 为 tag 的审计记录，包含动作和成功或失败结果。内核未安装、init 脚本缺失或操作失败时同样会记录。这些记录可在 `logread` 原始输出和 LuCI 系统日志页看到；由于日志页只显示 `oxidns[PID]:` 格式的内核输出，审计记录不会出现在 OxiDNS 日志页。
 
 ## 许可证
 

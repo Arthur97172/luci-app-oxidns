@@ -22,6 +22,9 @@ msgstr "正在执行服务操作..."
 msgid "Available"
 msgstr "可用"
 
+msgid "Basic Settings"
+msgstr "基本设置"
+
 msgid "Binary path"
 msgstr "二进制路径"
 
@@ -214,9 +217,6 @@ msgstr "可选。保存后不会再显示 Token。"
 msgid "Open WebUI"
 msgstr "打开 WebUI"
 
-msgid "Overview"
-msgstr "概览"
-
 msgid "OxiDNS"
 msgstr "OxiDNS"
 
@@ -361,8 +361,8 @@ msgstr "目标架构"
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
 
-msgid "The saved configuration takes effect after restarting the OxiDNS service from the Overview page."
-msgstr "保存的配置需要到“概览”页面重启 OxiDNS 服务后才会生效。"
+msgid "The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page."
+msgstr "保存的配置需要到“基本设置”页面重启 OxiDNS 服务后才会生效。"
 
 msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI."
 msgstr "已安装的 minimal 内核 bundle 不包含 WebUI 文件。请在“内核”页面点击“安装 WebUI”，将内核替换为包含 WebUI 的 bundle。"
