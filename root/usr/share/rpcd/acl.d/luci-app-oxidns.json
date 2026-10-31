@@ -23,7 +23,7 @@
 					"core_reinstall",
 					"core_update",
 					"core_upload_install",
-					"core_webui_upload",
+					"core_webui_install",
 					"core_remove",
 					"service_start",
 					"service_stop",

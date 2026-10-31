@@ -34,10 +34,9 @@ var callCoreUploadInstall = rpc.declare({
 	expect: {}
 });
 
-var callCoreWebuiUpload = rpc.declare({
+var callCoreWebuiInstall = rpc.declare({
 	object: 'luci.oxidns',
-	method: 'core_webui_upload',
-	params: [ 'path' ],
+	method: 'core_webui_install',
 	expect: {}
 });
 
@@ -145,8 +144,7 @@ function coreErrorStageLabel(stage) {
 		unpack_archive: _('Unpack core archive'),
 		install_files: _('Install core files'),
 		restart_service: _('Restart service'),
-		validate_uploaded_core: _('Validate uploaded core'),
-		validate_uploaded_webui: _('Validate uploaded WebUI files')
+		validate_uploaded_core: _('Validate uploaded core')
 	};
 
 	return labels[stage] || stage || '-';
@@ -354,7 +352,7 @@ function handleUploadInstall() {
 			return callCoreUploadInstall(uploadPath);
 		}, 300, function(result) {
 			if (result && result.webui_installed === false && !webuiInstalled(statusState))
-				ui.addNotification(null, E('p', {}, _('Core installed, but the uploaded file contains no WebUI files. Use Install WebUI to add them from an official full or standard archive.')), 'warning');
+				ui.addNotification(null, E('p', {}, _('Core installed, but the uploaded file contains no WebUI files. Use Install WebUI to download them from GitHub.')), 'warning');
 		});
 	}).catch(function(err) {
 		if (err && err.message && err.message.indexOf(_('Upload has been cancelled')) >= 0)
@@ -363,17 +361,10 @@ function handleUploadInstall() {
 	});
 }
 
-function handleWebuiUpload() {
-	var uploadPath = '/tmp/oxidns-core-upload-%d-%d'.format(Date.now(), Math.floor(Math.random() * 1000000));
-
-	return ui.uploadFile(uploadPath).then(function() {
-		return runCoreAction(_('Installing OxiDNS WebUI files...'), function() {
-			return callCoreWebuiUpload(uploadPath);
-		}, 120);
-	}).catch(function(err) {
-		if (err && err.message && err.message.indexOf(_('Upload has been cancelled')) >= 0)
-			return;
-		ui.addNotification(null, E('p', {}, (err && err.message) || String(err)), 'danger');
+function handleWebuiInstall() {
+	return runCoreAction(_('Downloading and installing OxiDNS core and WebUI files...'), callCoreWebuiInstall, 300, function(result) {
+		if (result && result.version)
+			ui.addNotification(null, E('p', {}, _('OxiDNS core and WebUI installed: %s (%s).').format(result.version, result.bundle || '-')), 'info');
 	});
 }
 
@@ -456,7 +447,7 @@ function actionButtons(status) {
 		];
 
 		if (!webuiInstalled(status))
-			buttons.push(actionButton(_('Install WebUI'), handleWebuiUpload, 'action'));
+			buttons.push(actionButton(_('Install WebUI'), handleWebuiInstall, 'action'));
 
 		buttons.push(actionButton(_('Upload Core'), handleUploadInstall, 'action'));
 		buttons.push(actionButton(_('Remove Core'), handleRemove, 'negative'));
@@ -504,7 +495,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Actions')),
 				E('div', { 'class': 'cbi-section-descr' },
-					_('LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI adds only the WebUI files from an official full or standard archive.')),
+					_('LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI downloads the latest official release and replaces the core binary together with the WebUI files.')),
 				E('div', {
 					'id': 'oxidns-core-actions',
 					'class': 'cbi-button-row',

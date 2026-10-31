@@ -158,6 +158,28 @@ core_progress_command() { :; }
 core_progress_log() { :; }
 service_running() { return 0; }
 WEBUI_DIR="$SERVICE_TEST_DIR/webui"
+stub_release_fixture() {
+	mkdir -p "$SERVICE_TEST_DIR/release"
+	mkdir -p "$SERVICE_TEST_DIR/release/webui"
+	cp "$OXIDNS_BIN" "$SERVICE_TEST_DIR/release/oxidns"
+	printf '# replacement\n' >> "$SERVICE_TEST_DIR/release/oxidns"
+	printf '<html></html>\n' > "$SERVICE_TEST_DIR/release/webui/index.html"
+	tar -czf "$SERVICE_TEST_DIR/release.tar.gz" -C "$SERVICE_TEST_DIR/release" oxidns webui
+	require_download_transport() { return 0; }
+	download_file() {
+		if [ "$1" = 'fixture://archive' ]; then
+			cp "$SERVICE_TEST_DIR/release.tar.gz" "$2"
+		else
+			printf '{}\n' > "$2"
+		fi
+	}
+	select_release_asset() {
+		SELECT_TAG=v0.1.0
+		SELECT_ASSET_NAME=fixture.tar.gz
+		SELECT_URL=fixture://archive
+		SELECT_SHA256="$(sha256_file "$SERVICE_TEST_DIR/release.tar.gz")"
+	}
+}
 case "$test_mode" in
 	restart|stop) run_service "$test_mode" ;;
 	config)
@@ -177,27 +199,16 @@ case "$test_mode" in
 		;;
 	release)
 		load_settings
-		mkdir -p "$SERVICE_TEST_DIR/release"
-		mkdir -p "$SERVICE_TEST_DIR/release/webui"
-		cp "$OXIDNS_BIN" "$SERVICE_TEST_DIR/release/oxidns"
-		printf '# replacement\n' >> "$SERVICE_TEST_DIR/release/oxidns"
-		printf '<html></html>\n' > "$SERVICE_TEST_DIR/release/webui/index.html"
-		tar -czf "$SERVICE_TEST_DIR/release.tar.gz" -C "$SERVICE_TEST_DIR/release" oxidns webui
-		require_download_transport() { return 0; }
-		download_file() {
-			if [ "$1" = 'fixture://archive' ]; then
-				cp "$SERVICE_TEST_DIR/release.tar.gz" "$2"
-			else
-				printf '{}\n' > "$2"
-			fi
-		}
-		select_release_asset() {
-			SELECT_TAG=v0.1.0
-			SELECT_ASSET_NAME=fixture.tar.gz
-			SELECT_URL=fixture://archive
-			SELECT_SHA256="$(sha256_file "$SERVICE_TEST_DIR/release.tar.gz")"
-		}
+		stub_release_fixture
 		install_core_from_release reinstall v0.1.0 full
+		;;
+	webui)
+		load_settings
+		stub_release_fixture
+		core_progress_reset() { :; }
+		build_info_json() { printf '{"version":"0.1.0","bundle":"minimal"}\n'; }
+		CORE_BUNDLE=minimal
+		emit_core_webui_install_locked
 		;;
 esac
 EOF
@@ -224,10 +235,14 @@ assert_result() {
 }
 
 for log_setting in 0 1; do
-	for caller in restart config upload release; do
+	for caller in restart config upload release webui; do
 		reset_service_case delayed "$log_setting"
 		run_service_case "$caller"
 		assert_result 'v.ok === true'
+		if [ "$caller" = webui ]; then
+			# A minimal core with a minimal configured bundle upgrades to standard.
+			assert_result "v.action === 'webui_install' && v.bundle === 'standard'"
+		fi
 		test "$(cat "$SERVICE_TEST_DIR/events")" = "$(printf 'stop\nquery\nwait\nquery\nwait\nquery\nstart')"
 		grep -qx "stdout $log_setting" "$SERVICE_TEST_DIR/procd-args"
 		grep -qx "stderr $log_setting" "$SERVICE_TEST_DIR/procd-args"
@@ -243,7 +258,7 @@ for state in stopped empty_service empty_instances; do
 done
 
 for failure in timeout query_failed invalid_json invalid_root invalid_shape stop_failed start_failed; do
-	for caller in restart config upload release; do
+	for caller in restart config upload release webui; do
 		reset_service_case "$failure" 0
 		core_before="$(cat "$SERVICE_TEST_DIR/oxidns")"
 		if run_service_case "$caller"; then
@@ -265,7 +280,7 @@ for failure in timeout query_failed invalid_json invalid_root invalid_shape stop
 				grep -q 'service restart failed:' "$SERVICE_TEST_DIR/audit"
 				;;
 			config) assert_result "v.code === 'service_restart_failed'" ;;
-			upload|release)
+			upload|release|webui)
 				if [ "$failure" = start_failed ]; then
 					assert_result "v.code === 'service_restart_failed'"
 				else

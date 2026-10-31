@@ -94,7 +94,7 @@ function webuiHint(status) {
 		if (!coreInstalled(status))
 			return _('Install the OxiDNS core before using WebUI.');
 		if (status.core && status.core.bundle === 'minimal')
-			return _('The installed minimal core bundle does not include WebUI files. Install the WebUI from the Core page, or install a full or standard bundle.');
+			return _('The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI.');
 		return _('WebUI files are not installed. Install them from the Core page using Install WebUI.');
 	}
 	if (!serviceRunning(status))

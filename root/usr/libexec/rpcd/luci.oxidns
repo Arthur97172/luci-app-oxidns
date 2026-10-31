@@ -1572,6 +1572,21 @@ bundle_includes_webui() {
 	return 1
 }
 
+webui_install_bundle() {
+	CURRENT_BUNDLE="$1"
+	CONFIGURED_BUNDLE="$2"
+
+	if bundle_includes_webui "$CURRENT_BUNDLE"; then
+		printf '%s' "$CURRENT_BUNDLE"
+		return 0
+	fi
+	if bundle_includes_webui "$CONFIGURED_BUNDLE"; then
+		printf '%s' "$CONFIGURED_BUNDLE"
+		return 0
+	fi
+	printf 'standard'
+}
+
 dir_has_files() {
 	[ -d "$1" ] && find "$1" -type f 2>/dev/null | grep -q .
 }
@@ -2217,76 +2232,24 @@ emit_core_upload_install() {
 	run_with_core_lock emit_core_upload_install_locked
 }
 
-emit_core_webui_upload_locked() {
+emit_core_webui_install_locked() {
 	load_settings
-	core_progress_reset "install OxiDNS WebUI files"
-	INPUT="$(cat)"
-	UPLOAD_PATH="$(input_value path "$INPUT")"
-	core_progress_log "info" "uploaded_path=${UPLOAD_PATH:-missing}"
-
-	if ! valid_upload_path "$UPLOAD_PATH" || [ ! -f "$UPLOAD_PATH" ]; then
-		core_progress_log "error" "invalid upload path"
-		json_detailed_error "invalid_upload_path" "uploaded file must be a readable /tmp/oxidns-core-upload-* file" "validate_uploaded_webui" "path=${UPLOAD_PATH:-missing}"
+	core_progress_reset "download and install OxiDNS WebUI files"
+	BUILD_JSON="$(build_info_json)"
+	CURRENT_VERSION="$(json_value_from_string version "$BUILD_JSON")"
+	CURRENT_BUNDLE="$(json_value_from_string bundle "$BUILD_JSON")"
+	if [ ! -x "$OXIDNS_BIN" ] || [ -z "$CURRENT_VERSION" ]; then
+		core_progress_log "error" "core is not installed or cannot report its version"
+		json_error "core_not_installed" "OxiDNS core is not installed or cannot report its version"
 		return 1
 	fi
-	if [ ! -x "$OXIDNS_BIN" ]; then
-		core_progress_log "error" "core is not installed"
-		rm -f "$UPLOAD_PATH" 2>/dev/null || true
-		json_error "core_not_installed" "OxiDNS core is not installed; install the core before installing WebUI files"
-		return 1
-	fi
-
-	CORE_TMP_DIR="$(mktemp -d "$TMP_ROOT/oxidns-webui-upload.XXXXXX")"
-	UNPACK_DIR="$CORE_TMP_DIR/unpack"
-	mkdir -p "$UNPACK_DIR"
-
-	core_progress_command "tar -tzf $UPLOAD_PATH"
-	if ! tar -tzf "$UPLOAD_PATH" >/dev/null 2>&1; then
-		upload_core_error "uploaded_webui_invalid" "uploaded file is not a .tar.gz archive" "validate_uploaded_webui" "archive=$UPLOAD_PATH"
-		return 1
-	fi
-	if ! validate_safe_archive "$UPLOAD_PATH"; then
-		upload_core_error "uploaded_archive_unsafe" "uploaded archive contains unsafe paths or links" "validate_archive" "archive=$UPLOAD_PATH"
-		return 1
-	fi
-	TAR_OUT="$(mktemp "$TMP_ROOT/oxidns-webui-tar.XXXXXX")"
-	core_progress_command "tar -xzf $UPLOAD_PATH -C $UNPACK_DIR"
-	if ! tar -xzf "$UPLOAD_PATH" -C "$UNPACK_DIR" >"$TAR_OUT" 2>&1; then
-		TAR_DETAIL="$(read_error_detail_file "$TAR_OUT" 2>/dev/null || true)"
-		rm -f "$TAR_OUT"
-		upload_core_error "uploaded_archive_unpack_failed" "failed to unpack uploaded OxiDNS archive" "unpack_archive" "${TAR_DETAIL:-tar extraction failed}"
-		return 1
-	fi
-	rm -f "$TAR_OUT"
-
-	if ! dir_has_files "$UNPACK_DIR/webui"; then
-		upload_core_error "uploaded_webui_missing" "uploaded archive does not contain WebUI files" "validate_uploaded_webui" "archive must contain webui/; use an official full or standard .tar.gz archive"
-		return 1
-	fi
-
-	WEBUI_STAGE="$CORE_TMP_DIR/webui.new"
-	core_progress_command "stage webui files from $UNPACK_DIR/webui"
-	if ! stage_webui_files "$UNPACK_DIR/webui" "$WEBUI_STAGE"; then
-		upload_core_error "webui_stage_failed" "failed to stage OxiDNS WebUI files" "install_files" "source=$UNPACK_DIR/webui"
-		return 1
-	fi
-	core_progress_command "replace $WEBUI_DIR"
-	if ! install_staged_webui "$WEBUI_STAGE"; then
-		upload_core_error "webui_install_failed" "failed to install WebUI files; the previous WebUI was kept" "install_files" "destination=$WEBUI_DIR"
-		return 1
-	fi
-
-	WEBUI_FILES="$(find "$WEBUI_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')"
-	rm -f "$UPLOAD_PATH"
-	rm -rf "$CORE_TMP_DIR"
-	core_progress_log "success" "webui files installed: files=${WEBUI_FILES:-0} path=$WEBUI_DIR"
-	printf '{"ok":true,"action":"webui_install","installed":true,"file_count":%s,"webui_path":' "${WEBUI_FILES:-0}"
-	json_string "$WEBUI_DIR"
-	printf '}\n'
+	INSTALL_BUNDLE="$(webui_install_bundle "$CURRENT_BUNDLE" "$CORE_BUNDLE")"
+	core_progress_log "info" "current_version=$CURRENT_VERSION current_bundle=${CURRENT_BUNDLE:-unknown} install_bundle=$INSTALL_BUNDLE"
+	install_core_from_release webui_install latest "$INSTALL_BUNDLE"
 }
 
-emit_core_webui_upload() {
-	run_with_core_lock emit_core_webui_upload_locked
+emit_core_webui_install() {
+	run_with_core_lock emit_core_webui_install_locked
 }
 
 emit_core_remove_locked() {
@@ -2382,7 +2345,7 @@ case "${1:-}" in
 		printf '"core_reinstall":{},'
 		printf '"core_update":{},'
 		printf '"core_upload_install":{"path":"string"},'
-		printf '"core_webui_upload":{"path":"string"},'
+		printf '"core_webui_install":{},'
 		printf '"core_progress":{},'
 		printf '"core_remove":{"remove_config":"boolean","remove_workdir":"boolean"},'
 		printf '"service_start":{},'
@@ -2415,8 +2378,8 @@ case "${1:-}" in
 			core_upload_install)
 				emit_core_upload_install
 				;;
-			core_webui_upload)
-				emit_core_webui_upload
+			core_webui_install)
+				emit_core_webui_install
 				;;
 			core_progress)
 				emit_core_progress

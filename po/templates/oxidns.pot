@@ -74,7 +74,7 @@ msgstr ""
 msgid "Core bundle"
 msgstr ""
 
-msgid "Core installed, but the uploaded file contains no WebUI files. Use Install WebUI to add them from an official full or standard archive."
+msgid "Core installed, but the uploaded file contains no WebUI files. Use Install WebUI to download them from GitHub."
 msgstr ""
 
 msgid "Core operation failed"
@@ -158,7 +158,7 @@ msgstr ""
 msgid "Installing uploaded OxiDNS core..."
 msgstr ""
 
-msgid "Installing OxiDNS WebUI files..."
+msgid "Downloading and installing OxiDNS core and WebUI files..."
 msgstr ""
 
 msgid "Logs"
@@ -167,7 +167,7 @@ msgstr ""
 msgid "LuCI backend"
 msgstr ""
 
-msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI adds only the WebUI files from an official full or standard archive."
+msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI downloads the latest official release and replaces the core binary together with the WebUI files."
 msgstr ""
 
 msgid "Manage the OxiDNS runtime, service, configuration, and logs from LuCI."
@@ -201,6 +201,9 @@ msgid "OxiDNS Configuration"
 msgstr ""
 
 msgid "OxiDNS Core"
+msgstr ""
+
+msgid "OxiDNS core and WebUI installed: %s (%s)."
 msgstr ""
 
 msgid "OxiDNS core is already up to date."
@@ -332,7 +335,7 @@ msgstr ""
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr ""
 
-msgid "The installed minimal core bundle does not include WebUI files. Install the WebUI from the Core page, or install a full or standard bundle."
+msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Core page to replace it with a bundle that includes WebUI."
 msgstr ""
 
 msgid "Details"
@@ -363,9 +366,6 @@ msgid "Validate core archive"
 msgstr ""
 
 msgid "Validate uploaded core"
-msgstr ""
-
-msgid "Validate uploaded WebUI files"
 msgstr ""
 
 msgid "Validating configuration..."

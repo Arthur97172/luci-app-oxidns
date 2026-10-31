@@ -82,7 +82,7 @@ LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例
 
 注意：`full` 和 `standard` 归档包含 WebUI 文件，`minimal` 归档不包含。上传单个 `oxidns` 二进制不会安装 WebUI；如果当前没有已安装的 WebUI，LuCI 会拒绝 `full` / `standard` 内核但缺少 `webui/` 的上传，避免出现“内核已安装但 WebUI 缺失”的半安装状态。
 
-如果内核已经安装，`Core` 页面提供 `更新内核`、`重新安装`、`Install WebUI` 和 `Upload Core`。`更新内核` 会检查官方最新 release，只有存在更新版本时才自动下载并安装，且保持当前已安装的 bundle；`重新安装` 和 `Upload Core` 用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件。WebUI 缺失时，`Install WebUI` 可以只从官方 `full` 或 `standard` 归档安装 `/usr/share/oxidns/webui`，不会改动内核二进制和配置。
+如果内核已经安装，`Core` 页面提供 `更新内核`、`重新安装`、`Install WebUI` 和 `Upload Core`。`更新内核` 会检查官方最新 release，只有存在更新版本时才自动下载并安装，且保持当前已安装的 bundle；`重新安装` 和 `Upload Core` 用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件。WebUI 缺失时，`Install WebUI` 会从 GitHub 下载官方最新 release，并同时替换内核二进制和 `/usr/share/oxidns/webui`。bundle 的选择顺序是：当前已安装的 bundle 若是 `full` / `standard` 则保持不变；否则使用设置中的 bundle；两者都不包含 WebUI 时回退到 `standard`。该操作需要设备能访问 GitHub，配置文件中已有的设置不会被覆盖。
 
 ## 常用页面
 
