@@ -95,7 +95,7 @@ rm -rf "$INIT_STUB_DIR"
 scripts/check.sh
 scripts/service-check.sh
 
-root/usr/libexec/rpcd/luci.oxidns list | json_ok "'status' in v && 'core_install' in v && 'core_reinstall' in v && 'core_upload_install' in v && 'core_progress' in v && 'core_remove' in v && 'logs_recent' in v && 'settings_read' in v && !('config_basic_read' in v) && !('config_basic_save' in v)"
+root/usr/libexec/rpcd/luci.oxidns list | json_ok "'status' in v && 'core_install' in v && 'core_reinstall' in v && 'core_update' in v && 'core_upload_install' in v && 'core_progress' in v && 'core_remove' in v && 'logs_recent' in v && 'settings_read' in v && !('config_basic_read' in v) && !('config_basic_save' in v)"
 root/usr/libexec/rpcd/luci.oxidns call status | json_ok "v.ok === true && v.core && v.core.installed === false && v.webui && v.webui.installed === false && typeof v.webui.url === 'string' && typeof v.webui.local_only === 'boolean' && typeof v.webui.wildcard === 'boolean' && !('api' in v) && !('api_base_url' in v) && !('package' in v) && !('package_manager' in v)"
 TARGET_FAKE_BIN="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-target-fake-bin.XXXXXX")"
 TARGET_CASES="$(mktemp "${TMPDIR:-/tmp}/oxidns-target-cases.XXXXXX")"
@@ -118,13 +118,23 @@ rm -rf "$TARGET_FAKE_BIN"
 rm -f "$TARGET_CASES"
 root/usr/libexec/rpcd/luci.oxidns call core_progress | json_ok "v.ok === true && typeof v.text === 'string'"
 root/usr/libexec/rpcd/luci.oxidns call core_reinstall | json_ok "v.ok === false && v.code === 'core_not_installed'"
+root/usr/libexec/rpcd/luci.oxidns call core_update | json_ok "v.ok === false && v.code === 'core_not_installed'"
 printf '%s' '{"path":"/etc/passwd"}' | root/usr/libexec/rpcd/luci.oxidns call core_upload_install | json_ok "v.ok === false && v.code === 'invalid_upload_path'"
 LOCK_TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-lock-test.XXXXXX")"
 mkdir -p "$LOCK_TEST_DIR/luci-oxidns/core-operation.lock"
 printf '%s\n' "$$" > "$LOCK_TEST_DIR/luci-oxidns/core-operation.lock/pid"
 TMPDIR="$LOCK_TEST_DIR" root/usr/libexec/rpcd/luci.oxidns call core_reinstall | json_ok "v.ok === false && v.code === 'core_operation_busy'"
+TMPDIR="$LOCK_TEST_DIR" root/usr/libexec/rpcd/luci.oxidns call core_update | json_ok "v.ok === false && v.code === 'core_operation_busy'"
 rm -rf "$LOCK_TEST_DIR"
-node -e "const acl=JSON.parse(require('fs').readFileSync('root/usr/share/rpcd/acl.d/luci-app-oxidns.json','utf8'))['luci-app-oxidns']; const read=acl.read.ubus['luci.oxidns']; const write=acl.write.ubus['luci.oxidns']; if (read.includes('config_validate') || !write.includes('config_validate')) process.exit(1);"
+eval "$(sed -n '/^version_is_newer()/,/^}/p' root/usr/libexec/rpcd/luci.oxidns)"
+version_is_newer v1.7.0 1.6.1
+! version_is_newer v1.6.1 1.6.1
+! version_is_newer v1.6.1 1.7.0
+version_is_newer v1.7.0 v1.7.0-rc1
+! version_is_newer v1.7.0-rc1 v1.7.0
+version_is_newer 1.7.0+build 1.6.1
+! version_is_newer dev 1.6.1
+node -e "const acl=JSON.parse(require('fs').readFileSync('root/usr/share/rpcd/acl.d/luci-app-oxidns.json','utf8'))['luci-app-oxidns']; const read=acl.read.ubus['luci.oxidns']; const write=acl.write.ubus['luci.oxidns']; if (read.includes('core_update') || !write.includes('core_update') || read.includes('config_validate') || !write.includes('config_validate')) process.exit(1);"
 JSON_ESCAPED="$(printf '%s\n' 'listen: "127.0.0.1:9199"' | awk 'BEGIN { ORS = "" } { if (NR > 1) printf "\\n"; for (i = 1; i <= length($0); i++) { c = substr($0, i, 1); if (c == "\\") printf "\\\\"; else if (c == "\"") printf "\\\""; else if (c == "\t") printf "\\t"; else if (c == "\r") printf "\\r"; else printf "%s", c; } }')"
 test "$JSON_ESCAPED" = 'listen: \"127.0.0.1:9199\"'
 PROGRESS_TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-progress-test.XXXXXX")"

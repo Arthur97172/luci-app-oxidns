@@ -34,6 +34,9 @@ msgstr "取消"
 msgid "Bundle"
 msgstr "Bundle"
 
+msgid "Checking for OxiDNS core updates..."
+msgstr "正在检查 OxiDNS 内核更新..."
+
 msgid "Clear"
 msgstr "清空"
 
@@ -139,8 +142,8 @@ msgstr "请先安装 OxiDNS 内核，再编辑配置。"
 msgid "Install the OxiDNS core before using service controls."
 msgstr "请先安装 OxiDNS 内核，再使用服务控制。"
 
-msgid "Install or repair the OxiDNS core binary. Runtime upgrades are handled by OxiDNS itself."
-msgstr "安装或修复 OxiDNS 内核二进制。运行时升级由 OxiDNS 自身处理。"
+msgid "Install, update, or repair the OxiDNS core binary."
+msgstr "安装、更新或修复 OxiDNS 内核二进制。"
 
 msgid "Installed"
 msgstr "已安装"
@@ -157,8 +160,8 @@ msgstr "日志"
 msgid "LuCI backend"
 msgstr "LuCI 后端"
 
-msgid "LuCI can download the official OxiDNS release archive or install an uploaded .tar.gz archive or single oxidns binary. Future upgrades are handled by the OxiDNS core."
-msgstr "LuCI 可以下载官方 OxiDNS release archive，也可以安装上传的 .tar.gz archive 或单个 oxidns 二进制。后续升级由 OxiDNS 内核自身处理。"
+msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary."
+msgstr "LuCI 可以安装最新 OxiDNS release、更新已安装的内核，也可以安装上传的 .tar.gz archive 或单个 oxidns 二进制。"
 
 msgid "Manage the OxiDNS runtime, service, configuration, and logs from LuCI."
 msgstr "在 LuCI 中管理 OxiDNS 运行时、服务、配置和日志。"
@@ -192,6 +195,9 @@ msgstr "OxiDNS 配置"
 
 msgid "OxiDNS Core"
 msgstr "OxiDNS 内核"
+
+msgid "OxiDNS core is already up to date."
+msgstr "OxiDNS 内核已是最新版本。"
 
 msgid "OxiDNS Logs"
 msgstr "OxiDNS 日志"
@@ -336,6 +342,9 @@ msgstr "不可用"
 
 msgid "Upload has been cancelled"
 msgstr "上传已取消"
+
+msgid "Update Core"
+msgstr "更新内核"
 
 msgid "Upload Core"
 msgstr "上传内核"

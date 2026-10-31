@@ -1236,6 +1236,55 @@ version_tag() {
 	esac
 }
 
+version_is_newer() {
+	VERSION_CANDIDATE="$1"
+	VERSION_CURRENT="$2"
+	awk -v candidate="$VERSION_CANDIDATE" -v current="$VERSION_CURRENT" '
+	function strip_prefix(value) {
+		sub(/^[vV]/, "", value)
+		return value
+	}
+	function core_version(value) {
+		sub(/[+-].*$/, "", value)
+		return value
+	}
+	function prerelease(value) {
+		if (value !~ /-/)
+			return ""
+		sub(/^[^-]*-/, "", value)
+		sub(/\+.*$/, "", value)
+		return value
+	}
+	BEGIN {
+		candidate = strip_prefix(candidate)
+		current = strip_prefix(current)
+		candidate_core = core_version(candidate)
+		current_core = core_version(current)
+		if (candidate_core !~ /^[0-9]+(\.[0-9]+)*$/ || current_core !~ /^[0-9]+(\.[0-9]+)*$/)
+			exit 1
+		candidate_parts = split(candidate_core, candidate_fields, ".")
+		current_parts = split(current_core, current_fields, ".")
+		parts = candidate_parts > current_parts ? candidate_parts : current_parts
+		for (i = 1; i <= parts; i++) {
+			candidate_value = i <= candidate_parts ? candidate_fields[i] + 0 : 0
+			current_value = i <= current_parts ? current_fields[i] + 0 : 0
+			if (candidate_value > current_value)
+				exit 0
+			if (candidate_value < current_value)
+				exit 1
+		}
+		candidate_pre = prerelease(candidate)
+		current_pre = prerelease(current)
+		if (candidate_pre == "" && current_pre != "")
+			exit 0
+		if (candidate_pre != "" && current_pre == "")
+			exit 1
+		if (candidate_pre != "" && current_pre != "")
+			exit (candidate_pre > current_pre ? 0 : 1)
+		exit 1
+	}'
+}
+
 select_release_asset() {
 	RELEASE_FILE="$1"
 	WANT_ASSET="$2"
@@ -1533,6 +1582,7 @@ install_core_from_release() {
 	ACTION="$1"
 	RELEASE_TARGET="$2"
 	REQUEST_BUNDLE="$3"
+	PREVIOUS_VERSION="${4:-}"
 	load_settings
 	require_download_transport || return 1
 
@@ -1591,6 +1641,27 @@ install_core_from_release() {
 			return 1
 		fi
 		core_progress_log "success" "selected release=$SELECT_TAG asset=$SELECT_ASSET_NAME via github.com fallback"
+	fi
+	if [ -n "$PREVIOUS_VERSION" ] && ! version_is_newer "$SELECT_TAG" "$PREVIOUS_VERSION"; then
+		core_progress_log "success" "core is already up to date: current=$PREVIOUS_VERSION latest=$SELECT_TAG"
+		rm -rf "$CORE_TMP_DIR"
+		printf '{"ok":true,"action":'
+		json_string "$ACTION"
+		printf ',"updated":false,"version":'
+		json_string "$SELECT_TAG"
+		printf ',"current_version":'
+		json_string "$PREVIOUS_VERSION"
+		printf ',"latest_version":'
+		json_string "$SELECT_TAG"
+		printf ',"bundle":'
+		json_string "$REQUEST_BUNDLE"
+		printf ',"target":'
+		json_string "$RUST_TARGET"
+		printf '}\n'
+		return 0
+	fi
+	if [ -n "$PREVIOUS_VERSION" ]; then
+		core_progress_log "info" "new version available: current=$PREVIOUS_VERSION latest=$SELECT_TAG; updating"
 	fi
 	if ! valid_sha256 "$SELECT_SHA256"; then
 		core_install_error "release_digest_missing" "selected OxiDNS release asset does not include a valid SHA256 digest" "verify_release_digest" "asset=$SELECT_ASSET_NAME digest=${SELECT_SHA256:-missing}"
@@ -1714,6 +1785,10 @@ install_core_from_release() {
 	core_progress_log "success" "core $ACTION completed: version=$SELECT_TAG bundle=$REQUEST_BUNDLE target=$RUST_TARGET"
 	printf '{"ok":true,"action":'
 	json_string "$ACTION"
+	if [ -n "$PREVIOUS_VERSION" ]; then
+		printf ',"updated":true,"previous_version":'
+		json_string "$PREVIOUS_VERSION"
+	fi
 	printf ',"version":'
 	json_string "$SELECT_TAG"
 	printf ',"bundle":'
@@ -1768,6 +1843,26 @@ emit_core_reinstall_locked() {
 
 emit_core_reinstall() {
 	run_with_core_lock emit_core_reinstall_locked
+}
+
+emit_core_update_locked() {
+	load_settings
+	core_progress_reset "check and update OxiDNS core"
+	BUILD_JSON="$(build_info_json)"
+	CURRENT_VERSION="$(json_value_from_string version "$BUILD_JSON")"
+	CURRENT_BUNDLE="$(json_value_from_string bundle "$BUILD_JSON")"
+	if [ ! -x "$OXIDNS_BIN" ] || [ -z "$CURRENT_VERSION" ]; then
+		core_progress_log "error" "core is not installed or cannot report its version"
+		json_error "core_not_installed" "OxiDNS core is not installed or cannot report its version"
+		return 1
+	fi
+	[ -n "$CURRENT_BUNDLE" ] || CURRENT_BUNDLE="$CORE_BUNDLE"
+	core_progress_log "info" "current_version=$CURRENT_VERSION current_bundle=$CURRENT_BUNDLE"
+	install_core_from_release update latest "$CURRENT_BUNDLE" "$CURRENT_VERSION"
+}
+
+emit_core_update() {
+	run_with_core_lock emit_core_update_locked
 }
 
 upload_core_error() {
@@ -2075,6 +2170,7 @@ case "${1:-}" in
 		printf '"status":{},'
 		printf '"core_install":{},'
 		printf '"core_reinstall":{},'
+		printf '"core_update":{},'
 		printf '"core_upload_install":{"path":"string"},'
 		printf '"core_progress":{},'
 		printf '"core_remove":{"remove_config":"boolean","remove_workdir":"boolean"},'
@@ -2101,6 +2197,9 @@ case "${1:-}" in
 				;;
 			core_reinstall)
 				emit_core_reinstall
+				;;
+			core_update)
+				emit_core_update
 				;;
 			core_upload_install)
 				emit_core_upload_install

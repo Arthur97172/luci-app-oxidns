@@ -21,6 +21,12 @@ var callCoreReinstall = rpc.declare({
 	expect: {}
 });
 
+var callCoreUpdate = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'core_update',
+	expect: {}
+});
+
 var callCoreUploadInstall = rpc.declare({
 	object: 'luci.oxidns',
 	method: 'core_upload_install',
@@ -324,6 +330,13 @@ function handleReinstall() {
 	return runCoreAction(_('Repair reinstalling OxiDNS core...'), callCoreReinstall, 300);
 }
 
+function handleUpdate() {
+	return runCoreAction(_('Checking for OxiDNS core updates...'), callCoreUpdate, 300, function(result) {
+		if (result && result.updated === false)
+			ui.addNotification(null, E('p', {}, _('OxiDNS core is already up to date.')), 'info');
+	});
+}
+
 function handleUploadInstall() {
 	var uploadPath = '/tmp/oxidns-core-upload-%d-%d'.format(Date.now(), Math.floor(Math.random() * 1000000));
 
@@ -416,6 +429,7 @@ function actionButtons(status) {
 	if (coreInstalled(status)) {
 		return [
 			actionButton(_('Repair Reinstall'), handleReinstall, 'action'),
+			actionButton(_('Update Core'), handleUpdate, 'positive'),
 			actionButton(_('Upload Core'), handleUploadInstall, 'action'),
 			actionButton(_('Remove Core'), handleRemove, 'negative')
 		];
@@ -453,7 +467,7 @@ return view.extend({
 		return E('div', { 'class': 'cbi-map' }, [
 			E('h2', {}, _('OxiDNS Core')),
 			E('div', { 'class': 'cbi-map-descr' },
-				_('Install or repair the OxiDNS core binary. Runtime upgrades are handled by OxiDNS itself.')),
+				_('Install, update, or repair the OxiDNS core binary.')),
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Core Status')),
 				E('div', { 'class': 'table cbi-section-table' }, rows)
@@ -461,7 +475,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Actions')),
 				E('div', { 'class': 'cbi-section-descr' },
-					_('LuCI can download the official OxiDNS release archive or install an uploaded .tar.gz archive or single oxidns binary. Future upgrades are handled by the OxiDNS core.')),
+					_('LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary.')),
 				E('div', {
 					'id': 'oxidns-core-actions',
 					'class': 'cbi-button-row',

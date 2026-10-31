@@ -32,6 +32,9 @@ msgstr ""
 msgid "Bundle"
 msgstr ""
 
+msgid "Checking for OxiDNS core updates..."
+msgstr ""
+
 msgid "Clear"
 msgstr ""
 
@@ -137,7 +140,7 @@ msgstr ""
 msgid "Install the OxiDNS core before using service controls."
 msgstr ""
 
-msgid "Install or repair the OxiDNS core binary. Runtime upgrades are handled by OxiDNS itself."
+msgid "Install, update, or repair the OxiDNS core binary."
 msgstr ""
 
 msgid "Installed"
@@ -155,7 +158,7 @@ msgstr ""
 msgid "LuCI backend"
 msgstr ""
 
-msgid "LuCI can download the official OxiDNS release archive or install an uploaded .tar.gz archive or single oxidns binary. Future upgrades are handled by the OxiDNS core."
+msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary."
 msgstr ""
 
 msgid "Manage the OxiDNS runtime, service, configuration, and logs from LuCI."
@@ -189,6 +192,9 @@ msgid "OxiDNS Configuration"
 msgstr ""
 
 msgid "OxiDNS Core"
+msgstr ""
+
+msgid "OxiDNS core is already up to date."
 msgstr ""
 
 msgid "OxiDNS Logs"
@@ -330,6 +336,9 @@ msgid "Unavailable"
 msgstr ""
 
 msgid "Upload has been cancelled"
+msgstr ""
+
+msgid "Update Core"
 msgstr ""
 
 msgid "Upload Core"

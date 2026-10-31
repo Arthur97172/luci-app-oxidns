@@ -82,12 +82,12 @@ LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例
 
 注意：`full` 和 `standard` 归档包含 WebUI 文件，`minimal` 归档不包含；上传单个 `oxidns` 二进制也不会安装 WebUI。需要 WebUI 时请上传官方 `full` 或 `standard` 归档。
 
-如果内核已经安装，`Core` 页面提供 `重新安装` 和 `Upload Core`，用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件；它不会安装 latest，也不会作为升级入口。
+如果内核已经安装，`Core` 页面提供 `更新内核`、`重新安装` 和 `Upload Core`。`更新内核` 会检查官方最新 release，只有存在更新版本时才自动下载并安装，且保持当前已安装的 bundle；`重新安装` 和 `Upload Core` 用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件。
 
 ## 常用页面
 
 - `Overview`：查看内核状态、服务状态、WebUI 入口、配置路径和日志状态。
-- `Core`：首次安装、上传安装、重新安装或删除 OxiDNS 内核二进制。
+- `Core`：首次安装、更新、上传安装、重新安装或删除 OxiDNS 内核二进制。
 - `Configuration`：查看、保存和校验配置文件。
 - `Logs`：查看运行日志，支持刷新和暂停。
 - `Settings`：设置 core repository、bundle、代理、配置路径和工作目录。
@@ -102,7 +102,7 @@ LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例
 
 ## 升级与删除
 
-升级 OxiDNS 内核时，请使用 OxiDNS 自带的升级功能，例如内核 WebUI / API / CLI 中的升级能力。LuCI 不提供内核升级入口。
+升级 OxiDNS 内核可以在 LuCI 的 `Core` 页面点击 `更新内核`，它会检查官方最新 release 并在有更新时自动安装；也可以使用 OxiDNS 自带的升级功能，例如内核 WebUI / API / CLI 中的升级能力。
 
 升级 LuCI 插件时，下载新版本 `luci-app-oxidns` 包并重新安装即可。LuCI 页面内不提供自升级。
 
@@ -115,7 +115,7 @@ LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例
 ## 已知限制
 
 - 目前只支持 OxiDNS 已发布的 Linux musl release target。
-- `Core` 页面只负责首次安装、上传安装和重新安装，不负责版本升级。
+- `更新内核` 只会安装严格更新的正式版本，不会降级已安装的较新或自定义构建；无法解析的版本号会被视为无需更新。
 - `Overview` 的 WebUI 入口根据配置文件中的 HTTP listen 地址生成；如果监听 `127.0.0.1`，LuCI 会保留链接并提示需要本机访问或 SSH 隧道。
 - 日志页读取 OpenWrt `logread` 中的 OxiDNS 服务 stdout/stderr 输出。
 - 可在 `Settings` 中关闭“写入系统日志”（默认开启），保存后需重启 OxiDNS 才会生效。LuCI 会停止服务，等待旧 procd 实例被移除（最多 10 秒），再启动新实例，以应用 stdout/stderr 设置。状态查询失败或停止超时时，重启会中止。替换正在运行的内核前也会执行相同的停止等待。

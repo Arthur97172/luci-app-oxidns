@@ -81,12 +81,12 @@ LuCI selects the OxiDNS Linux musl release archive for the current CPU architect
 
 Note: the `full` and `standard` archives include the WebUI files, while the `minimal` archive does not; uploading a single `oxidns` binary does not install the WebUI either. Upload an official `full` or `standard` archive when you need the WebUI.
 
-When the core is already installed, the `Core` page offers `Repair Reinstall` and `Upload Core`, which repair the binary or WebUI files by downloading the current installed version again or using an uploaded file. It does not install latest and is not an upgrade entry point.
+When the core is already installed, the `Core` page offers `Update Core`, `Repair Reinstall`, and `Upload Core`. `Update Core` checks the latest official release and only downloads and installs when a newer version exists, keeping the currently installed bundle. `Repair Reinstall` and `Upload Core` repair the binary or WebUI files by downloading the current installed version again or using an uploaded file.
 
 ## Main Pages
 
 - `Overview`: core, service, WebUI entry, config path, and log status.
-- `Core`: install, upload install, repair reinstall, or remove the OxiDNS core binary.
+- `Core`: install, update, upload install, repair reinstall, or remove the OxiDNS core binary.
 - `Configuration`: view, save, and validate the config file.
 - `Logs`: view runtime logs with refresh and pause controls.
 - `Settings`: configure core repository, bundle, proxy, config path, and working directory.
@@ -101,7 +101,7 @@ When the core is already installed, the `Core` page offers `Repair Reinstall` an
 
 ## Upgrade And Remove
 
-To upgrade the OxiDNS core, use the upgrade feature built into OxiDNS itself, such as the core WebUI / API / CLI upgrade flow. LuCI does not provide a core-upgrade entry point.
+To upgrade the OxiDNS core, click `Update Core` on the LuCI `Core` page; it checks the latest official release and installs it when a newer version exists. You can also use the upgrade feature built into OxiDNS itself, such as the core WebUI / API / CLI upgrade flow.
 
 To upgrade the LuCI app, download and install the newer `luci-app-oxidns` package. The LuCI UI does not provide self-upgrade.
 
@@ -114,7 +114,7 @@ The router must be able to reach GitHub Releases and release archives directly. 
 ## Known Limitations
 
 - Only published OxiDNS Linux musl release targets are supported.
-- The `Core` page handles first install, upload install, and repair reinstall only, not version upgrades.
+- `Update Core` only installs strictly newer stable releases. It never downgrades a newer or custom installed build; versions that cannot be parsed are treated as needing no update.
 - The `Overview` WebUI entry is generated from the HTTP listen address in the config file. If it listens on `127.0.0.1`, LuCI keeps the link and shows a hint that local access or an SSH tunnel is required.
 - The log page reads OxiDNS service stdout/stderr output from OpenWrt `logread`.
 - `Settings` includes a "Write to system log" switch, enabled by default. OxiDNS must be restarted after saving a change. LuCI stops the service, waits up to 10 seconds for the old procd instance to be removed, and then starts a new instance so the stdout/stderr settings are applied. A failed state query or stop timeout aborts the restart. The same stop wait is used before replacing a running core.

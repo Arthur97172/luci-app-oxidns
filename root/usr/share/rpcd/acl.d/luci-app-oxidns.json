@@ -21,6 +21,7 @@
 				"luci.oxidns": [
 					"core_install",
 					"core_reinstall",
+					"core_update",
 					"core_upload_install",
 					"core_remove",
 					"service_start",
