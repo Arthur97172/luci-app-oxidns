@@ -1,0 +1,176 @@
+{
+	"version": 1,
+	"description": "Normal-mode editing contract for OxiDNS plugins. Field paths are relative to the plugin instance args.",
+	"plugins": {
+		"forward": {
+			"title": "Forward",
+			"fields": [
+				{ "path": [ "concurrent" ], "label": "Concurrent upstreams", "type": "integer", "min": 1, "max": 32 },
+				{ "path": [ "response_selection" ], "label": "Response selection", "type": "enum", "values": [ "fastest", "balanced", "prefer_positive", "consensus" ] },
+				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
+			]
+		},
+		"cache": {
+			"title": "Cache",
+			"fields": [
+				{ "path": [ "size" ], "label": "Cache size (entries)", "type": "integer", "min": 0 },
+				{ "path": [ "lazy_cache_ttl" ], "label": "Override TTL (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "dump_file" ], "label": "Dump file", "type": "string" },
+				{ "path": [ "dump_interval" ], "label": "Dump interval (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" },
+				{ "path": [ "cache_negative" ], "label": "Cache negative responses", "type": "boolean" },
+				{ "path": [ "max_negative_ttl" ], "label": "Max negative TTL (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "negative_ttl_without_soa" ], "label": "Negative TTL without SOA (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "max_positive_ttl" ], "label": "Max positive TTL (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "min_positive_ttl" ], "label": "Min positive TTL (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "ecs_in_key" ], "label": "Include ECS in cache key", "type": "boolean" }
+			]
+		},
+		"hosts": {
+			"title": "Hosts",
+			"fields": [
+				{ "path": [ "entries" ], "label": "Hosts entries", "type": "string-list", "placeholder": "example.com 192.0.2.1" },
+				{ "path": [ "files" ], "label": "Hosts files", "type": "string-list", "placeholder": "/etc/hosts" },
+				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
+			]
+		},
+		"black_hole": {
+			"title": "Black Hole",
+			"fields": [
+				{ "path": [ "mode" ], "label": "Blocking mode", "type": "enum", "values": [ "nxdomain", "nodata", "null", "custom", "refused" ] },
+				{ "path": [ "ips" ], "label": "Answer addresses", "type": "string-list", "placeholder": "0.0.0.0" },
+				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
+			]
+		},
+		"fallback": {
+			"title": "Fallback",
+			"fields": [
+				{ "path": [ "primary" ], "label": "Primary executor", "type": "string" },
+				{ "path": [ "secondary" ], "label": "Standby executor", "type": "string" },
+				{ "path": [ "threshold" ], "label": "Slow threshold (ms)", "type": "integer", "min": 0 },
+				{ "path": [ "always_standby" ], "label": "Always run standby", "type": "boolean" },
+				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
+			]
+		},
+		"ip_selector": {
+			"title": "IP Selector",
+			"fields": [
+				{ "path": [ "selection_mode" ], "label": "Selection mode", "type": "enum", "values": [ "first_success", "best_within_budget", "background" ] },
+				{ "path": [ "outbound" ], "label": "Outbound profile", "type": "string" },
+				{ "path": [ "socks5" ], "label": "SOCKS5 proxy", "type": "string" },
+				{ "path": [ "probe_methods" ], "label": "Probe methods", "type": "string-list", "placeholder": "tcp:443\ntcp:80" },
+				{ "path": [ "probe_stagger" ], "label": "Probe stagger (ms)", "type": "integer", "min": 0 },
+				{ "path": [ "probe_timeout" ], "label": "Probe timeout (ms)", "type": "integer", "min": 1 },
+				{ "path": [ "max_wait" ], "label": "Max wait (ms)", "type": "integer", "min": 1 },
+				{ "path": [ "top_n" ], "label": "Top N addresses", "type": "integer", "min": 1 },
+				{ "path": [ "reorder_only" ], "label": "Reorder only", "type": "boolean" },
+				{ "path": [ "dnssec_policy" ], "label": "DNSSEC policy", "type": "enum", "values": [ "reorder_only", "skip" ] },
+				{ "path": [ "max_parallel_probes" ], "label": "Max parallel probes", "type": "integer", "min": 1 }
+			]
+		},
+		"learn_domain": {
+			"title": "Learn Domain",
+			"fields": [
+				{ "path": [ "provider" ], "label": "Target dynamic domain set", "type": "string" },
+				{ "path": [ "phase" ], "label": "Learning phase", "type": "enum", "values": [ "before", "after" ] },
+				{ "path": [ "questions" ], "label": "Questions", "type": "enum", "values": [ "first", "all" ] },
+				{ "path": [ "qtypes" ], "label": "Query types", "type": "string-list", "placeholder": "A\nAAAA" },
+				{ "path": [ "success_only" ], "label": "Require success (NOERROR)", "type": "boolean" },
+				{ "path": [ "answer_required" ], "label": "Require an answer", "type": "boolean" },
+				{ "path": [ "rule_kind" ], "label": "Rule kind", "type": "enum", "values": [ "full", "domain" ] },
+				{ "path": [ "async" ], "label": "Asynchronous", "type": "boolean" },
+				{ "path": [ "error_mode" ], "label": "Error handling", "type": "enum", "values": [ "continue", "stop", "fail" ] },
+				{ "path": [ "timeout" ], "label": "Timeout", "type": "string", "placeholder": "1s" }
+			]
+		},
+		"query_recorder": {
+			"title": "Query Recorder",
+			"fields": [
+				{ "path": [ "path" ], "label": "Database path", "type": "string", "placeholder": "/tmp/oxidns/query.db" },
+				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1 },
+				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1 },
+				{ "path": [ "flush_interval_ms" ], "label": "Flush interval (ms)", "type": "integer", "min": 1 },
+				{ "path": [ "memory_tail" ], "label": "In-memory tail size", "type": "integer", "min": 0 },
+				{ "path": [ "retention_days" ], "label": "Retention days", "type": "integer", "min": 0 },
+				{ "path": [ "cleanup_interval_hours" ], "label": "Cleanup interval (hours)", "type": "integer", "min": 1 },
+				{ "path": [ "reader_concurrency" ], "label": "Reader concurrency", "type": "integer", "min": 1 }
+			]
+		},
+		"download": {
+			"title": "Download",
+			"fields": [
+				{ "path": [ "timeout" ], "label": "Timeout", "type": "string", "placeholder": "30s" },
+				{ "path": [ "insecure_skip_verify" ], "label": "Skip TLS verification", "type": "boolean", "help": "Disables certificate verification for these downloads." },
+				{ "path": [ "outbound" ], "label": "Outbound profile", "type": "string" },
+				{ "path": [ "socks5" ], "label": "SOCKS5 proxy", "type": "string" },
+				{ "path": [ "startup_if_missing" ], "label": "Download at startup when missing", "type": "boolean" }
+			]
+		},
+		"domain_set": {
+			"title": "Domain Set",
+			"fields": [
+				{ "path": [ "exps" ], "label": "Inline domain expressions", "type": "string-list", "placeholder": "domain:example.com" },
+				{ "path": [ "sets" ], "label": "Referenced domain sets", "type": "string-list" },
+				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/domain.txt" }
+			]
+		},
+		"ip_set": {
+			"title": "IP Set",
+			"fields": [
+				{ "path": [ "ips" ], "label": "Inline IP/CIDR rules", "type": "string-list", "placeholder": "192.0.2.0/24" },
+				{ "path": [ "sets" ], "label": "Referenced IP sets", "type": "string-list" },
+				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/ip.txt" }
+			]
+		},
+		"geosite": {
+			"title": "GeoSite",
+			"fields": [
+				{ "path": [ "file" ], "label": "GeoSite data file", "type": "string", "placeholder": "/usr/share/oxidns/geosite.dat" },
+				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\ngeolocation-!cn" }
+			]
+		},
+		"geoip": {
+			"title": "GeoIP",
+			"fields": [
+				{ "path": [ "file" ], "label": "GeoIP data file", "type": "string", "placeholder": "/usr/share/oxidns/geoip.dat" },
+				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\nprivate" }
+			]
+		},
+		"adguard_rule": {
+			"title": "AdGuard Rule",
+			"fields": [
+				{ "path": [ "rules" ], "label": "AdGuard rules", "type": "string-list", "placeholder": "||example.com^" },
+				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/adguard.txt" }
+			]
+		},
+		"dynamic_domain_set": {
+			"title": "Dynamic Domain Set",
+			"fields": [
+				{ "path": [ "path" ], "label": "Rules file", "type": "string", "placeholder": "/tmp/oxidns/learned.txt" },
+				{ "path": [ "bootstrap_rules" ], "label": "Bootstrap rules", "type": "string-list" },
+				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1 },
+				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1 },
+				{ "path": [ "flush_interval_ms" ], "label": "Flush interval (ms)", "type": "integer", "min": 1 }
+			]
+		},
+		"tcp_server": {
+			"title": "TCP Server",
+			"fields": [
+				{ "path": [ "cert" ], "label": "TLS certificate", "type": "string", "placeholder": "/etc/oxidns/server.crt" },
+				{ "path": [ "key" ], "label": "TLS private key", "type": "string", "placeholder": "/etc/oxidns/server.key" },
+				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "string", "placeholder": "10s" }
+			]
+		},
+		"http_server": {
+			"title": "HTTP Server",
+			"fields": [
+				{ "path": [ "listen" ], "label": "HTTP listen", "type": "string", "placeholder": ":443" },
+				{ "path": [ "src_ip_header" ], "label": "Client IP header", "type": "string", "placeholder": "X-Real-IP" },
+				{ "path": [ "cert" ], "label": "TLS certificate", "type": "string", "placeholder": "/etc/oxidns/server.crt" },
+				{ "path": [ "key" ], "label": "TLS private key", "type": "string", "placeholder": "/etc/oxidns/server.key" },
+				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "string", "placeholder": "30s" },
+				{ "path": [ "enable_http3" ], "label": "Enable HTTP/3", "type": "boolean" }
+			]
+		}
+	}
+}

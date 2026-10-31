@@ -837,3 +837,264 @@ msgstr "腾讯公共 DNS（DoH）"
 
 msgid "Xinfeng Public DNS (114.114.114.114)"
 msgstr "114 DNS（114.114.114.114）"
+
+msgid "AdGuard Rule"
+msgstr "AdGuard 规则"
+
+msgid "AdGuard rules"
+msgstr "AdGuard 规则"
+
+msgid "Always run standby"
+msgstr "始终并行运行备用"
+
+msgid "Answer addresses"
+msgstr "应答地址"
+
+msgid "Asynchronous"
+msgstr "异步执行"
+
+msgid "Batch size"
+msgstr "批量大小"
+
+msgid "Black Hole"
+msgstr "黑洞拦截"
+
+msgid "Blocking mode"
+msgstr "拦截模式"
+
+msgid "Bootstrap rules"
+msgstr "初始规则"
+
+msgid "Cache"
+msgstr "缓存"
+
+msgid "Cache negative responses"
+msgstr "缓存否定响应"
+
+msgid "Cache size (entries)"
+msgstr "缓存条目数"
+
+msgid "Cleanup interval (hours)"
+msgstr "清理间隔（小时）"
+
+msgid "Client IP header"
+msgstr "客户端 IP 头"
+
+msgid "Concurrent upstreams"
+msgstr "并发上游数"
+
+msgid "Database path"
+msgstr "数据库路径"
+
+msgid "Default"
+msgstr "默认"
+
+msgid "Disables certificate verification for these downloads."
+msgstr "下载时禁用证书校验。"
+
+msgid "DNSSEC policy"
+msgstr "DNSSEC 策略"
+
+msgid "Domain Set"
+msgstr "域名集合"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Download at startup when missing"
+msgstr "启动时缺失则下载"
+
+msgid "Dump file"
+msgstr "缓存转储文件"
+
+msgid "Dump interval (seconds)"
+msgstr "转储间隔（秒）"
+
+msgid "Dynamic Domain Set"
+msgstr "动态域名集合"
+
+msgid "Enable HTTP/3"
+msgstr "启用 HTTP/3"
+
+msgid "Error handling"
+msgstr "错误处理"
+
+msgid "Fallback"
+msgstr "故障回退"
+
+msgid "Flush interval (ms)"
+msgstr "刷新间隔（毫秒）"
+
+msgid "Forward"
+msgstr "转发"
+
+msgid "GeoIP"
+msgstr "GeoIP"
+
+msgid "GeoIP data file"
+msgstr "GeoIP 数据文件"
+
+msgid "GeoSite"
+msgstr "GeoSite"
+
+msgid "GeoSite data file"
+msgstr "GeoSite 数据文件"
+
+msgid "Hosts"
+msgstr "Hosts 主机"
+
+msgid "Hosts entries"
+msgstr "Hosts 条目"
+
+msgid "Hosts files"
+msgstr "Hosts 文件"
+
+msgid "HTTP Server"
+msgstr "HTTP 服务器"
+
+msgid "Idle timeout"
+msgstr "空闲超时"
+
+msgid "In-memory tail size"
+msgstr "内存保留条数"
+
+msgid "Include ECS in cache key"
+msgstr "缓存键包含 ECS"
+
+msgid "Inline domain expressions"
+msgstr "内联域名表达式"
+
+msgid "Inline IP/CIDR rules"
+msgstr "内联 IP/CIDR 规则"
+
+msgid "IP Selector"
+msgstr "IP 选择器"
+
+msgid "IP Set"
+msgstr "IP 集合"
+
+msgid "Learn Domain"
+msgstr "域名学习"
+
+msgid "Learning phase"
+msgstr "学习阶段"
+
+msgid "Max negative TTL (seconds)"
+msgstr "否定响应最大 TTL（秒）"
+
+msgid "Max parallel probes"
+msgstr "最大并行探测数"
+
+msgid "Max positive TTL (seconds)"
+msgstr "肯定响应最大 TTL（秒）"
+
+msgid "Max wait (ms)"
+msgstr "最长等待（毫秒）"
+
+msgid "Min positive TTL (seconds)"
+msgstr "肯定响应最小 TTL（秒）"
+
+msgid "Negative TTL without SOA (seconds)"
+msgstr "无 SOA 时的否定 TTL（秒）"
+
+msgid "Outbound profile"
+msgstr "出站配置"
+
+msgid "Override TTL (seconds)"
+msgstr "覆盖 TTL（秒）"
+
+msgid "Primary executor"
+msgstr "主执行器"
+
+msgid "Probe methods"
+msgstr "探测方式"
+
+msgid "Probe stagger (ms)"
+msgstr "探测错峰（毫秒）"
+
+msgid "Probe timeout (ms)"
+msgstr "探测超时（毫秒）"
+
+msgid "Query Recorder"
+msgstr "查询记录"
+
+msgid "Query types"
+msgstr "查询类型"
+
+msgid "Questions"
+msgstr "问题数量"
+
+msgid "Queue size"
+msgstr "队列长度"
+
+msgid "Reader concurrency"
+msgstr "读取并发数"
+
+msgid "Referenced domain sets"
+msgstr "引用的域名集合"
+
+msgid "Referenced IP sets"
+msgstr "引用的 IP 集合"
+
+msgid "Reorder only"
+msgstr "仅重排序"
+
+msgid "Require an answer"
+msgstr "要求包含应答"
+
+msgid "Require success (NOERROR)"
+msgstr "要求成功（NOERROR）"
+
+msgid "Response selection"
+msgstr "响应选择"
+
+msgid "Retention days"
+msgstr "保留天数"
+
+msgid "Rule files"
+msgstr "规则文件"
+
+msgid "Rule kind"
+msgstr "规则类型"
+
+msgid "Rules file"
+msgstr "规则文件"
+
+msgid "Selection mode"
+msgstr "选择模式"
+
+msgid "Selectors"
+msgstr "选择器"
+
+msgid "Short circuit"
+msgstr "短路返回"
+
+msgid "Skip TLS verification"
+msgstr "跳过 TLS 校验"
+
+msgid "Slow threshold (ms)"
+msgstr "慢响应阈值（毫秒）"
+
+msgid "SOCKS5 proxy"
+msgstr "SOCKS5 代理"
+
+msgid "Standby executor"
+msgstr "备用执行器"
+
+msgid "Target dynamic domain set"
+msgstr "目标动态域名集合"
+
+msgid "TCP Server"
+msgstr "TCP 服务器"
+
+msgid "Timeout"
+msgstr "超时"
+
+msgid "TLS certificate"
+msgstr "TLS 证书"
+
+msgid "TLS private key"
+msgstr "TLS 私钥"
+
+msgid "Top N addresses"
+msgstr "保留地址数"

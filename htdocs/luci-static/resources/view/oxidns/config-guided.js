@@ -144,11 +144,12 @@ function levelSelect(id, value) {
 		}));
 }
 
-function addBinding(bindings, id, path, empty) {
+function addBinding(bindings, id, path, empty, kind) {
 	bindings.push({
 		'id': id,
 		'path': path,
-		'empty': empty || 'set'
+		'empty': empty || 'set',
+		'kind': kind || 'string'
 	});
 }
 
@@ -160,16 +161,58 @@ function applyBindings(doc, bindings) {
 		if (!input)
 			continue;
 
-		var value = String(input.value || '').trim();
+		var kind = binding.kind || 'string';
 
 		try {
+			if (kind === 'boolean') {
+				var current = doc.getIn(binding.path, true);
+
+				if (current && typeof current.toJSON === 'function')
+					current = current.toJSON();
+
+				if (input.checked === (current === true))
+					continue;
+
+				doc.setIn(binding.path, !!input.checked);
+				continue;
+			}
+
+			var value = String(input.value || '').trim();
+
 			if (!value) {
 				if (binding.empty === 'delete') {
 					if (hasNodePath(doc, binding.path))
 						doc.deleteIn(binding.path);
 				}
 				else {
-					doc.setIn(binding.path, '');
+					doc.setIn(binding.path, kind === 'string-list' ? doc.createNode([]) : '');
+				}
+				continue;
+			}
+
+			if (kind === 'number') {
+				var number = Number(value);
+
+				if (!isFinite(number))
+					continue;
+
+				doc.setIn(binding.path, number);
+				continue;
+			}
+
+			if (kind === 'string-list') {
+				var lines = String(input.value || '').split('\n').map(function(line) {
+					return line.trim();
+				}).filter(function(line) {
+					return line.length > 0;
+				});
+
+				if (!lines.length) {
+					if (hasNodePath(doc, binding.path))
+						doc.deleteIn(binding.path);
+				}
+				else {
+					doc.setIn(binding.path, doc.createNode(lines));
 				}
 				continue;
 			}
@@ -314,6 +357,171 @@ function upstreamSection(doc, bindings, options) {
 		'table-layout: fixed;', footers.length ? E('div', {}, footers) : null);
 }
 
+function schemaDefinitions(options) {
+	var schema = options && options.schema;
+	var plugins = schema && schema.plugins;
+
+	return plugins && typeof plugins === 'object' ? plugins : null;
+}
+
+function plainValue(doc, path) {
+	var value = doc.getIn(path, true);
+
+	if (value && typeof value.toJSON === 'function')
+		value = value.toJSON();
+
+	return value;
+}
+
+function schemaFieldId(pluginIndex, fieldIndex) {
+	return 'oxidns-cfg-p%d-f%d'.format(pluginIndex, fieldIndex);
+}
+
+function schemaEnumValues(field) {
+	return (Array.isArray(field.values) ? field.values : []).map(function(entry) {
+		if (entry && typeof entry === 'object') {
+			var entryValue = entry.value === undefined ? '' : String(entry.value);
+			return {
+				'value': entryValue,
+				'label': _(text(entry.label) || entryValue)
+			};
+		}
+
+		return {
+			'value': String(entry),
+			'label': String(entry)
+		};
+	});
+}
+
+function schemaEnumSelect(field, id, value) {
+	var options = [
+		E('option', {
+			'value': '',
+			'selected': value ? null : 'selected'
+		}, _(text(field.placeholder) || _('Default')))
+	];
+	var matched = !value;
+
+	schemaEnumValues(field).forEach(function(entry) {
+		if (entry.value === value)
+			matched = true;
+
+		options.push(E('option', {
+			'value': entry.value,
+			'selected': entry.value === value ? 'selected' : null
+		}, entry.label));
+	});
+
+	if (!matched)
+		options.push(E('option', { 'value': value, 'selected': 'selected' }, value));
+
+	return E('select', { 'id': id, 'class': 'cbi-input-select' }, options);
+}
+
+function schemaListValue(value) {
+	if (Array.isArray(value))
+		return value.map(function(entry) {
+			return text(entry);
+		}).join('\n');
+
+	return typeof value === 'string' ? value : '';
+}
+
+function schemaControl(doc, index, fieldIndex, field, bindings) {
+	var path = [ 'plugins', index, 'args' ].concat(field.path);
+	var id = schemaFieldId(index, fieldIndex);
+	var value = plainValue(doc, path);
+	var empty = field.empty === 'set' ? 'set' : 'delete';
+
+	switch (field.type) {
+	case 'boolean':
+		addBinding(bindings, id, path, empty, 'boolean');
+		return E('label', { 'style': 'display: inline-flex; gap: .5em; align-items: center;' }, [
+			E('input', {
+				'id': id,
+				'type': 'checkbox',
+				'style': 'position: static; top: auto; right: auto; margin: 0;',
+				'checked': value === true ? 'checked' : null
+			}),
+			_(text(field.label))
+		]);
+
+	case 'integer':
+	case 'number':
+		addBinding(bindings, id, path, empty, 'number');
+		return E('input', {
+			'id': id,
+			'class': 'cbi-input-text',
+			'type': 'number',
+			'step': field.type === 'integer' ? '1' : 'any',
+			'min': field.min !== undefined ? field.min : null,
+			'max': field.max !== undefined ? field.max : null,
+			'value': value === undefined || value === null ? '' : String(value),
+			'placeholder': text(field.placeholder) || null
+		});
+
+	case 'enum':
+		addBinding(bindings, id, path, empty, 'string');
+		return schemaEnumSelect(field, id, value === undefined || value === null ? '' : String(value));
+
+	case 'string-list':
+		addBinding(bindings, id, path, empty, 'string-list');
+		return E('textarea', {
+			'id': id,
+			'class': 'cbi-input-textarea',
+			'rows': field.rows || 4,
+			'style': 'width: 100%; font-family: monospace;',
+			'placeholder': text(field.placeholder) || null
+		}, schemaListValue(value));
+
+	default:
+		addBinding(bindings, id, path, empty, 'string');
+		return textInput(id, value === undefined || value === null ? '' : String(value),
+			text(field.placeholder));
+	}
+}
+
+function schemaSections(doc, bindings, options) {
+	var definitions = schemaDefinitions(options);
+	var sections = [];
+
+	if (!definitions)
+		return sections;
+
+	pluginItems(doc).forEach(function(item, index) {
+		var type = pluginType(item);
+		var definition = definitions[type];
+
+		if (!definition || !Array.isArray(definition.fields))
+			return;
+
+		var rows = [];
+
+		definition.fields.forEach(function(field, fieldIndex) {
+			if (!field || !Array.isArray(field.path) || !field.path.length)
+				return;
+
+			rows.push(row(
+				field.type === 'boolean' ? '' : _(text(field.label) || field.path.join('.')),
+				schemaControl(doc, index, fieldIndex, field, bindings),
+				field.help ? _(field.help) : null
+			));
+		});
+
+		if (!rows.length)
+			return;
+
+		sections.push(section(
+			_(text(definition.title) || type) + ' (' + pluginTag(item, index) + ')',
+			definition.description ? _(definition.description) : null,
+			rows
+		));
+	});
+
+	return sections;
+}
+
 function argsSummary(item) {
 	if (!item || typeof item.get !== 'function')
 		return '-';
@@ -393,14 +601,17 @@ return baseclass.extend({
 		var bindings = [];
 		var handlers = options || {};
 
-		var node = E('div', {}, [
+		var sections = [
 			E('style', {}, UPSTREAM_SELECT_STYLE),
 			logSection(doc, bindings),
 			apiSection(doc, bindings),
 			listenSection(doc, bindings),
-			upstreamSection(doc, bindings, handlers),
-			pluginSection(doc)
-		]);
+			upstreamSection(doc, bindings, handlers)
+		].concat(schemaSections(doc, bindings, handlers));
+
+		sections.push(pluginSection(doc));
+
+		var node = E('div', {}, sections);
 
 		if (typeof handlers.onInput === 'function') {
 			node.addEventListener('input', handlers.onInput);

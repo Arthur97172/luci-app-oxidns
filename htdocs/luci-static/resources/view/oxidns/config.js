@@ -18,6 +18,12 @@ var callStatus = rpc.declare({
 	expect: {}
 });
 
+var callConfigSchema = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'config_schema',
+	expect: {}
+});
+
 var callConfigValidate = rpc.declare({
 	object: 'luci.oxidns',
 	method: 'config_validate',
@@ -44,7 +50,8 @@ var state = {
 	mode: 'guided',
 	preview: true,
 	bindings: [],
-	advancedDraft: ''
+	advancedDraft: '',
+	schema: null
 };
 
 var previewTimer = null;
@@ -539,7 +546,8 @@ function fillBody(body) {
 				guided.apply(state.doc, state.bindings);
 			},
 			'rerender': renderBody,
-			'onInput': schedulePreview
+			'onInput': schedulePreview,
+			'schema': state.schema
 		});
 
 		state.bindings = rendered.bindings;
@@ -615,13 +623,21 @@ return view.extend({
 			};
 		});
 
+		var schemaPromise = L.resolveDefault(callConfigSchema(), null).then(function(result) {
+			return result && result.ok !== false && result.schema ? result.schema : null;
+		}).catch(function() {
+			return null;
+		});
+
 		return Promise.all([
 			configPromise,
-			L.resolveDefault(callStatus(), {})
+			L.resolveDefault(callStatus(), {}),
+			schemaPromise
 		]).then(function(results) {
 			return {
 				config: results[0],
-				status: results[1] || {}
+				status: results[1] || {},
+				schema: results[2] || null
 			};
 		});
 	},
@@ -639,6 +655,7 @@ return view.extend({
 		state.raw = configContent;
 		state.advancedDraft = configContent;
 		state.preview = true;
+		state.schema = data && data.schema ? data.schema : null;
 		state.mode = parseContent(configContent) ? 'guided' : 'advanced';
 
 		if (readFailed && !coreInstalled(statusState)) {

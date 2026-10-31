@@ -3,7 +3,7 @@
 set -eu
 
 node -e "for (const f of ['htdocs/luci-static/resources/view/oxidns/overview.js','htdocs/luci-static/resources/view/oxidns/config.js','htdocs/luci-static/resources/view/oxidns/config-guided.js','htdocs/luci-static/resources/view/oxidns/logs.js','htdocs/luci-static/resources/view/oxidns/settings.js','htdocs/luci-static/resources/oxidns/yaml.js','htdocs/luci-static/resources/oxidns/i18n.js']) new Function(require('fs').readFileSync(f,'utf8'));"
-node -e "for (const f of ['root/usr/share/luci/menu.d/luci-app-oxidns.json','root/usr/share/rpcd/acl.d/luci-app-oxidns.json','root/usr/share/oxidns/targets.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
+node -e "for (const f of ['root/usr/share/luci/menu.d/luci-app-oxidns.json','root/usr/share/rpcd/acl.d/luci-app-oxidns.json','root/usr/share/oxidns/targets.json','root/usr/share/oxidns/config-schema.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
 node <<'NODE'
 const fs = require('fs');
 
@@ -27,6 +27,24 @@ const menu = JSON.parse(fs.readFileSync('root/usr/share/luci/menu.d/luci-app-oxi
 for (const entry of Object.values(menu)) {
 	if (entry.title)
 		required.add(entry.title);
+}
+
+const schema = JSON.parse(fs.readFileSync('root/usr/share/oxidns/config-schema.json', 'utf8'));
+for (const definition of Object.values(schema.plugins || {})) {
+	if (definition.title)
+		required.add(definition.title);
+	if (definition.description)
+		required.add(definition.description);
+	for (const field of definition.fields || []) {
+		for (const key of ['label', 'help']) {
+			if (field[key])
+				required.add(field[key]);
+		}
+		for (const value of field.values || []) {
+			if (value && typeof value === 'object' && value.label)
+				required.add(value.label);
+		}
+	}
 }
 
 function poIds(file) {

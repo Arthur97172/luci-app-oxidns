@@ -7,6 +7,7 @@
 					"status",
 					"core_progress",
 					"config_read",
+					"config_schema",
 					"settings_read",
 					"logs_recent",
 					"logs_path_read"

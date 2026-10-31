@@ -835,3 +835,264 @@ msgstr ""
 
 msgid "Xinfeng Public DNS (114.114.114.114)"
 msgstr ""
+
+msgid "AdGuard Rule"
+msgstr ""
+
+msgid "AdGuard rules"
+msgstr ""
+
+msgid "Always run standby"
+msgstr ""
+
+msgid "Answer addresses"
+msgstr ""
+
+msgid "Asynchronous"
+msgstr ""
+
+msgid "Batch size"
+msgstr ""
+
+msgid "Black Hole"
+msgstr ""
+
+msgid "Blocking mode"
+msgstr ""
+
+msgid "Bootstrap rules"
+msgstr ""
+
+msgid "Cache"
+msgstr ""
+
+msgid "Cache negative responses"
+msgstr ""
+
+msgid "Cache size (entries)"
+msgstr ""
+
+msgid "Cleanup interval (hours)"
+msgstr ""
+
+msgid "Client IP header"
+msgstr ""
+
+msgid "Concurrent upstreams"
+msgstr ""
+
+msgid "Database path"
+msgstr ""
+
+msgid "Default"
+msgstr ""
+
+msgid "Disables certificate verification for these downloads."
+msgstr ""
+
+msgid "DNSSEC policy"
+msgstr ""
+
+msgid "Domain Set"
+msgstr ""
+
+msgid "Download"
+msgstr ""
+
+msgid "Download at startup when missing"
+msgstr ""
+
+msgid "Dump file"
+msgstr ""
+
+msgid "Dump interval (seconds)"
+msgstr ""
+
+msgid "Dynamic Domain Set"
+msgstr ""
+
+msgid "Enable HTTP/3"
+msgstr ""
+
+msgid "Error handling"
+msgstr ""
+
+msgid "Fallback"
+msgstr ""
+
+msgid "Flush interval (ms)"
+msgstr ""
+
+msgid "Forward"
+msgstr ""
+
+msgid "GeoIP"
+msgstr ""
+
+msgid "GeoIP data file"
+msgstr ""
+
+msgid "GeoSite"
+msgstr ""
+
+msgid "GeoSite data file"
+msgstr ""
+
+msgid "Hosts"
+msgstr ""
+
+msgid "Hosts entries"
+msgstr ""
+
+msgid "Hosts files"
+msgstr ""
+
+msgid "HTTP Server"
+msgstr ""
+
+msgid "Idle timeout"
+msgstr ""
+
+msgid "In-memory tail size"
+msgstr ""
+
+msgid "Include ECS in cache key"
+msgstr ""
+
+msgid "Inline domain expressions"
+msgstr ""
+
+msgid "Inline IP/CIDR rules"
+msgstr ""
+
+msgid "IP Selector"
+msgstr ""
+
+msgid "IP Set"
+msgstr ""
+
+msgid "Learn Domain"
+msgstr ""
+
+msgid "Learning phase"
+msgstr ""
+
+msgid "Max negative TTL (seconds)"
+msgstr ""
+
+msgid "Max parallel probes"
+msgstr ""
+
+msgid "Max positive TTL (seconds)"
+msgstr ""
+
+msgid "Max wait (ms)"
+msgstr ""
+
+msgid "Min positive TTL (seconds)"
+msgstr ""
+
+msgid "Negative TTL without SOA (seconds)"
+msgstr ""
+
+msgid "Outbound profile"
+msgstr ""
+
+msgid "Override TTL (seconds)"
+msgstr ""
+
+msgid "Primary executor"
+msgstr ""
+
+msgid "Probe methods"
+msgstr ""
+
+msgid "Probe stagger (ms)"
+msgstr ""
+
+msgid "Probe timeout (ms)"
+msgstr ""
+
+msgid "Query Recorder"
+msgstr ""
+
+msgid "Query types"
+msgstr ""
+
+msgid "Questions"
+msgstr ""
+
+msgid "Queue size"
+msgstr ""
+
+msgid "Reader concurrency"
+msgstr ""
+
+msgid "Referenced domain sets"
+msgstr ""
+
+msgid "Referenced IP sets"
+msgstr ""
+
+msgid "Reorder only"
+msgstr ""
+
+msgid "Require an answer"
+msgstr ""
+
+msgid "Require success (NOERROR)"
+msgstr ""
+
+msgid "Response selection"
+msgstr ""
+
+msgid "Retention days"
+msgstr ""
+
+msgid "Rule files"
+msgstr ""
+
+msgid "Rule kind"
+msgstr ""
+
+msgid "Rules file"
+msgstr ""
+
+msgid "Selection mode"
+msgstr ""
+
+msgid "Selectors"
+msgstr ""
+
+msgid "Short circuit"
+msgstr ""
+
+msgid "Skip TLS verification"
+msgstr ""
+
+msgid "Slow threshold (ms)"
+msgstr ""
+
+msgid "SOCKS5 proxy"
+msgstr ""
+
+msgid "Standby executor"
+msgstr ""
+
+msgid "Target dynamic domain set"
+msgstr ""
+
+msgid "TCP Server"
+msgstr ""
+
+msgid "Timeout"
+msgstr ""
+
+msgid "TLS certificate"
+msgstr ""
+
+msgid "TLS private key"
+msgstr ""
+
+msgid "Top N addresses"
+msgstr ""
