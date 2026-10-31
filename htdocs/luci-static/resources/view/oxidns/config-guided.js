@@ -144,13 +144,43 @@ function levelSelect(id, value) {
 		}));
 }
 
-function addBinding(bindings, id, path, empty, kind) {
+function addBinding(bindings, id, path, empty, kind, defaultValue) {
 	bindings.push({
 		'id': id,
 		'path': path,
 		'empty': empty || 'set',
-		'kind': kind || 'string'
+		'kind': kind || 'string',
+		'default': defaultValue
 	});
+}
+
+function bindingValue(doc, path) {
+	var value = doc.getIn(path, true);
+
+	if (value && typeof value.toJSON === 'function')
+		value = value.toJSON();
+
+	return value;
+}
+
+function editedLines(input) {
+	return String(input.value || '').split('\n').map(function(line) {
+		return line.trim();
+	}).filter(function(line) {
+		return line.length > 0;
+	});
+}
+
+function sameLines(current, lines) {
+	if (!Array.isArray(current) || current.length !== lines.length)
+		return false;
+
+	for (var i = 0; i < lines.length; i++) {
+		if (text(current[i]) !== lines[i])
+			return false;
+	}
+
+	return true;
 }
 
 function applyBindings(doc, bindings) {
@@ -164,13 +194,15 @@ function applyBindings(doc, bindings) {
 		var kind = binding.kind || 'string';
 
 		try {
+			var present = hasNodePath(doc, binding.path);
+			var current = present ? bindingValue(doc, binding.path) : undefined;
+
 			if (kind === 'boolean') {
-				var current = doc.getIn(binding.path, true);
+				var unchanged = present
+					? input.checked === (current === true)
+					: input.checked === (binding['default'] === true);
 
-				if (current && typeof current.toJSON === 'function')
-					current = current.toJSON();
-
-				if (input.checked === (current === true))
+				if (unchanged)
 					continue;
 
 				doc.setIn(binding.path, !!input.checked);
@@ -178,14 +210,40 @@ function applyBindings(doc, bindings) {
 			}
 
 			var value = String(input.value || '').trim();
+			var defaultValue = binding['default'] === undefined ? '' : String(binding['default']);
 
-			if (!value) {
-				if (binding.empty === 'delete') {
-					if (hasNodePath(doc, binding.path))
+			if (kind === 'string-list') {
+				var lines = editedLines(input);
+
+				if (!present ? !lines.length : sameLines(current, lines))
+					continue;
+
+				if (!lines.length) {
+					if (present)
 						doc.deleteIn(binding.path);
 				}
 				else {
-					doc.setIn(binding.path, kind === 'string-list' ? doc.createNode([]) : '');
+					doc.setIn(binding.path, doc.createNode(lines));
+				}
+				continue;
+			}
+
+			/*
+			 * Do not turn an absent node into an explicit value when the form
+			 * still shows the documented default, and do not rewrite a value
+			 * that is already stored as the form shows it. Both would make the
+			 * change preview report edits the user never made.
+			 */
+			if (!present ? value === defaultValue : String(current) === value)
+				continue;
+
+			if (!value) {
+				if (binding.empty === 'delete') {
+					if (present)
+						doc.deleteIn(binding.path);
+				}
+				else {
+					doc.setIn(binding.path, '');
 				}
 				continue;
 			}
@@ -197,23 +255,6 @@ function applyBindings(doc, bindings) {
 					continue;
 
 				doc.setIn(binding.path, number);
-				continue;
-			}
-
-			if (kind === 'string-list') {
-				var lines = String(input.value || '').split('\n').map(function(line) {
-					return line.trim();
-				}).filter(function(line) {
-					return line.length > 0;
-				});
-
-				if (!lines.length) {
-					if (hasNodePath(doc, binding.path))
-						doc.deleteIn(binding.path);
-				}
-				else {
-					doc.setIn(binding.path, doc.createNode(lines));
-				}
 				continue;
 			}
 
@@ -433,23 +474,27 @@ function schemaControl(doc, index, fieldIndex, field, bindings) {
 	var id = schemaFieldId(index, fieldIndex);
 	var value = plainValue(doc, path);
 	var empty = field.empty === 'set' ? 'set' : 'delete';
+	var absent = value === undefined || value === null;
+	var defaultValue = field['default'];
+	var display = absent && defaultValue !== undefined ? defaultValue : value;
+	var displayText = display === undefined || display === null ? '' : String(display);
 
 	switch (field.type) {
 	case 'boolean':
-		addBinding(bindings, id, path, empty, 'boolean');
+		addBinding(bindings, id, path, empty, 'boolean', defaultValue);
 		return E('label', { 'style': 'display: inline-flex; gap: .5em; align-items: center;' }, [
 			E('input', {
 				'id': id,
 				'type': 'checkbox',
 				'style': 'position: static; top: auto; right: auto; margin: 0;',
-				'checked': value === true ? 'checked' : null
+				'checked': (absent ? defaultValue === true : value === true) ? 'checked' : null
 			}),
 			_(text(field.label))
 		]);
 
 	case 'integer':
 	case 'number':
-		addBinding(bindings, id, path, empty, 'number');
+		addBinding(bindings, id, path, empty, 'number', defaultValue);
 		return E('input', {
 			'id': id,
 			'class': 'cbi-input-text',
@@ -457,28 +502,27 @@ function schemaControl(doc, index, fieldIndex, field, bindings) {
 			'step': field.type === 'integer' ? '1' : 'any',
 			'min': field.min !== undefined ? field.min : null,
 			'max': field.max !== undefined ? field.max : null,
-			'value': value === undefined || value === null ? '' : String(value),
+			'value': displayText,
 			'placeholder': text(field.placeholder) || null
 		});
 
 	case 'enum':
-		addBinding(bindings, id, path, empty, 'string');
-		return schemaEnumSelect(field, id, value === undefined || value === null ? '' : String(value));
+		addBinding(bindings, id, path, empty, 'string', defaultValue);
+		return schemaEnumSelect(field, id, displayText);
 
 	case 'string-list':
-		addBinding(bindings, id, path, empty, 'string-list');
+		addBinding(bindings, id, path, empty, 'string-list', defaultValue);
 		return E('textarea', {
 			'id': id,
 			'class': 'cbi-input-textarea',
 			'rows': field.rows || 4,
 			'style': 'width: 100%; font-family: monospace;',
 			'placeholder': text(field.placeholder) || null
-		}, schemaListValue(value));
+		}, schemaListValue(display));
 
 	default:
-		addBinding(bindings, id, path, empty, 'string');
-		return textInput(id, value === undefined || value === null ? '' : String(value),
-			text(field.placeholder));
+		addBinding(bindings, id, path, empty, 'string', defaultValue);
+		return textInput(id, displayText, text(field.placeholder));
 	}
 }
 
