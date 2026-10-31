@@ -83,6 +83,61 @@ Note: the `full` and `standard` archives include the WebUI files, while the `min
 
 When the core is already installed, the `Core` page offers `Update Core`, `Repair Reinstall`, `Install WebUI`, and `Upload Core`. `Update Core` checks the latest official release and only downloads and installs when a newer version exists, keeping the currently installed bundle. `Repair Reinstall` and `Upload Core` repair the binary or WebUI files by downloading the current installed version again or using an uploaded file. When the WebUI is missing, `Install WebUI` downloads the latest official release from GitHub and replaces both the core binary and `/usr/share/oxidns/webui`. It keeps the installed bundle when that is `full` or `standard`; otherwise it uses the bundle configured in `Settings`, falling back to `standard` when neither includes WebUI. The device must be able to reach GitHub, and existing configuration is preserved.
 
+## Make OxiDNS The System DNS
+
+OxiDNS's `udp_server` / `tcp_server` plugins listen on `:5335` by default, while port 53 on OpenWrt belongs to dnsmasq, which also serves DHCP. The recommended setup keeps dnsmasq and lets it forward queries to OxiDNS, so LAN DHCP, `xxx.lan` hostnames and lease names keep working and clients need no changes.
+
+1. Open `Services -> OxiDNS -> Configuration`, make the two DNS servers listen on the loopback address only, save, and restart OxiDNS:
+
+```yaml
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+
+  - tag: tcp_server
+    type: tcp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+```
+
+Upstream servers are configured in the `forward` plugin's `upstreams`, which defaults to `223.5.5.5`.
+
+2. Point dnsmasq at OxiDNS:
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='1'
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5335'
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+`noresolv=1` makes dnsmasq ignore `/tmp/resolv.conf.d/resolv.conf.auto`, so a WAN reconnect cannot silently bypass OxiDNS.
+
+3. Verify:
+
+```sh
+nslookup -po=5335 www.baidu.com 127.0.0.1   # OxiDNS directly
+nslookup www.baidu.com 127.0.0.1            # through dnsmasq
+```
+
+Queries through dnsmasq should time out while OxiDNS is stopped and recover when it starts again, which confirms the traffic really goes through OxiDNS.
+
+Roll back with:
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='0'
+uci -q delete dhcp.@dnsmasq[0].server
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+If OxiDNS needs to apply per-client policies based on the source address, it can listen on port 53 instead: run `uci set dhcp.@dnsmasq[0].port='0'` to turn off dnsmasq's DNS function (DHCP keeps working), make sure DHCP still advertises the router as DNS, then change both `listen` values above to `":53"`. The trade-offs are that `xxx.lan` hostnames, DHCP lease names and dnsmasq's rebind protection no longer apply, and IPv6 clients require OxiDNS to listen on IPv6 as well, for example `"[::]:53"`.
+
+Either way, never expose port 53 or 5335 to the WAN, or the router becomes an open resolver.
+
 ## Main Pages
 
 - `Overview`: core, service, WebUI entry, config path, and log status.

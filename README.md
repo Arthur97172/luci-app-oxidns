@@ -84,6 +84,61 @@ LuCI 会按当前设备 CPU 架构选择 OxiDNS Linux musl release archive，例
 
 如果内核已经安装，`Core` 页面提供 `更新内核`、`重新安装`、`Install WebUI` 和 `Upload Core`。`更新内核` 会检查官方最新 release，只有存在更新版本时才自动下载并安装，且保持当前已安装的 bundle；`重新安装` 和 `Upload Core` 用于重新下载当前已安装版本或用上传文件修复二进制 / WebUI 文件。WebUI 缺失时，`Install WebUI` 会从 GitHub 下载官方最新 release，并同时替换内核二进制和 `/usr/share/oxidns/webui`。bundle 的选择顺序是：当前已安装的 bundle 若是 `full` / `standard` 则保持不变；否则使用设置中的 bundle；两者都不包含 WebUI 时回退到 `standard`。该操作需要设备能访问 GitHub，配置文件中已有的设置不会被覆盖。
 
+## 让 OxiDNS 成为系统 DNS
+
+OxiDNS 的 `udp_server` / `tcp_server` 插件默认监听 `:5335`，而 OpenWrt 的 53 端口由 dnsmasq 占用，DHCP 也由它提供。推荐保留 dnsmasq，让它把查询转发给 OxiDNS：LAN 客户端的 DHCP、`xxx.lan` 主机名和租约名解析都不受影响，客户端也无需改动。
+
+1. 打开 `Services -> OxiDNS -> Configuration`，把两个 DNS 服务改为只监听本机，保存后重启 OxiDNS：
+
+```yaml
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+
+  - tag: tcp_server
+    type: tcp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+```
+
+上游服务器在 `forward` 插件的 `upstreams` 中配置，默认是 `223.5.5.5`。
+
+2. 让 dnsmasq 只向 OxiDNS 查询：
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='1'
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5335'
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+`noresolv=1` 让 dnsmasq 忽略 `/tmp/resolv.conf.d/resolv.conf.auto`，WAN 重连重写它也不会绕过 OxiDNS。
+
+3. 验证：
+
+```sh
+nslookup -po=5335 www.baidu.com 127.0.0.1   # 直连 OxiDNS
+nslookup www.baidu.com 127.0.0.1            # 经 dnsmasq
+```
+
+停掉 OxiDNS 后经 dnsmasq 的查询应当超时或失败，重新启动后恢复，这说明流量确实经过 OxiDNS。
+
+回滚：
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='0'
+uci -q delete dhcp.@dnsmasq[0].server
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+如果 OxiDNS 需要按客户端源地址做策略，也可以让它直接监听 53 端口：先执行 `uci set dhcp.@dnsmasq[0].port='0'` 关闭 dnsmasq 的 DNS 功能（DHCP 不受影响），并确认 DHCP 仍下发本机地址作为 DNS，再把上面两个 `listen` 改为 `":53"`。代价是 `xxx.lan` 主机名、DHCP 租约名和 dnsmasq 的 rebind 保护不再生效；IPv6 客户端还需要 OxiDNS 同时监听 IPv6，例如 `"[::]:53"`。
+
+无论哪种方式，都不要把 53 或 5335 端口暴露到 WAN，否则路由器会成为开放解析器。
+
 ## 常用页面
 
 - `Overview`：查看内核状态、服务状态、WebUI 入口、配置路径和日志状态。
