@@ -878,6 +878,9 @@ msgstr ""
 msgid "Xinfeng Public DNS (114.114.114.114)"
 msgstr ""
 
+msgid "Addresses returned in custom or null mode. One address per line."
+msgstr ""
+
 msgid "AdGuard Rule"
 msgstr ""
 
@@ -1035,6 +1038,21 @@ msgid "Min positive TTL (seconds)"
 msgstr ""
 
 msgid "Negative TTL without SOA (seconds)"
+msgstr ""
+
+msgid "One AdGuard rule per line, for example ||example.com^."
+msgstr ""
+
+msgid "One path per line. Each file contains AdGuard rules."
+msgstr ""
+
+msgid "One path per line. Each file contains domain rules."
+msgstr ""
+
+msgid "One path per line. Each file contains IP or CIDR rules."
+msgstr ""
+
+msgid "One selector per line. Selectors must exist in the data file."
 msgstr ""
 
 msgid "Outbound profile"

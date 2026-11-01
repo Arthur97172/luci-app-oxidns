@@ -880,6 +880,9 @@ msgstr "腾讯公共 DNS（DoH）"
 msgid "Xinfeng Public DNS (114.114.114.114)"
 msgstr "114 DNS（114.114.114.114）"
 
+msgid "Addresses returned in custom or null mode. One address per line."
+msgstr "在 custom 或 null 模式下返回的地址。每行一个地址。"
+
 msgid "AdGuard Rule"
 msgstr "AdGuard 规则"
 
@@ -1038,6 +1041,21 @@ msgstr "肯定响应最小 TTL（秒）"
 
 msgid "Negative TTL without SOA (seconds)"
 msgstr "无 SOA 时的否定 TTL（秒）"
+
+msgid "One AdGuard rule per line, for example ||example.com^."
+msgstr "每行一条 AdGuard 规则，例如 ||example.com^。"
+
+msgid "One path per line. Each file contains AdGuard rules."
+msgstr "每行一个路径。每个文件包含 AdGuard 规则。"
+
+msgid "One path per line. Each file contains domain rules."
+msgstr "每行一个路径。每个文件包含域名规则。"
+
+msgid "One path per line. Each file contains IP or CIDR rules."
+msgstr "每行一个路径。每个文件包含 IP 或 CIDR 规则。"
+
+msgid "One selector per line. Selectors must exist in the data file."
+msgstr "每行一个选择器。选择器需要存在于数据文件中。"
 
 msgid "Outbound profile"
 msgstr "出站配置"

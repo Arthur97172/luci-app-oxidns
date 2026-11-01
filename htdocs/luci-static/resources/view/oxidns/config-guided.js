@@ -421,7 +421,7 @@ function includeSection(doc, bindings) {
 				'id': 'oxidns-cfg-include',
 				'class': 'cbi-input-textarea',
 				'rows': 3,
-				'style': 'width: 100%; font-family: monospace;',
+				'style': 'width: calc(100% / 3); font-family: monospace;',
 				'placeholder': './plugins/common.yaml'
 			}, schemaListValue(plainValue(doc, [ 'include' ]))),
 				_('One path per line. Plugins from included files are not listed on this page.'))
@@ -601,7 +601,7 @@ function apiSection(doc, bindings, options) {
 			'id': 'oxidns-cfg-api-cors',
 			'class': 'cbi-input-textarea',
 			'rows': 3,
-			'style': 'width: 100%; font-family: monospace;',
+			'style': 'width: calc(100% / 3); font-family: monospace;',
 			'placeholder': 'https://admin.example.com'
 		}, schemaListValue(plainValue(doc, [ 'api', 'http', 'cors', 'allowed_origins' ]))),
 			_('Leave empty to derive the allowed origins from the listen address. Use "*" to allow any origin.')));
@@ -1043,7 +1043,7 @@ function schemaControl(doc, index, fieldIndex, field, bindings, basePath, idPref
 			'id': id,
 			'class': 'cbi-input-textarea',
 			'rows': field.rows || 4,
-			'style': 'width: 100%; font-family: monospace;',
+			'style': 'width: ' + (text(field.width) || '100%') + '; font-family: monospace;',
 			'placeholder': text(field.placeholder) || null
 		}, schemaListValue(display));
 

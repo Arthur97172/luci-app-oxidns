@@ -38,7 +38,7 @@
 			"title": "Black Hole",
 			"fields": [
 				{ "path": [ "mode" ], "label": "Blocking mode", "type": "enum", "values": [ "nxdomain", "nodata", "null", "custom", "refused" ] },
-				{ "path": [ "ips" ], "label": "Answer addresses", "type": "string-list", "placeholder": "0.0.0.0" },
+				{ "path": [ "ips" ], "label": "Answer addresses", "type": "string-list", "placeholder": "0.0.0.0", "width": "calc(100% / 3)", "help": "Addresses returned in custom or null mode. One address per line." },
 				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
 			]
 		},
@@ -204,7 +204,7 @@
 			"fields": [
 				{ "path": [ "exps" ], "label": "Inline domain expressions", "type": "string-list", "placeholder": "domain:example.com" },
 				{ "path": [ "sets" ], "label": "Referenced domain sets", "type": "string-list" },
-				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/domain.txt" }
+				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/domain.txt", "width": "calc(100% / 3)", "help": "One path per line. Each file contains domain rules." }
 			]
 		},
 		"ip_set": {
@@ -212,28 +212,28 @@
 			"fields": [
 				{ "path": [ "ips" ], "label": "Inline IP/CIDR rules", "type": "string-list", "placeholder": "192.0.2.0/24" },
 				{ "path": [ "sets" ], "label": "Referenced IP sets", "type": "string-list" },
-				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/ip.txt" }
+				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/ip.txt", "width": "calc(100% / 3)", "help": "One path per line. Each file contains IP or CIDR rules." }
 			]
 		},
 		"geosite": {
 			"title": "GeoSite",
 			"fields": [
 				{ "path": [ "file" ], "label": "GeoSite data file", "type": "string", "placeholder": "/usr/share/oxidns/geosite.dat", "required": true },
-				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\ngeolocation-!cn" }
+				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\ngeolocation-!cn", "width": "calc(100% / 3)", "help": "One selector per line. Selectors must exist in the data file." }
 			]
 		},
 		"geoip": {
 			"title": "GeoIP",
 			"fields": [
 				{ "path": [ "file" ], "label": "GeoIP data file", "type": "string", "placeholder": "/usr/share/oxidns/geoip.dat", "required": true },
-				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\nprivate" }
+				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\nprivate", "width": "calc(100% / 3)", "help": "One selector per line. Selectors must exist in the data file." }
 			]
 		},
 		"adguard_rule": {
 			"title": "AdGuard Rule",
 			"fields": [
-				{ "path": [ "rules" ], "label": "AdGuard rules", "type": "string-list", "placeholder": "||example.com^" },
-				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/adguard.txt" }
+				{ "path": [ "rules" ], "label": "AdGuard rules", "type": "string-list", "placeholder": "||example.com^", "width": "calc(100% / 3)", "help": "One AdGuard rule per line, for example ||example.com^." },
+				{ "path": [ "files" ], "label": "Rule files", "type": "string-list", "placeholder": "/etc/oxidns/adguard.txt", "width": "calc(100% / 3)", "help": "One path per line. Each file contains AdGuard rules." }
 			]
 		},
 		"dynamic_domain_set": {
