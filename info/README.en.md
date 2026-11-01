@@ -1,0 +1,1048 @@
+# OxiDNS DNS Configuration and WebUI Guide
+
+Language: [中文](./README.md) | English
+
+This guide is for users who have installed `luci-app-oxidns` and the OxiDNS core. It explains how to configure DNS on the LuCI `DNS Configuration` page and how to do the same work through the OxiDNS WebUI opened from `Basic Settings`.
+
+Default OpenWrt paths used throughout:
+
+| Item | Default |
+| --- | --- |
+| Configuration file | `/etc/oxidns/config.yaml` |
+| Core binary | `/usr/bin/oxidns` |
+| WebUI static directory | `/usr/share/oxidns/webui` |
+| Working directory | `/var/lib/oxidns` |
+| Log file | `/tmp/oxidns/oxidns.log` |
+| DNS listen port | `5335` (UDP/TCP) |
+| Management API / WebUI port | `9199` |
+
+---
+
+## 1. How OxiDNS Processes DNS
+
+OxiDNS builds a DNS pipeline from plugins:
+
+1. A **server plugin** receives queries, such as `udp_server`, `tcp_server`, `quic_server`, or `http_server`.
+2. The server's `entry` points to a **sequence**.
+3. The sequence runs rules in order: matchers test conditions and executors perform actions such as reading the cache, forwarding upstream, or returning a fixed address.
+4. The result is returned to the client.
+
+A minimal working configuration normally has:
+
+- one `forward` plugin with at least one upstream;
+- one `sequence` that sends queries to `forward`;
+- one or more server plugins listening on a port.
+
+The LuCI `DNS Configuration` page and the OxiDNS WebUI edit the **same** `/etc/oxidns/config.yaml`; only the editing method differs:
+
+- `Normal Mode`: forms for everyday changes to logging, the API, listen addresses, upstreams, and common plugin arguments.
+- `Advanced Mode`: a full YAML editor for any field, plugin composition, sequence rules, and top-level settings such as `network` and `include`.
+- `OxiDNS WebUI`: graphical management of plugins, sequences, query records, caches, and upgrades, with a dashboard and runtime logs.
+
+### Before You Start
+
+1. On `Services -> OxiDNS -> Basic Settings`, confirm the core is installed.
+2. Confirm the service is running; click `Start` if it is not.
+3. On `DNS Configuration`, click `Download Config` to back up the current `config.yaml`.
+4. Decide on the listen address: `127.0.0.1:5335` for local use or dnsmasq; the router's LAN address or `0.0.0.0:5335` for direct LAN access.
+5. Never expose ports 53, 5335, or 9199 to the WAN.
+
+If the core is missing, use `Install Core` under `Core Actions` on the `Settings` page, or `Upload Core` for an offline install.
+
+---
+
+## 2. Common Actions on the DNS Configuration Page
+
+Open `Services -> OxiDNS -> DNS Configuration`.
+
+The page has two mode buttons:
+
+- `Normal Mode`: the default. Available only when the YAML parses cleanly.
+- `Advanced Mode`: a full YAML editor.
+
+Both modes share the same action buttons:
+
+| Button | Effect |
+| --- | --- |
+| `Validate` | Runs `oxidns check` on the current editor content without writing the file. |
+| `Download Config` | Downloads the current on-disk `config.yaml` for backup. |
+| `Upload Config` | Replaces the current configuration with a local file named `config.yaml`. The file is validated and saved, but the service is not restarted automatically. |
+| `Save and Apply` | Validates and writes the file; if the content changed, restarts OxiDNS so the configuration takes effect. |
+| `Save` | Validates and writes the file without restarting the service. |
+| `Reset` | Discards unsaved edits on the page and restores the on-disk content. |
+
+### Change Preview
+
+The `Change Preview` area is enabled by default through `Show change preview`. It compares the on-disk original with the current editor content:
+
+- green `+` lines are additions;
+- red `-` lines are removals;
+- `…` marks unchanged regions that are collapsed.
+
+The preview is read-only and never writes the file. Clear the checkbox to hide it.
+
+### Mode Switching
+
+- Switching from `Normal Mode` to `Advanced Mode` merges the current form values into YAML and loads it into the editor.
+- Switching back requires the editor content to parse as a YAML object; otherwise an error is shown and you stay in Advanced Mode.
+- YAML syntax errors force Advanced Mode and make Normal Mode unavailable.
+- If the configuration uses YAML anchors, aliases, or merge keys (`<<`), Normal Mode shows a warning and becomes read-only; edit in Advanced Mode instead.
+
+### Validation and Saving
+
+- Both `Save` and `Save and Apply` run `oxidns check -c <temp file> -d <working directory>` in the backend first; invalid content is never written.
+- Writes are atomic and the previous file is backed up before replacement.
+- The save checks the file mtime. If another program (such as the OxiDNS WebUI) changed the file after the page was opened, the save is rejected; reload the page and edit again.
+- Normal Mode writes only fields that were actually edited. Untouched defaults are not added, so the change preview is not polluted by unrelated defaults.
+- Normal Mode re-serializes the YAML, preserving comments, field order, and fields the forms do not manage, though whitespace may change slightly. Advanced Mode saves the editor text exactly.
+
+---
+
+## 3. Normal Mode Field Reference
+
+Normal Mode is generated from the backend configuration schema plus fixed front-end sections. **It only shows plugin instances that already exist in the configuration** and never creates plugins. Use Advanced Mode or the WebUI to add or remove plugins or change sequence rules.
+
+### 3.1 Log
+
+Configuration path: `log`.
+
+| Field | Config key | Description |
+| --- | --- | --- |
+| `Log level` | `log.level` | `off`, `trace`, `debug`, `info`, `warn`, or `error`; default `info`. |
+| `Log file` | `log.file` | Log file path, default `/tmp/oxidns/oxidns.log`. Leave empty to log only to standard output. |
+| `Rotation` | `log.rotation.type` | `never` (default), `minutely`, `hourly`, `daily`, or `weekly`. |
+| `Maximum rotation files` | `log.rotation.max_files` | Number of history files to keep. `0` means no automatic deletion. |
+
+Notes:
+
+- Log files are plain UTF-8 text without terminal color codes.
+- `/tmp` is cleared on reboot. For persistent logs, point `Log file` at a persistent directory such as `/var/log/oxidns/oxidns.log`, or change the log directory under `Settings -> Log path` and click `Save and Apply`.
+- A new log level affects only subsequent output. After changing the log file or rotation settings, use `Save and Apply` to restart the service.
+
+### 3.2 API (Management API and WebUI)
+
+Configuration path: `api.http`.
+
+| Field | Config key | Description |
+| --- | --- | --- |
+| `HTTP listen` | `api.http` or `api.http.listen` | API listen address, such as `192.168.1.1:9199`, `0.0.0.0:9199`, `:9199`, `[::]:9199`, or `127.0.0.1:9199`. |
+| `WebUI root` | `api.http.webui.root` | WebUI static directory, default `/usr/share/oxidns/webui`. |
+| `WebUI index` | `api.http.webui.index` | Index file name, default `index.html`. |
+
+`api.http` has two forms:
+
+```yaml
+# Shorthand: listen address only; cannot mount the WebUI
+api:
+  http: "0.0.0.0:9199"
+```
+
+```yaml
+# Expanded: listen, authentication, TLS, CORS, and WebUI
+api:
+  http:
+    listen: "0.0.0.0:9199"
+    webui:
+      root: "/usr/share/oxidns/webui"
+      index: "index.html"
+```
+
+Normal Mode detects the current form:
+
+- With the shorthand, only `HTTP listen` is shown, with a note that the shorthand cannot serve the WebUI. Switch to the expanded form in Advanced Mode to get the WebUI fields.
+- With the expanded form, `WebUI root` and `WebUI index` appear.
+- Authentication (`auth`), TLS (`ssl`), and CORS (`cors`) are not exposed in Normal Mode; configure them in Advanced Mode or under `System Settings -> Management API` in the WebUI.
+
+Listen address formats:
+
+- `ip:port`: listen on a specific IPv4 address.
+- `[ipv6]:port`: listen on a specific IPv6 address.
+- `:port`: bind dual-stack `[::]:port`.
+- For IPv4 only, write `0.0.0.0:port` explicitly.
+
+> The `Open WebUI` button on `Basic Settings` builds its URL from this listen address. If it listens on `127.0.0.1` or `::1`, only the router itself can reach it and LuCI shows a hint. For LAN access, use the LAN address or `0.0.0.0:9199`.
+
+### 3.3 Listen Addresses
+
+Configuration path: instances of `udp_server`, `tcp_server`, and `quic_server` under `plugins`.
+
+Normal Mode shows two fields per instance:
+
+| Field | Config key | Description |
+| --- | --- | --- |
+| `Entry (<tag>)` | `plugins[i].args.entry` | Entry sequence tag, usually `main_sequence`. |
+| `Listen (<tag>)` | `plugins[i].args.listen` | Listen address and port, default `:5335`. |
+
+Example: listen on loopback only so dnsmasq can forward to OxiDNS:
+
+```yaml
+- tag: udp_server
+  type: udp_server
+  args:
+    entry: main_sequence
+    listen: "127.0.0.1:5335"
+
+- tag: tcp_server
+  type: tcp_server
+  args:
+    entry: main_sequence
+    listen: "127.0.0.1:5335"
+```
+
+Notes:
+
+- `entry` must reference an existing sequence, or `oxidns check` fails.
+- The two servers may share a port because the protocols differ (UDP/TCP).
+- A `quic_server` instance also needs its TLS certificate and private key.
+- If the page reports that no UDP, TCP, or QUIC server plugins were found, the configuration has none; create them in Advanced Mode or the WebUI.
+
+### 3.4 Upstream DNS
+
+Configuration path: `plugins[i].args.upstreams` of the `forward` plugin.
+
+Each `forward` instance gets a section titled with its tag. Each upstream has:
+
+- `Upstream address N`: a preset combobox for common public DNS servers, or a custom address.
+- `Options` / `Hide options`: expand or collapse per-upstream connection options.
+- `Remove`: remove this upstream.
+- `Add upstream DNS`: append an empty upstream to fill in.
+
+Common presets include Alibaba, Tencent, 114, Baidu, Cloudflare, Google, and Quad9 over UDP, DoT, DoH, and DoQ, for example:
+
+| Address | Description |
+| --- | --- |
+| `223.5.5.5`, `223.6.6.6` | Alibaba Public DNS (UDP) |
+| `119.29.29.29`, `119.28.28.28` | Tencent Public DNS (UDP) |
+| `114.114.114.114` | 114 Public DNS (UDP) |
+| `180.76.76.76` | Baidu Public DNS (UDP) |
+| `https://dns.alidns.com/dns-query` | Alibaba DoH |
+| `quic://dns.alidns.com` | Alibaba DoQ |
+| `https://doh.pub/dns-query` | Tencent DoH |
+| `tls://1.1.1.1`, `tls://1.0.0.1` | Cloudflare DoT |
+| `https://cloudflare-dns.com/dns-query` | Cloudflare DoH |
+| `tls://8.8.8.8`, `tls://8.8.4.4` | Google DoT |
+| `https://dns.google/dns-query` | Google DoH |
+| `tls://9.9.9.9`, `tls://149.112.112.112` | Quad9 DoT |
+| `https://dns.quad9.net/dns-query` | Quad9 DoH |
+
+Custom addresses accept the upstream schemes OxiDNS supports, such as `udp://`, `tcp://`, `tls://`, `https://`, `quic://`, and `h3://`. Without a scheme, UDP is assumed.
+
+Fields under `Options`:
+
+| Field | Description |
+| --- | --- |
+| `Tag` | Tag for this upstream, useful in logs and references. |
+| `Outbound profile` | References a profile in `network.outbound.profiles`; empty uses `network.outbound.default`. |
+| `Dial address` | IP actually connected to, for domain-based DoT/DoH addresses, avoiding self-resolution. Example: `203.0.113.1`. |
+| `Port override` | Overrides the upstream port, 1–65535. |
+| `Bootstrap server` | Bootstrap DNS for resolving DoT/DoH hostnames, such as `8.8.8.8:53`. |
+| `Bootstrap IP version` | IPv4 or IPv6 for bootstrap queries. |
+| `SOCKS5 proxy` | SOCKS5 proxy for this upstream, such as `127.0.0.1:1080`. |
+| `Query timeout` | Query timeout as a string, such as `5s`. |
+| `Idle timeout` | Idle connection timeout in seconds, minimum 0; the protocol default is usually 10. |
+| `Max connections` | Maximum connections, 1–4096, default 64. |
+| `Min connections` | Minimum maintained connections, 0–4096, default 0. |
+| `Skip TLS verification` | Skip certificate verification for this upstream; trusted environments only. |
+| `Enable pipeline` | Enable connection pipelining. |
+| `Enable HTTP/3` | Enable HTTP/3 for supporting upstreams. |
+| `SO_MARK` | Mark connections, 0–4294967295, often used with policy routing. |
+| `Bind to device` | Bind to an interface, such as `eth0`. |
+
+The front end checks before saving:
+
+- a `forward` plugin has at least one upstream;
+- every upstream `addr` is non-empty;
+- `min_conns` does not exceed `max_conns`.
+
+The backend still runs `oxidns check`, and the core's result is authoritative.
+
+### 3.5 Common Plugin Fields
+
+Normal Mode renders fields from the schema for each plugin type already present. Labels are English; the defaults below come from the current schema.
+
+#### forward
+
+| Field | Description |
+| --- | --- |
+| `Concurrent upstreams` (`concurrent`) | Number of concurrent upstream queries, 1–32, default 1. |
+| `Response selection` (`response_selection`) | Response selection with multiple upstreams: `fastest`, `balanced` (default), `prefer_positive`, or `consensus`. |
+| `Short circuit` (`short_circuit`) | Stop processing the rest of the sequence after a hit. |
+
+#### cache
+
+| Field | Description |
+| --- | --- |
+| `Cache size (entries)` | Cache entries, minimum 0, default 1024. |
+| `Override TTL (seconds)` | Window for serving a stale response after the original TTL expires while refreshing asynchronously; minimum 0. |
+| `Dump file` | Cache snapshot file path. |
+| `Dump interval (seconds)` | Snapshot interval, default 600. |
+| `Short circuit` | Stop after a cache hit. |
+| `Cache negative responses` | Cache negative responses, enabled by default. |
+| `Max negative TTL (seconds)` | Maximum negative TTL, default 300. |
+| `Negative TTL without SOA (seconds)` | Negative TTL when no SOA is present, default 60. |
+| `Max positive TTL (seconds)` | Maximum positive TTL. |
+| `Min positive TTL (seconds)` | Minimum positive TTL. |
+| `Include ECS in cache key` | Include ECS in the cache key. |
+
+#### hosts
+
+| Field | Description |
+| --- | --- |
+| `Hosts entries` | Inline hosts records, one per line, such as `example.com 192.0.2.1`. |
+| `Hosts files` | Hosts files, one path per line, such as `/etc/hosts`. |
+| `Short circuit` | Stop after a hit. |
+
+#### black_hole
+
+| Field | Description |
+| --- | --- |
+| `Blocking mode` | `nxdomain`, `nodata`, `null`, `custom`, or `refused`. |
+| `Answer addresses` | Addresses returned in `custom` or `null` mode, one per line, such as `0.0.0.0`. |
+| `Short circuit` | Stop after a hit. |
+
+#### fallback
+
+| Field | Description |
+| --- | --- |
+| `Primary executor` | Primary executor tag. |
+| `Standby executor` | Standby executor tag. |
+| `Slow threshold (ms)` | Threshold for treating the primary as slow, default 0. |
+| `Always run standby` | Always run the standby executor in parallel. |
+| `Short circuit` | Stop after a hit. |
+
+#### ip_selector
+
+| Field | Description |
+| --- | --- |
+| `Selection mode` | `first_success` (default), `best_within_budget`, or `background`. |
+| `Outbound profile` / `SOCKS5 proxy` | Outbound profile or proxy used for probing. |
+| `Probe methods` | Probe methods, one per line; defaults `tcp:443`, `tcp:80`. |
+| `Probe stagger (ms)` | Delay between probes, default 200. |
+| `Probe timeout (ms)` | Per-probe timeout, default 600. |
+| `Max wait (ms)` | Maximum total wait, default 1000. |
+| `Top N addresses` | Number of addresses to keep, default 1. |
+| `DNSSEC policy` | `reorder_only` (default) or `skip`. |
+| `Max parallel probes` | Maximum parallel probes, default 256. |
+| `Enable probe cache` | Cache probe results, enabled by default. |
+| `Probe cache size` | Probe cache entries, default 4096. |
+| `Success TTL (seconds)` | Success cache duration, default 3600. |
+| `Failure TTL (seconds)` | Failure cache duration, default 60. |
+
+#### learn_domain
+
+| Field | Description |
+| --- | --- |
+| `Target dynamic domain set` | Provider tag of the destination dynamic domain set. |
+| `Learning phase` | `before` or `after` (default). |
+| `Questions` | `first` (default) or `all`. |
+| `Query types` | Query types to learn; defaults `A`, `AAAA`. |
+| `Require success (NOERROR)` | Learn only NOERROR, enabled by default. |
+| `Require an answer` | Require an answer, enabled by default. |
+| `Rule kind` | `full` (default) or `domain`. |
+| `Asynchronous` | Learn asynchronously, enabled by default. |
+| `Error handling` | `continue` (default), `stop`, or `fail`. |
+| `Timeout` | Timeout, default `1s`. |
+
+#### query_recorder
+
+| Field | Description |
+| --- | --- |
+| `Database path` | SQLite database path, such as `/tmp/oxidns/query.db`. |
+| `Queue size` | Queue length, default 8192. |
+| `Batch size` | Rows per batch, default 256. |
+| `Flush interval (ms)` | Flush interval, default 200. |
+| `In-memory tail size` | In-memory tail rows, default 1024. |
+| `Retention days` | Retention in days, default 7. |
+| `Cleanup interval (hours)` | Cleanup interval, default 1 hour. |
+| `Reader concurrency` | Reader concurrency, default 2. |
+
+#### download
+
+| Field | Description |
+| --- | --- |
+| `Timeout` | Download timeout, such as `30s`. |
+| `Skip TLS verification` | Skip TLS verification for downloads. |
+| `Outbound profile` / `SOCKS5 proxy` | Outbound profile or proxy for downloads. |
+| `Download at startup when missing` | Download missing files at startup, enabled by default. |
+
+#### Other Plugins
+
+| Plugin | Main fields |
+| --- | --- |
+| `domain_set` | `Inline domain expressions`, `Referenced domain sets`, `Rule files`; list fields take one item per line. |
+| `ip_set` | `Inline IP/CIDR rules`, `Referenced IP sets`, `Rule files`. |
+| `geosite` | `GeoSite data file`, `Selectors`. |
+| `geoip` | `GeoIP data file`, `Selectors`. |
+| `adguard_rule` | `AdGuard rules`, `Rule files`. |
+| `dynamic_domain_set` | `Rules file`, `Bootstrap rules`, `Queue size` (1024), `Batch size` (256), `Flush interval (ms)` (200). |
+| `tcp_server` | `TLS certificate`, `TLS private key`, `Idle timeout` (default 10). |
+| `http_server` | `HTTP listen`, `Client IP header`, `TLS certificate`, `TLS private key`, `Idle timeout` (default 30), `Enable HTTP/3`. |
+| `quic_server` | `TLS certificate`, `TLS private key`, `Idle timeout`. |
+
+List fields (`entries`, `files`, `selectors`, `rules`, and similar) take **one item per line**. Clearing a list removes the key; a default list is written only when it was actually changed.
+
+### 3.6 Plugin Overview
+
+The read-only `Plugins` section at the bottom shows:
+
+- `Tag`: instance tag;
+- `Type`: plugin type;
+- `Arguments`: argument summary (object keys, or step count for arrays);
+- `Status`: whether the core supports the type.
+
+`Status` comes from:
+
+- the installed core's plugin type list, when the core is installed;
+- a built-in catalog otherwise.
+
+“Not supported by this core” means the core lacks the plugin type; “Unknown plugin type” means even the built-in catalog does not recognize it.
+
+This section never modifies the configuration. Use Advanced Mode or the WebUI plugin center to add, remove, or adjust plugins.
+
+---
+
+## 4. Common Tasks
+
+### 4.1 Change Upstream DNS
+
+1. Open `DNS Configuration -> Normal Mode`.
+2. Find the target `forward` plugin under `Upstream DNS`.
+3. Pick a preset or type a custom address.
+4. Click `Add upstream DNS` to add more upstreams.
+5. Click `Validate`, then `Save and Apply`.
+
+### 4.2 Use DoH / DoT / DoQ Upstreams
+
+1. Choose or enter an encrypted address, such as `https://dns.alidns.com/dns-query`, `tls://1.1.1.1`, or `quic://dns.alidns.com`.
+2. For hostname-based addresses, expand `Options` and fill `Dial address` or `Bootstrap server` to avoid self-resolution.
+3. Enable `Skip TLS verification` only for private certificates or test environments.
+4. Click `Validate`, then `Save and Apply`.
+
+### 4.3 Change the Listen Address or Port
+
+1. Edit `Listen` for the relevant server under `Listen Addresses`.
+2. Make sure `Entry` references an existing sequence (usually `main_sequence`).
+3. Click `Save and Apply`.
+4. Test with `nslookup -po=<port> example.com 127.0.0.1` or the matching address.
+
+To use port 53, stop whatever else occupies it (usually dnsmasq's DNS function). The recommended setup keeps dnsmasq and forwards to port 5335; see [README.en.md](../README.en.md#make-oxidns-the-system-dns).
+
+### 4.4 Enable Caching
+
+1. Check whether a `cache` plugin exists. Normal Mode cannot create one; if it is missing, add it in Advanced Mode or the WebUI:
+
+```yaml
+- tag: cache_main
+  type: cache
+  args:
+    size: 4096
+    short_circuit: true
+    cache_negative: true
+    max_negative_ttl: 300
+```
+
+2. Return to Normal Mode; a `Cache` section appears for the instance.
+3. Adjust size, TTLs, and negative caching.
+4. Confirm the sequence actually references the cache plugin.
+5. Click `Save and Apply`.
+
+### 4.5 Add Local Hosts Entries
+
+1. Find `Hosts entries` in the `Hosts` section.
+2. Write one record per line:
+
+```text
+router.lan 192.168.1.1
+nas.lan 192.168.1.10
+```
+
+3. `Hosts files` can reference a system hosts file such as `/etc/hosts`.
+4. Click `Save and Apply`.
+
+### 4.6 Block Ads or Specific Domains
+
+A common pattern combines `domain_set` / `geosite` / `adguard_rule` with `black_hole`:
+
+```yaml
+- tag: ads
+  type: adguard_rule
+  args:
+    rules:
+      - "||ads.example.com^"
+
+- tag: block_ads
+  type: black_hole
+  args:
+    mode: nxdomain
+
+- tag: main_sequence
+  type: sequence
+  args:
+    - matches: "qname $ads"
+      exec: $block_ads
+    - exec: $forward
+    - exec: accept
+```
+
+Normal Mode can edit fields of existing `black_hole`, `domain_set`, and `adguard_rule` instances, but sequence rules belong in Advanced Mode or the WebUI.
+
+### 4.7 Change Logging
+
+1. Set `Log level` to `debug` temporarily when troubleshooting; keep `info` or `warn` day to day.
+2. Point `Log file` at a persistent path to survive reboots.
+3. Set `Rotation` and `Maximum rotation files` to prune old logs.
+4. Click `Save and Apply`.
+
+### 4.8 Backup, Restore, and Roll Back
+
+- Backup: `DNS Configuration -> Download Config`, then keep the downloaded `config.yaml`.
+- Restore: `DNS Configuration -> Upload Config` with a file named `config.yaml`. Upload validates and saves but does not restart; then click `Save and Apply` or restart manually.
+- Inspect changes: `Change Preview` shows only page edits relative to the on-disk file.
+- The backend also backs up the old file under `config-backups/` in the working directory (for example `/var/lib/oxidns/config-backups/`), which you can restore manually.
+
+---
+
+## 5. Advanced Mode
+
+`Advanced Mode` is a full YAML editor for the entire `config.yaml`. Use it to:
+
+- add or remove plugins;
+- write sequence and matcher rules;
+- configure `network.outbound`, `include`, and `runtime`;
+- configure API authentication, TLS, and CORS;
+- edit plugin arguments Normal Mode does not cover.
+
+### 5.1 Complete Configuration Structure
+
+```yaml
+runtime:
+  worker_threads: 4
+
+api:
+  http:
+    listen: "0.0.0.0:9199"
+    webui:
+      root: "/usr/share/oxidns/webui"
+      index: "index.html"
+
+log:
+  level: info
+  file: "/tmp/oxidns/oxidns.log"
+  rotation:
+    type: daily
+    max_files: 7
+
+network:
+  outbound:
+    default: direct
+    profiles:
+      direct:
+        resolver: system
+        proxy: none
+
+include: []
+
+plugins:
+  - tag: cache_main
+    type: cache
+    args:
+      size: 4096
+      short_circuit: true
+      cache_negative: true
+
+  - tag: forward
+    type: forward
+    args:
+      upstreams:
+        - addr: "223.5.5.5"
+
+  - tag: main_sequence
+    type: sequence
+    args:
+      - exec: $cache_main
+      - exec: $forward
+      - exec: accept
+
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: ":5335"
+
+  - tag: tcp_server
+    type: tcp_server
+    args:
+      entry: main_sequence
+      listen: ":5335"
+```
+
+### 5.2 Common Advanced Edits
+
+**Authentication and TLS for the WebUI:**
+
+```yaml
+api:
+  http:
+    listen: "0.0.0.0:9199"
+    auth:
+      type: basic
+      username: "admin"
+      password: "${OXIDNS_API_PASSWORD}"
+    ssl:
+      cert: "/etc/oxidns/api.crt"
+      key: "/etc/oxidns/api.key"
+    webui:
+      root: "/usr/share/oxidns/webui"
+      index: "index.html"
+```
+
+`auth.username` and `auth.password` must both be non-empty, and `ssl.cert` and `ssl.key` must be provided together.
+
+**Add another listen port:**
+
+```yaml
+  - tag: udp_server_lan
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: "0.0.0.0:5353"
+```
+
+**Add a sequence rule (block a domain set):**
+
+```yaml
+  - tag: ads
+    type: domain_set
+    args:
+      files:
+        - "/etc/oxidns/ads.txt"
+
+  - tag: block_ads
+    type: black_hole
+    args:
+      mode: nxdomain
+
+  - tag: main_sequence
+    type: sequence
+    args:
+      - matches: "qname $ads"
+        exec: $block_ads
+      - exec: $forward
+      - exec: accept
+```
+
+**Include external configuration files:**
+
+```yaml
+include:
+  - /etc/oxidns/plugins/common.yaml
+```
+
+`include` merges only the `plugins` of the included files. Relative paths are resolved from the directory of the file that declares the `include`, at most 8 levels deep, and merged tags must be globally unique.
+
+**Configure outbound networking:**
+
+```yaml
+network:
+  outbound:
+    default: direct
+    profiles:
+      direct:
+        resolver: system
+        proxy: none
+      remote:
+        resolver:
+          nameservers:
+            - addr: "1.1.1.1:53"
+            - addr: "tls://dns.google:853"
+              dial_addr: 8.8.8.8
+          ip_version: 4
+          timeout: 5s
+          proxy: none
+        proxy:
+          socks5: 127.0.0.1:1080
+```
+
+### 5.3 Advanced Mode Cautions
+
+- Always click `Validate` before saving. Valid YAML does not mean a valid OxiDNS configuration; the backend runs the full `oxidns check`.
+- Saving writes the editor text exactly and does not reformat or preserve comments you deleted.
+- Every `tag` must be unique, 1–64 ASCII characters using letters, digits, `_`, `-`, and `.`; each dot-separated segment must start and end with a letter or digit. The prefixes `qs.exec.`, `qs.match.`, and `qs.cron.` are reserved.
+- After renaming a tag, update every `$tag`, `jump`/`goto`, and dependency reference.
+- `${VAR}` placeholders are expanded by OxiDNS at startup and during `oxidns check`; undefined variables fail validation and the file is never rewritten.
+- Except for `include` paths, relative paths in the configuration are resolved from the working directory (default `/var/lib/oxidns`), not from the configuration file's directory.
+- YAML anchors, aliases, or merge keys make Normal Mode read-only.
+
+---
+
+## 6. Configure DNS Through The WebUI
+
+The OxiDNS WebUI is the core's built-in graphical interface. It edits the same `config.yaml` as the LuCI `DNS Configuration` page and is convenient for managing plugins, sequences, query records, caches, and upgrades in a browser.
+
+### 6.1 Open the WebUI From LuCI
+
+1. Confirm the OxiDNS service is running.
+2. Open `Services -> OxiDNS -> Basic Settings`.
+3. Click `Open WebUI` in the `WebUI` row.
+
+The button requires all of the following:
+
+- the core is installed;
+- WebUI files are installed (the `full` or `standard` bundle);
+- the OxiDNS service is running;
+- the configuration has a usable `api.http` listen address.
+
+When unavailable, the page explains why:
+
+| Message | Fix |
+| --- | --- |
+| Install the OxiDNS core before using WebUI. | Install the core first. |
+| The installed minimal core bundle does not include WebUI files... | Click `Install WebUI` on `Settings` to download a bundle with WebUI. |
+| WebUI files are not installed. | Click `Install WebUI` on `Settings`. |
+| Start the OxiDNS service before opening WebUI. | Click `Start` on `Basic Settings`. |
+| WebUI listens on loopback only... | Change `api.http.listen` to the LAN address or `0.0.0.0:9199`, or use an SSH tunnel. |
+
+URL rules:
+
+- For `0.0.0.0` or `[::]`, the host used to reach the router in the browser replaces the wildcard.
+- A specific LAN address is used directly.
+- For `127.0.0.1` / `::1`, the link remains but only works on the router itself or through an SSH tunnel.
+
+### 6.2 Configuration Required for the WebUI
+
+The WebUI requires the **expanded** `api.http` form:
+
+```yaml
+api:
+  http:
+    listen: "0.0.0.0:9199"
+    webui:
+      root: "/usr/share/oxidns/webui"
+      index: "index.html"
+```
+
+If the configuration currently uses the shorthand:
+
+```yaml
+api:
+  http: "0.0.0.0:9199"
+```
+
+switch to the expanded form in `Advanced Mode`, or enable the WebUI under `System Settings -> Management API -> WebUI static files` in the WebUI. The shorthand serves only the API.
+
+The WebUI and management API are same-origin:
+
+- the WebUI is mounted at `/`;
+- the API is mounted at `/api/*`;
+- the front end calls `/api/health`, `/api/config`, `/api/plugins/...`.
+
+Do not configure a separate CORS origin for the WebUI unless you use nginx or an online console.
+
+### 6.3 First Connection and Login
+
+1. If `api.http.auth` (Basic Auth) is enabled, the page asks for credentials.
+2. Enter `auth.username` and `auth.password`.
+3. Optionally enable `Remember login` to reuse saved credentials.
+4. The page shows `Connecting to backend`; on success it opens the dashboard.
+
+If it reports no backend connection:
+
+1. Open `System Settings -> Backend Service`.
+2. Keep `Service address` at the default `/api` when served same-origin.
+3. Click `Save address` or `Reconnect`.
+4. If nginx serves the WebUI, proxy `/api/*` to `api.http.listen` without stripping `/api`.
+
+### 6.4 Layout and Two Modes
+
+The sidebar contains:
+
+- `Dashboard`
+- `Plugin Center`
+- `Runtime Logs`
+- `System Settings`
+
+The header/sidebar also offers:
+
+- `Config Editor`: switch to the full YAML editor;
+- `Documentation`: open the OxiDNS docs;
+- `Software Upgrade`: check or perform a core upgrade, when the core includes the upgrade plugin;
+- theme toggle;
+- `Sign out`.
+
+There are two modes:
+
+- **Console mode**: dashboard, plugin center, logs, and system settings with graphical editing;
+- **Editor mode**: the full YAML editor for bulk edits or inspecting the raw file.
+
+Both modes edit the same configuration. Switching does not discard edits already in the page, but anything not saved or applied exists only in the browser.
+
+### 6.5 Dashboard
+
+The dashboard shows:
+
+- **Service health**: uptime and running state;
+- **CPU usage**: process CPU;
+- **DNS QPS**: recent average query rate;
+- **Memory**: RSS, working set, commit;
+- **Plugin totals**: plugin count and server count;
+- **Configuration status**: valid or invalid;
+- **Uptime**: days/hours/minutes/seconds.
+
+Below are **pinned plugin** cards. Use the plugin menu in the Plugin Center and choose `Pin to dashboard`; drag to reorder. The order is stored only in the current browser and never written to the configuration.
+
+### 6.6 Plugin Center
+
+The Plugin Center is the core page. It lists instances by server, executor, matcher, and provider.
+
+#### Browse and Filter
+
+- Search by name, type, or configuration;
+- filter by plugin type;
+- cards show tag, type, runtime state, and key arguments;
+- open a card for `Configuration` and `Statistics`/`Metrics` tabs.
+
+#### Create a Plugin
+
+1. Click `Add plugin` or `Create plugin`.
+2. Choose the type (server, executor, matcher, provider).
+3. Enter an instance name (tag). Rules: 1–64 ASCII characters using letters, digits, `_`, `-`, and `.`; `.` may not start, end, or repeat, and each dot-separated segment must start and end with a letter or digit; the prefixes `qs.exec.`, `qs.match.`, and `qs.cron.` are reserved.
+4. Fill the form; types without form fields can be edited as advanced YAML.
+5. Saving writes the draft/disk state; click `Apply changes` in the header to activate it.
+
+#### Edit a Plugin
+
+- Form mode: common fields with “reset to default” and “clear explicit value”.
+- Advanced settings: edit that plugin's YAML directly with any valid arguments.
+- `Negate match`: matcher-only, inverts the matcher result.
+- Reference fields: choose an existing plugin, or use `Quick create plugin` and have the new tag filled in.
+- Dependencies: initialization order, dependencies, and reverse references, with a topology view.
+
+#### Delete a Plugin
+
+The WebUI checks dependencies first:
+
+- a plugin still referenced by others cannot be deleted directly;
+- choose a compatible replacement, remove the references, or fix the configuration in the editor;
+- deletion is saved to disk but not applied; click `Apply changes` after verifying.
+
+#### Pin to the Dashboard
+
+Use the plugin card menu to `Pin to dashboard` / `Unpin`. Pinned cards appear on the dashboard; their order stays in browser storage.
+
+#### Runtime Metrics and Controls
+
+The `Statistics` / `Metrics` tab shows runtime data. Some plugins offer runtime controls:
+
+| Plugin | Runtime action |
+| --- | --- |
+| matcher | Force the base result to `true` or `false` to test a policy; reverts on reload or restart. |
+| provider | `Reload data`: reread provider data with the current configuration without rebuilding other plugins; does not apply YAML or topology changes. |
+| cache | Browse entries, filter by QNAME, delete one, flush all, export/import a `.dump`. |
+| query_recorder | Browse query records, filter, live stream, clear history, inspect matcher hit rates and aggregate statistics. |
+| dynamic_domain_set | View, add, delete, and clear rules; rules accept `full:`, `domain:`, `keyword:`, `regexp:`, and bare domains. |
+| download | View the download list and trigger downloads, which overwrite the target files. |
+| cron | View scheduled jobs and `Run now` an individual job. |
+
+These affect runtime state only and do not modify the configuration unless the page explicitly says otherwise.
+
+#### Sequence Editing
+
+A `sequence` plugin detail provides a canvas/list editor:
+
+- view and reorder rules;
+- `IF · match condition` selects a matcher, `THEN · action` selects an executor;
+- negate a matcher, move rules up/down, delete rules;
+- `jump`/`goto` to other sequences, with loops shown as back-links;
+- switch between reference, quick, text, and control-flow editing;
+- save writes the plugin configuration; `Apply changes` is still required.
+
+The `Topology` view shows dependencies, matcher conditions, executor targets, and sequence calls, which helps find dangling references and cycles.
+
+### 6.7 Runtime Logs
+
+`Runtime Logs` shows live OxiDNS output:
+
+- `Connected` / `Disconnected` status;
+- filter by level (all, trace, debug, info, warn, error);
+- search by message or target;
+- `Pause` / `Resume` for auto-scroll; new lines are counted while paused;
+- `Wrap lines` toggle;
+- time format (`YYYY`, `MM`, `DD`, `HH`, `mm`, `ss`, `SSS`);
+- elapsed time since process start.
+
+The log file itself is set by `log.file`; this page reads the backend stream and does not replace the LuCI `Logs` page.
+
+### 6.8 System Settings
+
+`System Settings` has several sections:
+
+#### Backend Service
+
+- `Service address`: defaults to `/api` when same-origin;
+- `Save address`, `Reconnect`;
+- current connection status.
+
+#### Account and Security
+
+- Set or change the Basic Auth username and password;
+- changes require a restart;
+- authentication can be disabled, but then anyone who can reach the management API can operate it; the page warns about this.
+
+#### Runtime Status / Configuration Summary
+
+- build version, platform, health, reload state;
+- configuration path, version, plugin count, initialization order, validation status.
+
+#### Runtime
+
+- `Worker threads`: Tokio multi-threaded runtime workers; empty uses the system default; cannot be 0.
+
+#### Outbound Network
+
+- `Default outbound profile`: maps to `network.outbound.default`;
+- each profile can set:
+  - name;
+  - SOCKS5 proxy;
+  - resolver mode (system or custom nameservers);
+  - IP version, resolve timeout, nameserver proxy;
+  - nameserver list (UDP/TCP/DoT/DoH/DoH3/DoQ; hostname forms need `dial_addr`);
+- shows per-profile resolver cache hits, refresh errors, and address-pool refreshes.
+
+#### Management API
+
+- `Listen address (listen)`: `ip:port`, `[ipv6]:port`, or `:port`;
+- `TLS / SSL`: certificate, key, client CA, require client certificate;
+- `Authentication (auth)`: points to Account and Security;
+- `CORS allowed origins (cors.allowed_origins)`: one Origin per line; `*` allows any;
+- `WebUI static files (webui)`: mounts the WebUI at `/` and the API at `/api/*`; set `root` and `index`.
+
+#### Logs
+
+- `Log level`: `off`, `trace`, `debug`, `info`, `warn`, `error`;
+- `Log file path`: empty logs only to stdout;
+- `Rotation strategy`: never/minutely/hourly/daily/weekly;
+- `Maximum history files`: 0 or empty means unlimited.
+
+#### Software Upgrade
+
+- Check for updates, current/latest versions, and release notes;
+- `Upgrade now`, `Force upgrade`;
+- upgrade settings: GitHub repository, bundle (auto/full/standard/minimal), outbound profile, SOCKS5, GitHub token, allow prereleases, clear cache and back up, automatic check;
+- shows the equivalent CLI command; the token is shown as a placeholder only;
+- if the core lacks the upgrade plugin, online upgrade is unavailable; use `Update Core` on `Settings` or the CLI.
+
+### 6.9 Configuration Editor
+
+After switching to `Config Editor`:
+
+- the plugin index jumps to definitions;
+- edit the full YAML with highlighting, indentation, undo/redo, and shortcuts;
+- `Save`: writes to disk without applying;
+- `Reset`: restores the on-disk content;
+- `Download`: download the YAML;
+- `Copy`: copy to clipboard;
+- `Diff`: compare the original with the current text;
+- `Config history`: browser-local snapshots with diff, rollback, delete, and clear;
+- `Offline mode`: paste or upload `config.yaml` and edit locally without a backend; the result stays in memory, is lost on refresh, and must be copied or downloaded.
+
+Configuration history is stored only in the current browser, scoped to the service instance. `Roll back this version` writes to disk and triggers a hot reload or restart according to what changed.
+
+### 6.10 Apply, Reload, and Restart
+
+After saving, the header shows configuration sync state:
+
+- `Configuration synced`: disk and runtime agree;
+- `Unapplied configuration changes`: click `Apply changes` for a hot reload;
+- `Configuration error`: fix validation errors first;
+- `Restart required`: top-level settings (`runtime`, `api`, `log`, and so on) changed and a hot reload cannot apply them.
+
+Actions:
+
+| Action | Effect |
+| --- | --- |
+| `View diff` | Compare the running version with the pending version. |
+| `Discard changes · restore running` | Drop unapplied edits and restore the running configuration. |
+| `Reload current configuration` | Reload the on-disk configuration. |
+| `Restart service` | Replace the running process; DNS is briefly interrupted and in-memory caches are cleared. |
+
+During a restart an overlay shows: saving, requesting restart, waiting for the switch, waiting for readiness, reloading. Let it finish; do not refresh or close the page.
+
+### 6.11 Software Upgrade
+
+`Software Upgrade` handles core self-upgrade:
+
+1. Click `Check for updates` to see the current version, latest version, and release notes.
+2. Click `Upgrade now` for a newer release, or `Force upgrade` to reinstall the same version.
+3. Upgrade settings cover the GitHub repository, bundle, outbound profile, proxy, token, and prereleases.
+4. The page shows stages: request, download and apply, wait for backend, verify version.
+5. It reconnects automatically when finished.
+
+Token guidance:
+
+- Safe to persist: a personal device, a trusted LAN, an OS-protected browser profile, and HTTPS;
+- Avoid persisting on shared computers or browser accounts, when remoting, or over plain HTTP across networks;
+- The token is sent to the backend for checks and upgrades whether or not it is saved; prefer a fine-grained token with read-only access to the target repository.
+
+If the core lacks the upgrade plugin, use `Update Core` / `Upload Core` on the LuCI `Settings` page, or the CLI command shown on the page.
+
+### 6.12 LuCI and WebUI Equivalents
+
+| Goal | LuCI | OxiDNS WebUI |
+| --- | --- | --- |
+| Change log level/file | `DNS Configuration -> Normal Mode -> Log` | `System Settings -> Logs` |
+| Change listen address/port | `DNS Configuration -> Normal Mode -> Listen Addresses` | `Plugin Center -> udp_server/tcp_server/quic_server -> Configuration` |
+| Change upstream DNS | `DNS Configuration -> Normal Mode -> Upstream DNS` | `Plugin Center -> forward -> Configuration` |
+| Add/remove plugins | `DNS Configuration -> Advanced Mode` | `Plugin Center -> Add plugin/Delete` |
+| Change sequences | `DNS Configuration -> Advanced Mode` | `Plugin Center -> sequence -> Sequence editing` |
+| Enable WebUI/auth/TLS | `DNS Configuration -> Advanced Mode` | `System Settings -> Management API` |
+| Edit the full YAML | `DNS Configuration -> Advanced Mode` | `Config Editor` |
+| View runtime logs | `Logs` | `Runtime Logs` |
+| View query records/cache | Not available | Details of the matching plugin in the Plugin Center |
+| Upgrade the core | `Settings -> Update Core` | `Software Upgrade` |
+
+---
+
+## 7. Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| “Configuration error” | YAML syntax error, wrong field type, reference to a missing tag | Open Advanced Mode to see the error, or fix it in the WebUI editor, then validate again. |
+| Save reports a conflict | The file was changed by the WebUI, a script, or another session | Reload `DNS Configuration`, check the content, and save again. |
+| `Save` succeeds but DNS behavior is unchanged | The file was written but the service was not restarted | Click `Save and Apply`, or `Apply changes` / `Restart service` in the WebUI. |
+| A plugin is missing from Normal Mode | The instance does not exist or the type has no schema | Add it in Advanced Mode or the WebUI. |
+| Normal Mode is read-only | The YAML uses anchors/aliases/merge keys | Edit in Advanced Mode, or remove the anchors. |
+| `Open WebUI` is unavailable | Core missing, WebUI files missing, service stopped, or listen address unreachable | Follow the hint; install WebUI for a `minimal` core. |
+| Browser cannot open the WebUI | Listening on `127.0.0.1`, firewall block, or port closed | Use the LAN address or `0.0.0.0:9199`; check the firewall and port. |
+| WebUI login fails | Wrong credentials, or auth changed without a restart | Check `api.http.auth` and restart OxiDNS after changes. |
+| WebUI cannot connect | `Service address` is not `/api`; nginx strips `/api`; backend down | Restore `/api`; check the proxy; confirm OxiDNS is running. |
+| Deep links 404 after refresh | Static server lacks an `index.html` fallback | Serve with OxiDNS or add `try_files $uri $uri/ /index.html;` in nginx. |
+| Logs page is empty | No `log.file`, unwritable path, or service stopped | Check `log.file` and directory permissions; fall back to stdout and `logread`. |
+| DNS queries time out | Wrong listen address/port, unreachable upstream, firewall | Test directly with `nslookup`; check Listen Addresses and Upstream DNS. |
+| Port already in use | dnsmasq or another DNS service owns 53/5335 | Use another port or stop the conflicting service. |
+
+More backend errors appear on the `Logs` page. LuCI also writes service-control audit records tagged `luci-app-oxidns` to the system log.
+
+---
+
+## 8. Security Recommendations
+
+- Never expose ports 53, 5335, or 9199 to the WAN. An open resolver is abused for DNS amplification.
+- Bind the management API to the LAN; use an SSH tunnel or an authenticated reverse proxy for remote access.
+- Enable Basic Auth in `api.http.auth` for LAN WebUI access and add HTTPS at the reverse proxy.
+- Use `Skip TLS verification` only with trusted self-signed environments, never long-term for public upstreams.
+- Use a least-privilege fine-grained GitHub token and avoid persisting it on shared browsers.
+- Back up with `Download Config` before changes and keep a rollback copy before large edits.
+
+---
+
+## 9. Related Documentation
+
+- OxiDNS official homepage: <https://oxidns.org/>
+- OxiDNS core and WebUI source: <https://github.com/svenshi/oxidns>
+- Global configuration reference: <https://oxidns.org/configuration/global>
+- Sequence configuration reference: <https://oxidns.org/configuration/sequence>
+- Rule configuration reference: <https://oxidns.org/configuration/rules>
+- Plugin reference: <https://oxidns.org/plugin-reference/overview>
+- WebUI deployment: <https://oxidns.org/webui>
+
+Synchronized with `luci-app-oxidns 1.1.16`.
