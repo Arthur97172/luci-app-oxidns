@@ -389,6 +389,7 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 			'class': 'cbi-input-text',
 			'type': 'number',
 			'step': '1',
+			'style': 'width: 100%; box-sizing: border-box;',
 			'min': field.min !== undefined ? field.min : null,
 			'max': field.max !== undefined ? field.max : null,
 			'value': absent ? '' : String(value)
@@ -396,7 +397,11 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 
 	case 'select':
 		addBinding(bindings, id, path, 'delete', 'number');
-		return E('select', { 'id': id, 'class': 'cbi-input-select' },
+		return E('select', {
+			'id': id,
+			'class': 'cbi-input-select',
+			'style': 'width: 100%; box-sizing: border-box;'
+		},
 			[
 				E('option', { 'value': '', 'selected': absent ? 'selected' : null }, _('Default'))
 			].concat(field.values.map(function(option) {
@@ -412,6 +417,7 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 			'id': id,
 			'class': 'cbi-input-text',
 			'type': 'text',
+			'style': 'width: 100%; box-sizing: border-box;',
 			'value': text(value),
 			'placeholder': field.placeholder || null
 		});
@@ -448,7 +454,7 @@ function upstreamAdvancedPanel(doc, index, position, bindings) {
 
 	return E('div', {
 		'id': 'oxidns-cfg-upstream-options-%d-%d'.format(index, position),
-		'style': 'display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .9em 1.25em; padding: .75em 0 .25em;'
+		'style': 'display: grid; grid-template-columns: repeat(auto-fill, 210px); justify-content: start; align-items: start; gap: .9em 1.25em; padding: .75em 0 .25em;'
 	}, [
 		E('div', { 'class': 'cbi-value-description', 'style': 'grid-column: 1 / -1;' },
 			_('Leave fields empty to use the protocol defaults.'))
@@ -485,7 +491,7 @@ function upstreamSection(doc, bindings, options) {
 			var panel = upstreamAdvancedPanel(doc, index, position, bindings);
 			var expanded = upstreamAdvancedPresent(doc, index, position);
 
-			panel.style.display = expanded ? '' : 'none';
+			panel.style.display = expanded ? 'grid' : 'none';
 
 			var toggle = E('button', {
 				'id': 'oxidns-cfg-upstream-options-toggle-%d-%d'.format(index, position),
@@ -493,7 +499,7 @@ function upstreamSection(doc, bindings, options) {
 				'click': function(ev) {
 					ev.preventDefault();
 					var show = panel.style.display === 'none';
-					panel.style.display = show ? '' : 'none';
+					panel.style.display = show ? 'grid' : 'none';
 					toggle.textContent = show ? _('Hide options') : _('Options');
 					toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
 				}
