@@ -770,7 +770,6 @@ function upstreamAdvancedRows(doc, index, position, bindings) {
 
 function upstreamSection(doc, bindings, options) {
 	var rows = [];
-	var footers = [];
 	var found = false;
 
 	pluginItems(doc).forEach(function(item, index) {
@@ -836,21 +835,22 @@ function upstreamSection(doc, bindings, options) {
 		if (!upstreams.length)
 			rows.push(noteRow(_('No upstream servers configured.')));
 
-		footers.push(E('div', {
-			'style': 'display: flex; justify-content: flex-start; padding-inline: var(--section-inset, 0); margin-top: .75em;'
-		}, [
-			E('button', {
-				'class': 'btn cbi-button cbi-button-action',
-				'click': function(ev) {
-					ev.preventDefault();
-					options.beforeChange();
-					var path = [ 'plugins', index, 'args', 'upstreams' ];
-					if (!hasNodePath(doc, path))
-						doc.setIn(path, doc.createNode([]));
-					doc.addIn(path, doc.createNode({ 'addr': '' }));
-					options.rerender();
-				}
-			}, _('Add upstream DNS'))
+		rows.push(E('div', { 'class': 'tr' }, [
+			E('div', { 'class': 'td left', 'style': 'width: 240px' }, ''),
+			E('div', { 'class': 'td left', 'style': 'padding-top: .75em; padding-bottom: .5em;' }, [
+				E('button', {
+					'class': 'btn cbi-button cbi-button-action',
+					'click': function(ev) {
+						ev.preventDefault();
+						options.beforeChange();
+						var path = [ 'plugins', index, 'args', 'upstreams' ];
+						if (!hasNodePath(doc, path))
+							doc.setIn(path, doc.createNode([]));
+						doc.addIn(path, doc.createNode({ 'addr': '' }));
+						options.rerender();
+					}
+				}, _('Add upstream DNS'))
+			])
 		]));
 	});
 
@@ -860,7 +860,7 @@ function upstreamSection(doc, bindings, options) {
 	return section(_('Upstream DNS'),
 		_('Queries are forwarded to these upstream servers.') + ' ' +
 		_('Use Options to set per-upstream connection details.'),
-		rows, 'table-layout: fixed;', footers.length ? E('div', {}, footers) : null);
+		rows, 'table-layout: fixed;');
 }
 
 function schemaDefinitions(options) {
