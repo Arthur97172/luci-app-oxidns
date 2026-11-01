@@ -344,7 +344,7 @@ return view.extend({
 
 		return E('div', { 'class': 'cbi-map' }, [
 			E('div', { 'class': 'cbi-section' }, [
-				E('h3', {}, _('Basic Settings')),
+				E('h3', {}, _('Status Overview')),
 				E('div', { 'class': 'table cbi-section-table' }, rows)
 			]),
 			E('div', { 'class': 'cbi-section' }, [

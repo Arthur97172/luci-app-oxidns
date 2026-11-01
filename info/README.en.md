@@ -2,7 +2,7 @@
 
 Language: [中文](./README.md) | English
 
-This guide is for users who have installed `luci-app-oxidns` and the OxiDNS core. It explains how to configure DNS on the LuCI `DNS Configuration` page and how to do the same work through the OxiDNS WebUI opened from `Basic Settings`.
+This guide is for users who have installed `luci-app-oxidns` and the OxiDNS core. It explains how to configure DNS on the LuCI `DNS Configuration` page and how to do the same work through the OxiDNS WebUI opened from `Basic Information`.
 
 Default OpenWrt paths used throughout:
 
@@ -41,7 +41,7 @@ The LuCI `DNS Configuration` page and the OxiDNS WebUI edit the **same** `/etc/o
 
 ### Before You Start
 
-1. On `Services -> OxiDNS -> Basic Settings`, confirm the core is installed.
+1. On `Services -> OxiDNS -> Basic Information`, use `Status Overview` to confirm the core is installed.
 2. Confirm the service is running; click `Start` if it is not.
 3. On `DNS Configuration`, click `Download Config` to back up the current `config.yaml`.
 4. Decide on the listen address: `127.0.0.1:5335` for local use or dnsmasq; the router's LAN address or `0.0.0.0:5335` for direct LAN access.
@@ -241,7 +241,7 @@ Listen address formats:
 - `:port`: bind dual-stack `[::]:port`.
 - For IPv4 only, write `0.0.0.0:port` explicitly.
 
-> The `Open WebUI` button on `Basic Settings` builds its URL from this listen address. If it listens on `127.0.0.1` or `::1`, only the router itself can reach it and LuCI shows a hint. For LAN access, use the LAN address or `0.0.0.0:9199`.
+> The `Open WebUI` button on `Basic Information` builds its URL from this listen address. If it listens on `127.0.0.1` or `::1`, only the router itself can reach it and LuCI shows a hint. For LAN access, use the LAN address or `0.0.0.0:9199`.
 
 ### 3.6 Listen Addresses
 
@@ -889,7 +889,7 @@ The OxiDNS WebUI is the core's built-in graphical interface. It edits the same `
 ### 6.1 Open the WebUI From LuCI
 
 1. Confirm the OxiDNS service is running.
-2. Open `Services -> OxiDNS -> Basic Settings`.
+2. Open `Services -> OxiDNS -> Basic Information`.
 3. Click `Open WebUI` in the `WebUI` row.
 
 The button requires all of the following:
@@ -906,7 +906,7 @@ When unavailable, the page explains why:
 | Install the OxiDNS core before using WebUI. | Install the core first. |
 | The installed minimal core bundle does not include WebUI files... | Click `Install WebUI` on `Settings` to download a bundle with WebUI. |
 | WebUI files are not installed. | Click `Install WebUI` on `Settings`. |
-| Start the OxiDNS service before opening WebUI. | Click `Start` on `Basic Settings`. |
+| Start the OxiDNS service before opening WebUI. | Click `Start` on `Basic Information`. |
 | WebUI listens on loopback only... | Change `api.http.listen` to the LAN address or `0.0.0.0:9199`, or use an SSH tunnel. |
 
 URL rules:
@@ -1251,5 +1251,3 @@ More backend errors appear on the `Logs` page. LuCI also writes service-control 
 - Rule configuration reference: <https://oxidns.org/configuration/rules>
 - Plugin reference: <https://oxidns.org/plugin-reference/overview>
 - WebUI deployment: <https://oxidns.org/webui>
-
-Synchronized with `luci-app-oxidns 1.1.16`.

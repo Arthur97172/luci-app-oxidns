@@ -10,7 +10,7 @@
 		}
 	},
 	"admin/services/oxidns/overview": {
-		"title": "Basic Settings",
+		"title": "Basic Information",
 		"order": 10,
 		"action": {
 			"type": "view",

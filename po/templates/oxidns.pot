@@ -29,7 +29,7 @@ msgstr ""
 msgid "Autostart"
 msgstr ""
 
-msgid "Basic Settings"
+msgid "Basic Information"
 msgstr ""
 
 msgid "Build"
@@ -351,6 +351,9 @@ msgid "Start, stop, and restart control the running process."
 msgstr ""
 
 msgid "Start the OxiDNS service before opening WebUI."
+msgstr ""
+
+msgid "Status Overview"
 msgstr ""
 
 msgid "Stop"

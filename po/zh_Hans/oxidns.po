@@ -31,8 +31,8 @@ msgstr "可用"
 msgid "Autostart"
 msgstr "自启设置"
 
-msgid "Basic Settings"
-msgstr "基本设置"
+msgid "Basic Information"
+msgstr "基本信息"
 
 msgid "Build"
 msgstr "构建信息"
@@ -354,6 +354,9 @@ msgstr "启动、停止和重启控制正在运行的进程。"
 
 msgid "Start the OxiDNS service before opening WebUI."
 msgstr "请先启动 OxiDNS 服务再打开 WebUI。"
+
+msgid "Status Overview"
+msgstr "状态概览"
 
 msgid "Stop"
 msgstr "停止"

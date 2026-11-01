@@ -2,7 +2,7 @@
 
 语言：中文 | [English](./README.en.md)
 
-本文面向已经安装 `luci-app-oxidns` 和 OxiDNS 内核的用户，说明如何通过 LuCI 的 `DNS配置` 页面配置 DNS，以及如何通过 `基本设置` 页面进入 OxiDNS WebUI 完成同样的工作。
+本文面向已经安装 `luci-app-oxidns` 和 OxiDNS 内核的用户，说明如何通过 LuCI 的 `DNS配置` 页面配置 DNS，以及如何通过 `基本信息` 页面进入 OxiDNS WebUI 完成同样的工作。
 
 文中以 OpenWrt 默认安装路径为准：
 
@@ -41,7 +41,7 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 
 ### 开始前的检查
 
-1. 在 `服务 -> OxiDNS -> 基本设置` 确认内核状态为“已安装”。
+1. 在 `服务 -> OxiDNS -> 基本信息` 的 `状态概览` 确认内核状态为“已安装”。
 2. 确认服务状态为“运行中”；未运行时先点击 `启动`。
 3. 在 `DNS配置` 页面先点击 `下载配置` 备份当前 `config.yaml`。
 4. 规划好监听地址：只给本机或 dnsmasq 使用时监听 `127.0.0.1:5335`；要让局域网直接访问时监听路由器 LAN 地址或 `0.0.0.0:5335`。
@@ -243,7 +243,7 @@ api:
 - `:port`：绑定双栈 `[::]:port`。
 - 只监听 IPv4 时明确写 `0.0.0.0:port`。
 
-> `基本设置` 页面的 `打开 WebUI` 按钮根据这个监听地址生成 URL。监听 `127.0.0.1` 或 `::1` 时只能在路由器本机访问，LuCI 会显示提示；需要从局域网访问时，把监听地址改为 LAN 地址或 `0.0.0.0:9199`。
+> `基本信息` 页面的 `打开 WebUI` 按钮根据这个监听地址生成 URL。监听 `127.0.0.1` 或 `::1` 时只能在路由器本机访问，LuCI 会显示提示；需要从局域网访问时，把监听地址改为 LAN 地址或 `0.0.0.0:9199`。
 
 ### 3.6 监听地址（Listen Addresses）
 
@@ -890,7 +890,7 @@ OxiDNS WebUI 是内核自带的图形化管理界面。它和 LuCI `DNS配置` �
 ### 6.1 从 LuCI 打开 WebUI
 
 1. 确认 OxiDNS 服务正在运行。
-2. 进入 `服务 -> OxiDNS -> 基本设置`。
+2. 进入 `服务 -> OxiDNS -> 基本信息`。
 3. 在 `WebUI` 一行点击 `打开 WebUI`。
 
 按钮可用需要同时满足：
@@ -907,7 +907,7 @@ OxiDNS WebUI 是内核自带的图形化管理界面。它和 LuCI `DNS配置` �
 | 使用 WebUI 前请先安装 OxiDNS 内核。 | 先安装内核。 |
 | 已安装的 minimal 内核 bundle 不包含 WebUI 文件。请在“设置”页面点击“安装 WebUI”…… | 在 `设置` 点击 `安装 WebUI`，下载包含 WebUI 的 bundle。 |
 | WebUI 文件尚未安装。请在“设置”页面使用“安装 WebUI”进行安装。 | 在 `设置` 点击 `安装 WebUI`。 |
-| 请先启动 OxiDNS 服务再打开 WebUI。 | 在 `基本设置` 点击 `启动`。 |
+| 请先启动 OxiDNS 服务再打开 WebUI。 | 在 `基本信息` 点击 `启动`。 |
 | WebUI 仅监听 loopback。请把 HTTP 监听地址配置为局域网可访问地址…… | 把 `api.http.listen` 改为 LAN 地址或 `0.0.0.0:9199`，或使用 SSH 隧道。 |
 
 URL 生成规则：
@@ -1256,5 +1256,3 @@ Token 保存建议：
 - OxiDNS 规则配置参考：<https://oxidns.org/configuration/rules>
 - 插件参考：<https://oxidns.org/plugin-reference/overview>
 - WebUI 部署：<https://oxidns.org/webui>
-
-本文与代码同步的版本：`luci-app-oxidns 1.1.16`。

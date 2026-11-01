@@ -10,7 +10,7 @@ This repository contains only the LuCI management UI and the rpcd backend; the O
 
 ## Features
 
-- `Basic Settings`: backend, core, build, service status, boot autostart, and WebUI entry, with start, stop, and restart.
+- `Basic Information`: `Status Overview` shows the backend, core, build, service status, boot autostart, and WebUI entry, with start, stop, and restart controls below.
 - `DNS Configuration`: Normal mode forms and Advanced mode full YAML; both support validation, config download/upload, save, save and apply, and a change preview.
 - `Settings`: install, update, upload, repair, or remove the core and WebUI; configure core repository, bundle, paths, system log output, and download credentials.
 - `Logs`: view OxiDNS runtime logs.
@@ -69,7 +69,7 @@ opkg remove oxidns    # on apk systems: apk del oxidns
 
 Open `Services -> OxiDNS -> Settings`, confirm `Core repository` is `svenshi/oxidns` and `Core bundle` is `full`, then click `Install Core`. For offline installs, `Upload Core` accepts an official `.tar.gz` archive or a single `oxidns` binary. LuCI selects the matching Linux musl release for the device architecture and verifies the release asset SHA256 digest. An existing configuration file is never overwritten.
 
-The `full` / `standard` archives include the WebUI; the `minimal` archive and a single binary do not. After installing the core, click `Start` on `Basic Settings` and enable boot autostart under `Autostart` on `Settings`. When a core is already installed, `Core Actions` also offers `Update Core`, `Repair Reinstall`, `Install WebUI`, `Upload Core`, and `Remove Core`; `Remove Core` keeps `/etc/oxidns/config.yaml` and `/var/lib/oxidns` by default.
+The `full` / `standard` archives include the WebUI; the `minimal` archive and a single binary do not. After installing the core, click `Start` on `Basic Information` and enable boot autostart under `Autostart` on `Settings`. When a core is already installed, `Core Actions` also offers `Update Core`, `Repair Reinstall`, `Install WebUI`, `Upload Core`, and `Remove Core`; `Remove Core` keeps `/etc/oxidns/config.yaml` and `/var/lib/oxidns` by default.
 
 For making OxiDNS the system DNS, forwarding through dnsmasq, and rolling back, see [info/README.en.md](info/README.en.md#49-forward-through-dnsmasq-recommended).
 
@@ -91,7 +91,7 @@ For making OxiDNS the system DNS, forwarding through dnsmasq, and rolling back, 
 - Before replacing the core or WebUI, LuCI stages and verifies the new files; if a copy fails, the old files are restored so the core and WebUI cannot be left mismatched.
 - Normal mode only edits plugin instances that already exist. Adding or removing plugins and changing sequence rules require Advanced mode or the OxiDNS WebUI; with YAML anchors, aliases, or merge keys, Normal mode becomes read-only.
 - Saving from Normal mode re-serializes the YAML: comments, field order, and fields the form does not manage are preserved, and only edited fields are written. Normal mode, Advanced mode, and the OxiDNS WebUI edit the same file, so use only one entry point at a time.
-- The WebUI entry on `Basic Settings` requires installed WebUI files, a running service, and a reachable HTTP listen address; with `127.0.0.1` / `::1`, use local access or an SSH tunnel.
+- The WebUI entry on `Basic Information` requires installed WebUI files, a running service, and a reachable HTTP listen address; with `127.0.0.1` / `::1`, use local access or an SSH tunnel.
 
 ## Private Repositories And Downloads
 
