@@ -362,7 +362,7 @@ msgstr ""
 msgid "Success TTL (seconds)"
 msgstr ""
 
-msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files. Use Advanced Mode to switch to the expanded form before configuring WebUI."
+msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files, TLS, authentication, or CORS. Use Advanced Mode to switch to the expanded form before configuring them."
 msgstr ""
 
 msgid "The file must be named config.yaml."
@@ -1205,3 +1205,128 @@ msgstr ""
 msgid "Use Options to set per-upstream connection details."
 msgstr ""
 
+msgid "Add entry"
+msgstr ""
+
+msgid "Automatic"
+msgstr ""
+
+msgid "Basic auth password"
+msgstr ""
+
+msgid "Basic auth username"
+msgstr ""
+
+msgid "Basic authentication requires both a username and a password."
+msgstr ""
+
+msgid "CORS allowed origins"
+msgstr ""
+
+msgid "Client CA certificate"
+msgstr ""
+
+msgid "Configured; leave empty to keep the current password"
+msgstr ""
+
+msgid "DoH entries"
+msgstr ""
+
+msgid "DoH entry"
+msgstr ""
+
+msgid "DoH entry %d of the HTTP server plugin %s must use a path that starts with \"/\"."
+msgstr ""
+
+msgid "Downloads"
+msgstr ""
+
+msgid "Enable JSON DNS API"
+msgstr ""
+
+msgid "Enter a password"
+msgstr ""
+
+msgid "Entry executor"
+msgstr ""
+
+msgid "File name"
+msgstr ""
+
+msgid "Item"
+msgstr ""
+
+msgid "Leave empty to derive the allowed origins from the listen address. Use \"*\" to allow any origin."
+msgstr ""
+
+msgid "Leave the worker thread count empty to use the system parallelism."
+msgstr ""
+
+msgid "Must be at least 1."
+msgstr ""
+
+msgid "No entries configured."
+msgstr ""
+
+msgid "Remove Basic authentication"
+msgstr ""
+
+msgid "Request path"
+msgstr ""
+
+msgid "Require a client certificate"
+msgstr ""
+
+msgid "Required when client certificate verification is enabled."
+msgstr ""
+
+msgid "Runtime"
+msgstr ""
+
+msgid "Target directory"
+msgstr ""
+
+msgid "The %s plugin %s has an invalid value for %s."
+msgstr ""
+
+msgid "The %s plugin %s requires the %s field."
+msgstr ""
+
+msgid "The %s server plugin %s must configure cert and key together."
+msgstr ""
+
+msgid "The %s server plugin %s requires the entry field."
+msgstr ""
+
+msgid "The %s server plugin %s requires the listen field."
+msgstr ""
+
+msgid "The API certificate and private key must be configured together."
+msgstr ""
+
+msgid "The API listen address cannot be empty."
+msgstr ""
+
+msgid "The API requires a client CA when client certificate verification is enabled."
+msgstr ""
+
+msgid "The HTTP server plugin %s enables HTTP/3 but does not configure both cert and key."
+msgstr ""
+
+msgid "The saved password is never shown again. Fill both username and password to enable Basic authentication."
+msgstr ""
+
+msgid "The worker thread count must be at least 1."
+msgstr ""
+
+msgid "URL"
+msgstr ""
+
+msgid "Worker threads"
+msgstr ""
+
+msgid "The API WebUI root cannot be empty."
+msgstr ""
+
+msgid "The API WebUI index cannot be empty."
+msgstr ""

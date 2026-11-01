@@ -147,7 +147,9 @@ function guidedProblems() {
 
 	guidedApply();
 
-	var problems = typeof guided.validate === 'function' ? guided.validate(state.doc) : [];
+	var problems = typeof guided.validate === 'function'
+		? guided.validate(state.doc, { 'schema': state.schema })
+		: [];
 
 	if (problems.length)
 		setStatus(problems.join(' '), true);
@@ -202,8 +204,13 @@ function saveYaml(restart) {
 	if (guidedProblems().length)
 		return Promise.resolve();
 
-	var changed = diffText(content) !== diffText(state.raw);
-	var restartService = !!restart && changed;
+	/*
+	 * Apply must restart even when the content matches the last saved file.
+	 * A previous "Save" stores the file without restarting, so the running
+	 * service can still hold an older configuration; comparing against the
+	 * saved file would silently turn "Save and Apply" into a no-op.
+	 */
+	var restartService = !!restart;
 
 	return runConfigCall(restartService ? _('Saving and applying configuration...') : _('Saving configuration...'), callConfigSave, [
 		content,

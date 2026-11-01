@@ -90,7 +90,9 @@ The preview is read-only and never writes the file. Clear the checkbox to hide i
 
 ### Validation and Saving
 
-- Both `Save` and `Save and Apply` run `oxidns check -c <temp file> -d <working directory>` in the backend first; invalid content is never written.
+- Normal Mode runs a front-end check against the built-in schema before submitting: missing required fields, out-of-range numbers, invalid enum values, server `entry` / `listen` / certificate-key pairing, HTTP server entry paths, and management API security settings are reported directly and nothing is saved.
+- Both `Save` and `Save and Apply` then run `oxidns check -c <temp file> -d <working directory>` in the backend; invalid content is never written.
+- `Save and Apply` always restarts the service, while `Save` only writes the file. Saving first and then clicking `Save and Apply` therefore still triggers a restart even when the file matches the last save, so the running service picks up the new configuration.
 - Writes are atomic and the previous file is backed up before replacement.
 - The save checks the file mtime. If another program (such as the OxiDNS WebUI) changed the file after the page was opened, the save is rejected; reload the page and edit again.
 - Normal Mode writes only fields that were actually edited. Untouched defaults are not added, so the change preview is not polluted by unrelated defaults.
@@ -119,7 +121,20 @@ Notes:
 - `/tmp` is cleared on reboot. For persistent logs, point `Log file` at a persistent directory such as `/var/log/oxidns/oxidns.log`, or change the log directory under `Settings -> Log path` and click `Save and Apply`.
 - A new log level affects only subsequent output. After changing the log file or rotation settings, use `Save and Apply` to restart the service.
 
-### 3.2 API (Management API and WebUI)
+### 3.2 Runtime
+
+Configuration path: `runtime`.
+
+| Field | Config key | Description |
+| --- | --- | --- |
+| `Worker threads` | `runtime.worker_threads` | Number of DNS worker threads. Leave empty to use the system's available parallelism (the OxiDNS default); when set it must be at least 1. |
+
+Notes:
+
+- Set this only when you need to limit CPU usage or pin the thread count. Leaving it empty does not write `worker_threads` to the file.
+- Clearing an existing value removes the key and restores the default parallelism.
+
+### 3.3 API (Management API and WebUI)
 
 Configuration path: `api.http`.
 
@@ -128,6 +143,14 @@ Configuration path: `api.http`.
 | `HTTP listen` | `api.http` or `api.http.listen` | API listen address, such as `192.168.1.1:9199`, `0.0.0.0:9199`, `:9199`, `[::]:9199`, or `127.0.0.1:9199`. |
 | `WebUI root` | `api.http.webui.root` | WebUI static directory, default `/usr/share/oxidns/webui`. |
 | `WebUI index` | `api.http.webui.index` | Index file name, default `index.html`. |
+| `TLS certificate` | `api.http.ssl.cert` | Required together with the private key to serve HTTPS. |
+| `TLS private key` | `api.http.ssl.key` | Must be configured together with the certificate. |
+| `Client CA certificate` | `api.http.ssl.client_ca` | Used when verifying client certificates. |
+| `Require a client certificate` | `api.http.ssl.require_client_cert` | Requires `ssl.client_ca` when enabled. |
+| `Basic auth username` | `api.http.auth.username` | Must be set together with the password to enable Basic authentication. |
+| `Basic auth password` | `api.http.auth.password` | Never shown again after saving; leave empty to keep the current password. |
+| `Remove Basic authentication` | `api.http.auth` | Removes the entire authentication block when checked. |
+| `CORS allowed origins` | `api.http.cors.allowed_origins` | One origin per line. Leave empty to derive origins from the listen address; `*` allows any origin. |
 
 `api.http` has two forms:
 
@@ -142,6 +165,17 @@ api:
 api:
   http:
     listen: "0.0.0.0:9199"
+    ssl:
+      cert: "/etc/oxidns/api.crt"
+      key: "/etc/oxidns/api.key"
+      client_ca: "/etc/oxidns/client-ca.crt"
+      require_client_cert: false
+    auth:
+      type: basic
+      username: "admin"
+      password: "change-me"
+    cors:
+      allowed_origins: [ "https://example.com" ]
     webui:
       root: "/usr/share/oxidns/webui"
       index: "index.html"
@@ -149,9 +183,18 @@ api:
 
 Normal Mode detects the current form:
 
-- With the shorthand, only `HTTP listen` is shown, with a note that the shorthand cannot serve the WebUI. Switch to the expanded form in Advanced Mode to get the WebUI fields.
-- With the expanded form, `WebUI root` and `WebUI index` appear.
-- Authentication (`auth`), TLS (`ssl`), and CORS (`cors`) are not exposed in Normal Mode; configure them in Advanced Mode or under `System Settings -> Management API` in the WebUI.
+- With the shorthand, only `HTTP listen` is shown, with a note that the shorthand cannot serve the WebUI, TLS, authentication, or CORS. Switch to the expanded form in Advanced Mode to get the other fields.
+- With the expanded form, the listen address, WebUI, TLS, Basic authentication, and CORS fields appear.
+- Saving authentication fields adds `auth.type: basic` automatically. If only a username or only a password is filled in, validation reports that both are required.
+- The password is written only when you type a new one; afterwards the page only says a password is configured and never echoes it. Enter a new value to change it, or check `Remove Basic authentication` to disable authentication.
+- These fields can also be configured under `System Settings -> Management API` in the OxiDNS WebUI.
+
+Validation rules:
+
+- The expanded form's `listen` cannot be empty.
+- `ssl.cert` and `ssl.key` must be configured together.
+- Enabling `require_client_cert` requires `ssl.client_ca`.
+- An existing `auth` block must contain both a username and a password.
 
 Listen address formats:
 
@@ -162,7 +205,7 @@ Listen address formats:
 
 > The `Open WebUI` button on `Basic Settings` builds its URL from this listen address. If it listens on `127.0.0.1` or `::1`, only the router itself can reach it and LuCI shows a hint. For LAN access, use the LAN address or `0.0.0.0:9199`.
 
-### 3.3 Listen Addresses
+### 3.4 Listen Addresses
 
 Configuration path: instances of `udp_server`, `tcp_server`, and `quic_server` under `plugins`.
 
@@ -196,7 +239,7 @@ Notes:
 - A `quic_server` instance also needs its TLS certificate and private key.
 - If the page reports that no UDP, TCP, or QUIC server plugins were found, the configuration has none; create them in Advanced Mode or the WebUI.
 
-### 3.4 Upstream DNS
+### 3.5 Upstream DNS
 
 Configuration path: `plugins[i].args.upstreams` of the `forward` plugin.
 
@@ -256,7 +299,7 @@ The front end checks before saving:
 
 The backend still runs `oxidns check`, and the core's result is authoritative.
 
-### 3.5 Common Plugin Fields
+### 3.6 Common Plugin Fields
 
 Normal Mode renders fields from the schema for each plugin type already present. Labels are English; the defaults below come from the current schema.
 
@@ -360,6 +403,7 @@ Normal Mode renders fields from the schema for each plugin type already present.
 
 | Field | Description |
 | --- | --- |
+| `Downloads` | List of download entries. Each entry has a required `URL`, plus `Target directory` and `File name`. Entries can be added and removed individually. |
 | `Timeout` | Download timeout, such as `30s`. |
 | `Skip TLS verification` | Skip TLS verification for downloads. |
 | `Outbound profile` / `SOCKS5 proxy` | Outbound profile or proxy for downloads. |
@@ -376,12 +420,14 @@ Normal Mode renders fields from the schema for each plugin type already present.
 | `adguard_rule` | `AdGuard rules`, `Rule files`. |
 | `dynamic_domain_set` | `Rules file`, `Bootstrap rules`, `Queue size` (1024), `Batch size` (256), `Flush interval (ms)` (200). |
 | `tcp_server` | `TLS certificate`, `TLS private key`, `Idle timeout` (default 10). |
-| `http_server` | `HTTP listen`, `Client IP header`, `TLS certificate`, `TLS private key`, `Idle timeout` (default 30), `Enable HTTP/3`. |
+| `http_server` | `DoH entries` (each with `Request path`, `Entry executor`, and `Enable JSON DNS API`), `HTTP listen`, `Client IP header`, `TLS certificate`, `TLS private key`, `Idle timeout` (default 30), `Enable HTTP/3`. |
 | `quic_server` | `TLS certificate`, `TLS private key`, `Idle timeout`. |
 
 List fields (`entries`, `files`, `selectors`, `rules`, and similar) take **one item per line**. Clearing a list removes the key; a default list is written only when it was actually changed.
 
-### 3.6 Plugin Overview
+Object-list fields (`Downloads`, `DoH entries`) can add and remove entries individually. Required fields, numeric ranges, and enum values of each entry are validated before saving; a DoH entry's `Request path` must start with `/`. Missing required plugin fields (such as the primary and standby executors for `fallback`, the database path for `query_recorder`, the data files for `geosite` / `geoip`, the rules file for `dynamic_domain_set`, and the certificate and key for `quic_server`) are reported directly as well.
+
+### 3.7 Plugin Overview
 
 The read-only `Plugins` section at the bottom shows:
 

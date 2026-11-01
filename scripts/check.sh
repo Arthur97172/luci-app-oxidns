@@ -31,21 +31,25 @@ for (const entry of Object.values(menu)) {
 }
 
 const schema = JSON.parse(fs.readFileSync('root/usr/share/oxidns/config-schema.json', 'utf8'));
+function addSchemaField(field) {
+	for (const key of ['label', 'help', 'item_label']) {
+		if (field[key])
+			required.add(field[key]);
+	}
+	for (const value of field.values || []) {
+		if (value && typeof value === 'object' && value.label)
+			required.add(value.label);
+	}
+	for (const child of field.fields || [])
+		addSchemaField(child);
+}
 for (const definition of Object.values(schema.plugins || {})) {
 	if (definition.title)
 		required.add(definition.title);
 	if (definition.description)
 		required.add(definition.description);
-	for (const field of definition.fields || []) {
-		for (const key of ['label', 'help']) {
-			if (field[key])
-				required.add(field[key]);
-		}
-		for (const value of field.values || []) {
-			if (value && typeof value === 'object' && value.label)
-				required.add(value.label);
-		}
-	}
+	for (const field of definition.fields || [])
+		addSchemaField(field);
 }
 
 const pluginTypes = JSON.parse(fs.readFileSync('root/usr/share/oxidns/plugin-types.json', 'utf8'));

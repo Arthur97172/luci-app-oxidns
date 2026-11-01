@@ -364,8 +364,8 @@ msgstr "已停止"
 msgid "Success TTL (seconds)"
 msgstr "成功 TTL（秒）"
 
-msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files. Use Advanced Mode to switch to the expanded form before configuring WebUI."
-msgstr "API 当前使用简写形式（api.http: \"ip:port\"）。该形式只设置监听地址，无法托管 WebUI 文件。请在高级模式中改为详写形式后再配置 WebUI。"
+msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files, TLS, authentication, or CORS. Use Advanced Mode to switch to the expanded form before configuring them."
+msgstr "API 当前使用简写形式（api.http: \"ip:port\"）。该形式只设置监听地址，无法托管 WebUI 文件，也无法配置 TLS、认证或 CORS。请在高级模式中改为详写形式后再配置这些功能。"
 
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
@@ -1207,3 +1207,128 @@ msgstr "SO_MARK"
 msgid "Use Options to set per-upstream connection details."
 msgstr "通过“选项”设置各上游的连接参数。"
 
+msgid "Add entry"
+msgstr "添加条目"
+
+msgid "Automatic"
+msgstr "自动"
+
+msgid "Basic auth password"
+msgstr "Basic 认证密码"
+
+msgid "Basic auth username"
+msgstr "Basic 认证用户名"
+
+msgid "Basic authentication requires both a username and a password."
+msgstr "Basic 认证需要同时填写用户名和密码。"
+
+msgid "CORS allowed origins"
+msgstr "CORS 允许的来源"
+
+msgid "Client CA certificate"
+msgstr "客户端 CA 证书"
+
+msgid "Configured; leave empty to keep the current password"
+msgstr "已设置；留空则保留当前密码"
+
+msgid "DoH entries"
+msgstr "DoH 入口"
+
+msgid "DoH entry"
+msgstr "DoH 入口项"
+
+msgid "DoH entry %d of the HTTP server plugin %s must use a path that starts with \"/\"."
+msgstr "HTTP 服务端插件 %s 的第 %d 个 DoH 入口必须使用以“/”开头的路径。"
+
+msgid "Downloads"
+msgstr "下载项"
+
+msgid "Enable JSON DNS API"
+msgstr "启用 JSON DNS API"
+
+msgid "Enter a password"
+msgstr "输入密码"
+
+msgid "Entry executor"
+msgstr "入口执行器"
+
+msgid "File name"
+msgstr "文件名"
+
+msgid "Item"
+msgstr "条目"
+
+msgid "Leave empty to derive the allowed origins from the listen address. Use \"*\" to allow any origin."
+msgstr "留空时根据监听地址推导允许的来源。使用“*”允许任意来源。"
+
+msgid "Leave the worker thread count empty to use the system parallelism."
+msgstr "工作线程数留空时使用系统可用并行度。"
+
+msgid "Must be at least 1."
+msgstr "必须至少为 1。"
+
+msgid "No entries configured."
+msgstr "尚未配置条目。"
+
+msgid "Remove Basic authentication"
+msgstr "移除 Basic 认证"
+
+msgid "Request path"
+msgstr "请求路径"
+
+msgid "Require a client certificate"
+msgstr "要求客户端证书"
+
+msgid "Required when client certificate verification is enabled."
+msgstr "启用客户端证书校验时必填。"
+
+msgid "Runtime"
+msgstr "运行时"
+
+msgid "Target directory"
+msgstr "目标目录"
+
+msgid "The %s plugin %s has an invalid value for %s."
+msgstr "%s 插件 %s 的 %s 值无效。"
+
+msgid "The %s plugin %s requires the %s field."
+msgstr "%s 插件 %s 必须填写 %s 字段。"
+
+msgid "The %s server plugin %s must configure cert and key together."
+msgstr "%s 服务端插件 %s 必须同时配置 cert 和 key。"
+
+msgid "The %s server plugin %s requires the entry field."
+msgstr "%s 服务端插件 %s 必须填写 entry 字段。"
+
+msgid "The %s server plugin %s requires the listen field."
+msgstr "%s 服务端插件 %s 必须填写 listen 字段。"
+
+msgid "The API certificate and private key must be configured together."
+msgstr "API 证书和私钥必须同时配置。"
+
+msgid "The API listen address cannot be empty."
+msgstr "API 监听地址不能为空。"
+
+msgid "The API requires a client CA when client certificate verification is enabled."
+msgstr "启用客户端证书校验时，API 必须配置客户端 CA。"
+
+msgid "The HTTP server plugin %s enables HTTP/3 but does not configure both cert and key."
+msgstr "HTTP 服务端插件 %s 启用了 HTTP/3，但没有同时配置 cert 和 key。"
+
+msgid "The saved password is never shown again. Fill both username and password to enable Basic authentication."
+msgstr "已保存的密码不会再次显示。要启用 Basic 认证，请同时填写用户名和密码。"
+
+msgid "The worker thread count must be at least 1."
+msgstr "工作线程数必须至少为 1。"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "Worker threads"
+msgstr "工作线程数"
+
+msgid "The API WebUI root cannot be empty."
+msgstr "API WebUI 根目录不能为空。"
+
+msgid "The API WebUI index cannot be empty."
+msgstr "API WebUI 首页文件不能为空。"

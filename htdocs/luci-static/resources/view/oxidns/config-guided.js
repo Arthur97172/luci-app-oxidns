@@ -105,6 +105,23 @@ function pluginTag(item, index) {
 	return '#' + (index + 1);
 }
 
+function arrayItems(doc, path) {
+	var seq = doc.getIn(path, true);
+	return seq && seq.items ? seq.items : [];
+}
+
+function pathStartsWith(path, prefix) {
+	if (!Array.isArray(path) || path.length < prefix.length)
+		return false;
+
+	for (var i = 0; i < prefix.length; i++) {
+		if (path[i] !== prefix[i])
+			return false;
+	}
+
+	return true;
+}
+
 function row(label, control, description) {
 	return E('div', { 'class': 'tr' }, [
 		E('div', { 'class': 'td left', 'style': 'width: 240px' }, label),
@@ -223,6 +240,9 @@ function sameLines(current, lines) {
 }
 
 function applyBindings(doc, bindings) {
+	var authPath = [ 'api', 'http', 'auth' ];
+	var authChanged = false;
+
 	for (var i = 0; i < bindings.length; i++) {
 		var binding = bindings[i];
 		var input = document.getElementById(binding.id);
@@ -236,6 +256,25 @@ function applyBindings(doc, bindings) {
 			var present = hasNodePath(doc, binding.path);
 			var current = present ? bindingValue(doc, binding.path) : undefined;
 
+			if (kind === 'checkbox-delete') {
+				if (input.checked)
+					doc.deleteIn(binding.path);
+				continue;
+			}
+
+			if (kind === 'secret') {
+				var secret = String(input.value || '');
+
+				if (!secret || (present && String(current) === secret))
+					continue;
+
+				doc.setIn(binding.path, secret);
+
+				if (pathStartsWith(binding.path, authPath))
+					authChanged = true;
+				continue;
+			}
+
 			if (kind === 'boolean') {
 				var unchanged = present
 					? input.checked === (current === true)
@@ -245,6 +284,9 @@ function applyBindings(doc, bindings) {
 					continue;
 
 				doc.setIn(binding.path, !!input.checked);
+
+				if (pathStartsWith(binding.path, authPath))
+					authChanged = true;
 				continue;
 			}
 
@@ -303,11 +345,23 @@ function applyBindings(doc, bindings) {
 			}
 
 			doc.setIn(binding.path, value);
+
+			if (pathStartsWith(binding.path, authPath))
+				authChanged = true;
 		}
 		catch (err) {
 			/* Leave the node untouched; oxidns check reports the real problem. */
 		}
 	}
+
+	/*
+	 * OxiDNS currently supports only Basic authentication. When the form
+	 * writes a username or password, materialize auth.type so the saved
+	 * block is complete without touching an existing untouched block.
+	 */
+	if (authChanged && hasNodePath(doc, authPath) &&
+	    !hasNodePath(doc, authPath.concat([ 'type' ])))
+		doc.setIn(authPath.concat([ 'type' ]), 'basic');
 }
 
 function logSection(doc, bindings) {
@@ -337,6 +391,25 @@ function logSection(doc, bindings) {
 	]);
 }
 
+function runtimeSection(doc, bindings) {
+	addBinding(bindings, 'oxidns-cfg-runtime-threads',
+		[ 'runtime', 'worker_threads' ], 'delete', 'number');
+
+	return section(_('Runtime'),
+		_('Leave the worker thread count empty to use the system parallelism.'),
+		[
+			row(_('Worker threads'), E('input', {
+				'id': 'oxidns-cfg-runtime-threads',
+				'class': 'cbi-input-text oxidns-control',
+				'type': 'number',
+				'step': '1',
+				'min': '1',
+				'value': text(doc.getIn([ 'runtime', 'worker_threads' ])),
+				'placeholder': _('Automatic')
+			}), _('Must be at least 1.'))
+		]);
+}
+
 function apiSection(doc, bindings) {
 	var http = plainValue(doc, [ 'api', 'http' ]);
 	var shorthand = typeof http === 'string';
@@ -350,7 +423,7 @@ function apiSection(doc, bindings) {
 	];
 
 	if (shorthand) {
-		rows.push(noteRow(_('The API uses the shorthand form (api.http: "ip:port"). This form only sets the listen address and cannot serve WebUI files. Use Advanced Mode to switch to the expanded form before configuring WebUI.')));
+		rows.push(noteRow(_('The API uses the shorthand form (api.http: "ip:port"). This form only sets the listen address and cannot serve WebUI files, TLS, authentication, or CORS. Use Advanced Mode to switch to the expanded form before configuring them.')));
 	}
 	else {
 		addBinding(bindings, 'oxidns-cfg-api-root', [ 'api', 'http', 'webui', 'root' ], 'delete');
@@ -362,6 +435,75 @@ function apiSection(doc, bindings) {
 		rows.push(row(_('WebUI index'),
 			textInput('oxidns-cfg-api-index',
 				text(doc.getIn([ 'api', 'http', 'webui', 'index' ])) || 'index.html')));
+
+		addBinding(bindings, 'oxidns-cfg-api-cert', [ 'api', 'http', 'ssl', 'cert' ], 'delete');
+		addBinding(bindings, 'oxidns-cfg-api-key', [ 'api', 'http', 'ssl', 'key' ], 'delete');
+		addBinding(bindings, 'oxidns-cfg-api-client-ca', [ 'api', 'http', 'ssl', 'client_ca' ], 'delete');
+		addBinding(bindings, 'oxidns-cfg-api-require-client-cert',
+			[ 'api', 'http', 'ssl', 'require_client_cert' ], 'delete', 'boolean');
+
+		rows.push(row(_('TLS certificate'),
+			textInput('oxidns-cfg-api-cert', text(doc.getIn([ 'api', 'http', 'ssl', 'cert' ])),
+				'/etc/oxidns/api.crt')));
+		rows.push(row(_('TLS private key'),
+			textInput('oxidns-cfg-api-key', text(doc.getIn([ 'api', 'http', 'ssl', 'key' ])),
+				'/etc/oxidns/api.key')));
+		rows.push(row(_('Client CA certificate'),
+			textInput('oxidns-cfg-api-client-ca',
+				text(doc.getIn([ 'api', 'http', 'ssl', 'client_ca' ]))),
+			_('Required when client certificate verification is enabled.')));
+		rows.push(row('', E('label', { 'style': 'display: inline-flex; gap: .5em; align-items: center;' }, [
+			E('input', {
+				'id': 'oxidns-cfg-api-require-client-cert',
+				'type': 'checkbox',
+				'style': 'position: static; top: auto; right: auto; margin: 0;',
+				'checked': plainValue(doc, [ 'api', 'http', 'ssl', 'require_client_cert' ]) === true ? 'checked' : null
+			}),
+			_('Require a client certificate')
+		])));
+
+		var username = text(doc.getIn([ 'api', 'http', 'auth', 'username' ]));
+		var hasPassword = text(doc.getIn([ 'api', 'http', 'auth', 'password' ])) !== '';
+		var hasAuth = hasNodePath(doc, [ 'api', 'http', 'auth' ]);
+
+		addBinding(bindings, 'oxidns-cfg-api-auth-user', [ 'api', 'http', 'auth', 'username' ], 'delete');
+		addBinding(bindings, 'oxidns-cfg-api-auth-pass', [ 'api', 'http', 'auth', 'password' ], 'delete', 'secret');
+		addBinding(bindings, 'oxidns-cfg-api-auth-remove', [ 'api', 'http', 'auth' ], 'delete', 'checkbox-delete');
+
+		rows.push(row(_('Basic auth username'), textInput('oxidns-cfg-api-auth-user', username)));
+		rows.push(row(_('Basic auth password'), E('input', {
+			'id': 'oxidns-cfg-api-auth-pass',
+			'class': 'cbi-input-text oxidns-control',
+			'type': 'password',
+			'value': '',
+			'autocomplete': 'new-password',
+			'placeholder': hasPassword
+				? _('Configured; leave empty to keep the current password')
+				: _('Enter a password')
+		}), _('The saved password is never shown again. Fill both username and password to enable Basic authentication.')));
+
+		if (hasAuth) {
+			rows.push(row('', E('label', { 'style': 'display: inline-flex; gap: .5em; align-items: center;' }, [
+				E('input', {
+					'id': 'oxidns-cfg-api-auth-remove',
+					'type': 'checkbox',
+					'style': 'position: static; top: auto; right: auto; margin: 0;'
+				}),
+				_('Remove Basic authentication')
+			])));
+		}
+
+		addBinding(bindings, 'oxidns-cfg-api-cors',
+			[ 'api', 'http', 'cors', 'allowed_origins' ], 'delete', 'string-list');
+
+		rows.push(row(_('CORS allowed origins'), E('textarea', {
+			'id': 'oxidns-cfg-api-cors',
+			'class': 'cbi-input-textarea',
+			'rows': 3,
+			'style': 'width: 100%; font-family: monospace;',
+			'placeholder': 'https://admin.example.com'
+		}, schemaListValue(plainValue(doc, [ 'api', 'http', 'cors', 'allowed_origins' ]))),
+			_('Leave empty to derive the allowed origins from the listen address. Use "*" to allow any origin.')));
 	}
 
 	return section(_('API'), null, rows);
@@ -691,9 +833,71 @@ function schemaListValue(value) {
 	return typeof value === 'string' ? value : '';
 }
 
-function schemaControl(doc, index, fieldIndex, field, bindings) {
-	var path = [ 'plugins', index, 'args' ].concat(field.path);
-	var id = schemaFieldId(index, fieldIndex);
+function schemaObjectList(doc, field, bindings, path, id, options) {
+	var items = arrayItems(doc, path);
+	var itemLabel = _(text(field.item_label) || text(field.label) || _('Item'));
+	var container = E('div', { 'style': 'display: flex; flex-direction: column; gap: .75em;' });
+
+	items.forEach(function(item, position) {
+		var itemPath = path.concat([ position ]);
+		var itemRows = [];
+
+		(field.fields || []).forEach(function(subfield, subIndex) {
+			if (!subfield || !Array.isArray(subfield.path) || !subfield.path.length)
+				return;
+
+			itemRows.push(row(
+				subfield.type === 'boolean' ? '' : _(text(subfield.label) || subfield.path.join('.')),
+				schemaControl(doc, 0, subIndex, subfield, bindings, itemPath,
+					id + '-i' + position, options),
+				subfield.help ? _(subfield.help) : null
+			));
+		});
+
+		container.appendChild(E('div', {
+			'class': 'cbi-section',
+			'style': 'border: 1px solid rgba(127,127,127,.35); border-radius: 4px; padding: .5em .75em;'
+		}, [
+			E('div', { 'style': 'display: flex; align-items: center; justify-content: space-between; gap: .5em;' }, [
+				E('strong', {}, itemLabel + ' ' + (position + 1)),
+				E('button', {
+					'class': 'btn cbi-button cbi-button-remove',
+					'click': function(ev) {
+						ev.preventDefault();
+						options.beforeChange();
+						doc.deleteIn(itemPath);
+						options.rerender();
+					}
+				}, _('Remove'))
+			]),
+			E('div', { 'class': 'table cbi-section-table' }, itemRows)
+		]));
+	});
+
+	if (!items.length)
+		container.appendChild(E('div', { 'class': 'cbi-value-description' },
+			_('No entries configured.')));
+
+	container.appendChild(E('button', {
+		'class': 'btn cbi-button cbi-button-add',
+		'click': function(ev) {
+			ev.preventDefault();
+			options.beforeChange();
+
+			if (!hasNodePath(doc, path))
+				doc.setIn(path, doc.createNode([]));
+
+			doc.addIn(path, doc.createNode({}));
+			options.rerender();
+		}
+	}, _('Add entry')));
+
+	return container;
+}
+
+function schemaControl(doc, index, fieldIndex, field, bindings, basePath, idPrefix, options) {
+	var path = (basePath || [ 'plugins', index, 'args' ]).concat(field.path);
+	var id = idPrefix ? idPrefix + '-f' + fieldIndex : schemaFieldId(index, fieldIndex);
 	var value = plainValue(doc, path);
 	var empty = field.empty === 'set' ? 'set' : 'delete';
 	var absent = value === undefined || value === null;
@@ -742,6 +946,9 @@ function schemaControl(doc, index, fieldIndex, field, bindings) {
 			'placeholder': text(field.placeholder) || null
 		}, schemaListValue(display));
 
+	case 'object-list':
+		return schemaObjectList(doc, field, bindings, path, id, options);
+
 	default:
 		addBinding(bindings, id, path, empty, 'string', defaultValue);
 		return textInput(id, displayText, text(field.placeholder));
@@ -770,7 +977,7 @@ function schemaSections(doc, bindings, options) {
 
 			rows.push(row(
 				field.type === 'boolean' ? '' : _(text(field.label) || field.path.join('.')),
-				schemaControl(doc, index, fieldIndex, field, bindings),
+				schemaControl(doc, index, fieldIndex, field, bindings, null, null, options),
 				field.help ? _(field.help) : null
 			));
 		});
@@ -883,36 +1090,185 @@ function pluginSection(doc, options) {
 	return section(_('Plugins'), description, rows);
 }
 
-function validateConfig(doc) {
-	var problems = [];
+var SERVER_PLUGIN_TYPES = {
+	'udp_server': true,
+	'tcp_server': true,
+	'quic_server': true,
+	'http_server': true
+};
 
-	pluginItems(doc).forEach(function(item, index) {
-		if (pluginType(item) !== 'forward')
+function isEmptyValue(value) {
+	return value === undefined || value === null || value === '' ||
+		(Array.isArray(value) && !value.length);
+}
+
+function schemaFieldProblems(doc, basePath, fields, pluginTitle, tag, problems) {
+	(fields || []).forEach(function(field) {
+		if (!field || !Array.isArray(field.path) || !field.path.length)
 			return;
 
-		var tag = pluginTag(item, index);
-		var seq = doc.getIn([ 'plugins', index, 'args', 'upstreams' ], true);
-		var upstreams = seq && seq.items ? seq.items : [];
+		var path = basePath.concat(field.path);
+		var value = plainValue(doc, path);
+		var label = _(text(field.label) || field.path.join('.'));
 
-		if (!upstreams.length) {
-			problems.push(_('The forward plugin %s needs at least one upstream server.').format(tag));
+		if (field.required && isEmptyValue(value))
+			problems.push(_('The %s plugin %s requires the %s field.')
+				.format(pluginTitle, tag, label));
+
+		if (field.type === 'object-list') {
+			var items = Array.isArray(value) ? value : [];
+
+			items.forEach(function(item, position) {
+				schemaFieldProblems(doc, path.concat([ position ]), field.fields,
+					pluginTitle, tag, problems);
+			});
 			return;
 		}
 
-		upstreams.forEach(function(upstream, position) {
-			var addr = text(doc.getIn([ 'plugins', index, 'args', 'upstreams', position, 'addr' ]));
-			var maxPath = [ 'plugins', index, 'args', 'upstreams', position, 'max_conns' ];
-			var minPath = [ 'plugins', index, 'args', 'upstreams', position, 'min_conns' ];
-			var maxConns = hasNodePath(doc, maxPath) ? Number(plainValue(doc, maxPath)) : 64;
-			var minConns = hasNodePath(doc, minPath) ? Number(plainValue(doc, minPath)) : 0;
+		if (isEmptyValue(value))
+			return;
 
-			if (!addr)
-				problems.push(_('Upstream address %d of the forward plugin %s cannot be empty.').format(position + 1, tag));
+		if (field.type === 'integer' || field.type === 'number') {
+			var number = Number(value);
 
-			if (isFinite(minConns) && isFinite(maxConns) && minConns > maxConns)
-				problems.push(_('Upstream %d of the forward plugin %s keeps more minimum connections than its maximum.').format(position + 1, tag));
-		});
+			if (!isFinite(number) ||
+			    (field.min !== undefined && number < field.min) ||
+			    (field.max !== undefined && number > field.max))
+				problems.push(_('The %s plugin %s has an invalid value for %s.')
+					.format(pluginTitle, tag, label));
+			return;
+		}
+
+		if (field.type === 'enum' && Array.isArray(field.values)) {
+			var allowed = field.values.map(function(entry) {
+				return entry && typeof entry === 'object' ? String(entry.value) : String(entry);
+			});
+
+			if (allowed.indexOf(String(value)) === -1)
+				problems.push(_('The %s plugin %s has an invalid value for %s.')
+					.format(pluginTitle, tag, label));
+		}
 	});
+}
+
+function validateConfig(doc, options) {
+	var problems = [];
+	var definitions = schemaDefinitions(options) || {};
+
+	pluginItems(doc).forEach(function(item, index) {
+		var type = pluginType(item);
+		var tag = pluginTag(item, index);
+		var argsPath = [ 'plugins', index, 'args' ];
+
+		if (type === 'forward') {
+			var seq = doc.getIn(argsPath.concat([ 'upstreams' ]), true);
+			var upstreams = seq && seq.items ? seq.items : [];
+
+			if (!upstreams.length) {
+				problems.push(_('The forward plugin %s needs at least one upstream server.').format(tag));
+			}
+			else {
+				upstreams.forEach(function(upstream, position) {
+					var addr = text(doc.getIn(argsPath.concat([ 'upstreams', position, 'addr' ])));
+					var maxPath = argsPath.concat([ 'upstreams', position, 'max_conns' ]);
+					var minPath = argsPath.concat([ 'upstreams', position, 'min_conns' ]);
+					var maxConns = hasNodePath(doc, maxPath) ? Number(plainValue(doc, maxPath)) : 64;
+					var minConns = hasNodePath(doc, minPath) ? Number(plainValue(doc, minPath)) : 0;
+
+					if (!addr)
+						problems.push(_('Upstream address %d of the forward plugin %s cannot be empty.').format(position + 1, tag));
+
+					if (isFinite(minConns) && isFinite(maxConns) && minConns > maxConns)
+						problems.push(_('Upstream %d of the forward plugin %s keeps more minimum connections than its maximum.').format(position + 1, tag));
+				});
+			}
+		}
+
+		var definition = definitions[type];
+
+		if (definition && Array.isArray(definition.fields))
+			schemaFieldProblems(doc, argsPath, definition.fields,
+				_(text(definition.title) || type), tag, problems);
+
+		if (!SERVER_PLUGIN_TYPES[type])
+			return;
+
+		var entry = text(plainValue(doc, argsPath.concat([ 'entry' ])));
+		var listen = text(plainValue(doc, argsPath.concat([ 'listen' ])));
+		var cert = text(plainValue(doc, argsPath.concat([ 'cert' ])));
+		var key = text(plainValue(doc, argsPath.concat([ 'key' ])));
+
+		if (type !== 'http_server' && !entry)
+			problems.push(_('The %s server plugin %s requires the entry field.').format(type, tag));
+
+		if (!listen)
+			problems.push(_('The %s server plugin %s requires the listen field.').format(type, tag));
+
+		if (!!cert !== !!key)
+			problems.push(_('The %s server plugin %s must configure cert and key together.').format(type, tag));
+
+		if (type === 'http_server') {
+			var entries = plainValue(doc, argsPath.concat([ 'entries' ]));
+
+			(Array.isArray(entries) ? entries : []).forEach(function(entryValue, position) {
+				var dohPath = text(entryValue && entryValue.path);
+
+				if (dohPath && dohPath.charAt(0) !== '/')
+					problems.push(_('DoH entry %d of the HTTP server plugin %s must use a path that starts with "/".').format(position + 1, tag));
+			});
+
+			if (plainValue(doc, argsPath.concat([ 'enable_http3' ])) === true && (!cert || !key))
+				problems.push(_('The HTTP server plugin %s enables HTTP/3 but does not configure both cert and key.').format(tag));
+		}
+	});
+
+	if (hasNodePath(doc, [ 'runtime', 'worker_threads' ])) {
+		var threads = Number(plainValue(doc, [ 'runtime', 'worker_threads' ]));
+
+		if (!isFinite(threads) || threads < 1)
+			problems.push(_('The worker thread count must be at least 1.'));
+	}
+
+	var http = plainValue(doc, [ 'api', 'http' ]);
+
+	if (http !== undefined) {
+		var apiListen = typeof http === 'string'
+			? http
+			: text(plainValue(doc, [ 'api', 'http', 'listen' ]));
+
+		if (!apiListen)
+			problems.push(_('The API listen address cannot be empty.'));
+
+		if (typeof http !== 'string') {
+			var apiCert = text(plainValue(doc, [ 'api', 'http', 'ssl', 'cert' ]));
+			var apiKey = text(plainValue(doc, [ 'api', 'http', 'ssl', 'key' ]));
+			var clientCa = text(plainValue(doc, [ 'api', 'http', 'ssl', 'client_ca' ]));
+			var requireClientCert = plainValue(doc, [ 'api', 'http', 'ssl', 'require_client_cert' ]);
+
+			if (!!apiCert !== !!apiKey)
+				problems.push(_('The API certificate and private key must be configured together.'));
+
+			if (requireClientCert === true && !clientCa)
+				problems.push(_('The API requires a client CA when client certificate verification is enabled.'));
+
+			if (hasNodePath(doc, [ 'api', 'http', 'auth' ])) {
+				var username = text(plainValue(doc, [ 'api', 'http', 'auth', 'username' ]));
+				var password = text(plainValue(doc, [ 'api', 'http', 'auth', 'password' ]));
+
+				if (!username || !password)
+					problems.push(_('Basic authentication requires both a username and a password.'));
+			}
+
+			if (hasNodePath(doc, [ 'api', 'http', 'webui' ])) {
+				if (!text(plainValue(doc, [ 'api', 'http', 'webui', 'root' ])))
+					problems.push(_('The API WebUI root cannot be empty.'));
+
+				if (hasNodePath(doc, [ 'api', 'http', 'webui', 'index' ]) &&
+				    !text(plainValue(doc, [ 'api', 'http', 'webui', 'index' ])))
+					problems.push(_('The API WebUI index cannot be empty.'));
+			}
+		}
+	}
 
 	return problems;
 }
@@ -962,6 +1318,7 @@ return baseclass.extend({
 			E('style', {}, UPSTREAM_SELECT_STYLE),
 			bootstrap ? E('style', {}, BOOTSTRAP_FORM_STYLE) : '',
 			logSection(doc, bindings),
+			runtimeSection(doc, bindings),
 			apiSection(doc, bindings),
 			listenSection(doc, bindings),
 			upstreamSection(doc, bindings, handlers)

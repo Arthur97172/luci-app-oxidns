@@ -90,7 +90,9 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 
 ### 校验与保存的行为
 
-- `保存` 和 `保存并应用` 都会先在后端执行 `oxidns check -c <临时文件> -d <工作目录>`，校验失败不会写入。
+- 普通模式在提交前会按内置 schema 先做一次前端检查：必填字段、数值范围、枚举取值、服务端 `entry` / `listen` / 证书私钥成对配置、HTTP 服务端入口路径、管理 API 安全配置等不满足时会直接列出问题，不会发起保存。
+- `保存` 和 `保存并应用` 都会先后端执行 `oxidns check -c <临时文件> -d <工作目录>`，校验失败不会写入。
+- `保存并应用` 总会重启服务；`保存` 只写文件，不重启。因此先用 `保存` 再点 `保存并应用` 时，即使文件内容与上次保存相同，也会重启一次让新配置生效。
 - 保存采用原子写入，并在写入前备份原文件。
 - 保存时会检查文件 mtime。如果 LuCI 打开页面后配置文件被其他程序（例如 OxiDNS WebUI）修改过，保存会被拒绝，需要重新加载页面后再改。
 - 普通模式只会写入明确改动的字段；未改动的默认值不会自动补进文件，因此改动预览不会被无关的默认值污染。
@@ -121,7 +123,20 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 - `/tmp` 在重启后会清空。需要长期保留日志时，把 `Log file` 改到持久化目录，例如 `/var/log/oxidns/oxidns.log`，或在 `设置 -> 日志路径` 修改日志目录后点击 `保存并应用`。
 - 修改日志级别只影响之后的日志输出。修改日志文件或轮转设置后，建议使用 `保存并应用` 重启服务。
 
-### 3.2 API（管理接口与 WebUI）
+### 3.2 运行时（Runtime）
+
+对应配置路径 `runtime`。
+
+| 界面字段 | 配置字段 | 说明 |
+| --- | --- | --- |
+| 工作线程数（`Worker threads`） | `runtime.worker_threads` | DNS 工作线程数量。留空表示使用系统可用并行度（OxiDNS 默认行为）；填写时必须至少为 1。 |
+
+说明：
+
+- 只有需要限制 CPU 占用或固定线程数时才需要填写。留空不会把 `worker_threads` 写入配置文件。
+- 清空一个已经存在的值会删除该字段，恢复为默认并行度。
+
+### 3.3 API（管理接口与 WebUI）
 
 对应配置路径 `api.http`。
 
@@ -130,6 +145,14 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 | HTTP 监听地址（`HTTP listen`） | `api.http` 或 `api.http.listen` | 管理 API 监听地址，例如 `192.168.1.1:9199`、`0.0.0.0:9199`、`:9199`、`[::]:9199`、`127.0.0.1:9199`。 |
 | WebUI 根目录（`WebUI root`） | `api.http.webui.root` | WebUI 静态文件目录，默认 `/usr/share/oxidns/webui`。 |
 | WebUI 首页文件（`WebUI index`） | `api.http.webui.index` | 首页文件名，默认 `index.html`。 |
+| TLS 证书（`TLS certificate`） | `api.http.ssl.cert` | 启用 HTTPS 时必须与私钥同时填写。 |
+| TLS 私钥（`TLS private key`） | `api.http.ssl.key` | 与证书成对配置。 |
+| 客户端 CA 证书（`Client CA certificate`） | `api.http.ssl.client_ca` | 校验客户端证书时使用。 |
+| 要求客户端证书（`Require a client certificate`） | `api.http.ssl.require_client_cert` | 启用时必须填写客户端 CA。 |
+| Basic 认证用户名（`Basic auth username`） | `api.http.auth.username` | 与密码同时填写才启用 Basic 认证。 |
+| Basic 认证密码（`Basic auth password`） | `api.http.auth.password` | 保存后不会回显；留空表示保持当前密码。 |
+| 移除 Basic 认证（`Remove Basic authentication`） | `api.http.auth` | 勾选后删除整个认证配置。 |
+| CORS 允许的来源（`CORS allowed origins`） | `api.http.cors.allowed_origins` | 每行一个来源。留空时根据监听地址推导；`*` 表示允许所有来源。 |
 
 `api.http` 有两种写法：
 
@@ -144,6 +167,17 @@ api:
 api:
   http:
     listen: "0.0.0.0:9199"
+    ssl:
+      cert: "/etc/oxidns/api.crt"
+      key: "/etc/oxidns/api.key"
+      client_ca: "/etc/oxidns/client-ca.crt"
+      require_client_cert: false
+    auth:
+      type: basic
+      username: "admin"
+      password: "change-me"
+    cors:
+      allowed_origins: [ "https://example.com" ]
     webui:
       root: "/usr/share/oxidns/webui"
       index: "index.html"
@@ -151,9 +185,18 @@ api:
 
 普通模式识别当前写法：
 
-- 简写时，`普通模式` 只显示 `HTTP 监听地址`，并提示简写形式不能提供 WebUI。此时必须到高级模式改为详写，普通模式才会出现 `WebUI 根目录` 和 `WebUI 首页文件`。
-- 详写时，才会显示 WebUI 相关字段。
-- 认证（`auth`）、TLS（`ssl`）、CORS（`cors`）不在普通模式中提供，需要在高级模式或 WebUI 的 `系统配置 -> 管理 API` 中设置。
+- 简写时，`普通模式` 只显示 `HTTP 监听地址`，并提示简写形式不能提供 WebUI，也不能配置 TLS、认证或 CORS。此时必须到高级模式改为详写，普通模式才会出现其余字段。
+- 详写时，会显示监听地址、WebUI、TLS、Basic 认证和 CORS 字段。
+- 认证相关字段在保存时会自动补上 `auth.type: basic`；如果只填写用户名或只填写密码，校验会提示两者必须同时填写。
+- 密码只在填写时写入配置文件，页面之后只显示“已设置”，不会回显明文。需要更换密码时直接输入新密码；需要关闭认证时勾选 `移除 Basic 认证`。
+- 这些字段也可以在 OxiDNS WebUI 的 `系统配置 -> 管理 API` 中设置。
+
+校验规则：
+
+- 详写形式的 `listen` 不能为空。
+- `ssl.cert` 与 `ssl.key` 必须同时配置。
+- 启用 `require_client_cert` 时必须配置 `ssl.client_ca`。
+- 已有的 `auth` 配置必须同时包含用户名和密码。
 
 监听地址写法：
 
@@ -164,7 +207,7 @@ api:
 
 > `基本设置` 页面的 `打开 WebUI` 按钮根据这个监听地址生成 URL。监听 `127.0.0.1` 或 `::1` 时只能在路由器本机访问，LuCI 会显示提示；需要从局域网访问时，把监听地址改为 LAN 地址或 `0.0.0.0:9199`。
 
-### 3.3 监听地址（Listen Addresses）
+### 3.4 监听地址（Listen Addresses）
 
 对应 `plugins` 中的 `udp_server`、`tcp_server`、`quic_server` 实例。
 
@@ -198,7 +241,7 @@ api:
 - 如果配置了 `quic_server`，还需要在对应插件参数区配置 TLS 证书和私钥。
 - 如果页面提示“未找到 UDP、TCP 或 QUIC 服务插件”，说明当前配置没有对应插件，需要在高级模式或 WebUI 中创建。
 
-### 3.4 上游 DNS（Upstream DNS）
+### 3.5 上游 DNS（Upstream DNS）
 
 对应 `forward` 插件的 `plugins[i].args.upstreams`。
 
@@ -258,7 +301,7 @@ api:
 
 后端最终仍会执行 `oxidns check`，以核心的校验结果为准。
 
-### 3.5 常用插件参数
+### 3.6 常用插件参数
 
 普通模式会按插件类型显示 schema 中定义的字段。下面是常见插件的字段和各字段默认值。
 
@@ -362,6 +405,7 @@ api:
 
 | 字段 | 说明 |
 | --- | --- |
+| `Downloads` | 下载条目列表，每条包含 `URL`（必填）、`Target directory` 和 `File name`。可以逐条添加或删除。 |
 | `Timeout` | 下载超时，例如 `30s`。 |
 | `Skip TLS verification` | 跳过下载 TLS 校验。 |
 | `Outbound profile` / `SOCKS5 proxy` | 下载使用的出站配置或代理。 |
@@ -378,12 +422,14 @@ api:
 | `adguard_rule` | `AdGuard rules`、`Rule files`。 |
 | `dynamic_domain_set` | `Rules file`、`Bootstrap rules`、`Queue size`（1024）、`Batch size`（256）、`Flush interval (ms)`（200）。 |
 | `tcp_server` | `TLS certificate`、`TLS private key`、`Idle timeout`（默认 10）。 |
-| `http_server` | `HTTP listen`、`Client IP header`、`TLS certificate`、`TLS private key`、`Idle timeout`（默认 30）、`Enable HTTP/3`。 |
+| `http_server` | `DoH entries`（每条包含 `Request path`、`Entry executor`、`Enable JSON DNS API`）、`HTTP listen`、`Client IP header`、`TLS certificate`、`TLS private key`、`Idle timeout`（默认 30）、`Enable HTTP/3`。 |
 | `quic_server` | `TLS certificate`、`TLS private key`、`Idle timeout`。 |
 
 列表类字段（例如 `entries`、`files`、`selectors`、`rules`）在文本框中**每行一项**。清空文本框会删除该配置项；恢复为默认列表时，只有实际改动才会写回文件。
 
-### 3.6 插件概览
+对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的必填项、数值范围和枚举取值都会参与保存前校验；DoH 入口的 `Request path` 必须以 `/` 开头。插件自身要求的必填字段（例如 `fallback` 的主备执行器、`query_recorder` 的数据库路径、`geosite` / `geoip` 的数据文件、`dynamic_domain_set` 的规则文件、`quic_server` 的证书和私钥）缺失时也会直接提示。
+
+### 3.7 插件概览
 
 页面最下方的 `Plugins` 区域只读显示：
 
