@@ -835,6 +835,41 @@ function validateConfig(doc) {
 	return problems;
 }
 
+function isAliasNode(node) {
+	return !!(node && typeof node === 'object' && typeof node.resolve === 'function' &&
+		typeof node.source === 'string');
+}
+
+function hasAnchorsOrAliases(node) {
+	var found = false;
+
+	function visit(current) {
+		if (found || !current || typeof current !== 'object')
+			return;
+
+		if (isAliasNode(current) || current.anchor) {
+			found = true;
+			return;
+		}
+
+		if (Array.isArray(current.items))
+			current.items.forEach(visit);
+
+		if (current.key) {
+			if (current.key.value === '<<')
+				found = true;
+
+			visit(current.key);
+		}
+
+		visit(current.value);
+	}
+
+	visit(node);
+
+	return found;
+}
+
 return baseclass.extend({
 	render: function(doc, options) {
 		var bindings = [];
@@ -865,5 +900,8 @@ return baseclass.extend({
 	},
 
 	apply: applyBindings,
-	validate: validateConfig
+	validate: validateConfig,
+	isReadOnly: function(doc) {
+		return !!(doc && hasAnchorsOrAliases(doc.contents));
+	}
 });

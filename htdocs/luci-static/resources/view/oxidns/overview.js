@@ -14,9 +14,7 @@ var callStatus = rpc.declare({
 var serviceCalls = {
 	start: rpc.declare({ object: 'luci.oxidns', method: 'service_start', expect: {} }),
 	stop: rpc.declare({ object: 'luci.oxidns', method: 'service_stop', expect: {} }),
-	restart: rpc.declare({ object: 'luci.oxidns', method: 'service_restart', expect: {} }),
-	enable: rpc.declare({ object: 'luci.oxidns', method: 'service_enable', expect: {} }),
-	disable: rpc.declare({ object: 'luci.oxidns', method: 'service_disable', expect: {} })
+	restart: rpc.declare({ object: 'luci.oxidns', method: 'service_restart', expect: {} })
 };
 
 var statusState = {};
@@ -34,10 +32,6 @@ function boolText(value) {
 
 function serviceRunning(status) {
 	return !!(status && status.service_status && status.service_status.running);
-}
-
-function serviceEnabled(status) {
-	return !!(status && status.service_status && status.service_status.enabled);
 }
 
 function coreInstalled(status) {
@@ -183,18 +177,116 @@ function setNodeContent(node, value) {
 		node.textContent = valueOrDash(value);
 }
 
-function blockedActionMessage(action, status) {
+function blockedServiceActionMessage(action, status) {
 	if (!coreInstalled(status))
 		return _('Install the OxiDNS core before using service controls.');
 	if (action === 'start' && serviceRunning(status))
 		return _('OxiDNS is already running.');
 	if (action === 'stop' && !serviceRunning(status))
 		return _('OxiDNS is already stopped.');
-	if (action === 'enable' && serviceEnabled(status))
-		return _('OxiDNS is already enabled on boot.');
-	if (action === 'disable' && !serviceEnabled(status))
-		return _('OxiDNS is already disabled on boot.');
 	return null;
+}
+
+function handleServiceAction(action) {
+	var call = serviceCalls[action];
+	if (!call)
+		return Promise.resolve();
+
+	var blocked = blockedServiceActionMessage(action, statusState);
+	if (blocked) {
+		ui.addNotification(null, E('p', {}, blocked), 'info');
+		return refreshStatus();
+	}
+
+	ui.showModal(_('OxiDNS'), [
+		E('p', {}, _('Applying service action...'))
+	]);
+
+	return L.resolveDefault(call(), null).then(function(result) {
+		ui.hideModal();
+		if (!result || result.ok === false) {
+			ui.addNotification(null, E('p', {}, i18n.message(result) || _('Service action failed')), 'danger');
+			return;
+		}
+		return refreshStatus();
+	}).catch(function(err) {
+		ui.hideModal();
+		ui.addNotification(null, E('p', {}, (err && err.message) || String(err)), 'danger');
+	});
+}
+
+function actionButton(label, action, style, id) {
+	return E('button', {
+		'id': id,
+		'class': 'btn cbi-button cbi-button-%s'.format(style || 'neutral'),
+		'click': function(ev) {
+			ev.preventDefault();
+			return handleServiceAction(action);
+		}
+	}, label);
+}
+
+function disabledActionButton(label, hint, id) {
+	return E('button', {
+		'id': id,
+		'class': 'btn cbi-button cbi-button-neutral',
+		'type': 'button',
+		'disabled': 'disabled',
+		'title': hint
+	}, label);
+}
+
+function serviceActionButtons(status) {
+	var actions = [];
+
+	if (!coreInstalled(status)) {
+		actions.push(disabledActionButton(_('Start'), _('Install the OxiDNS core before using service controls.'), 'oxidns-service-start'));
+		return actions;
+	}
+
+	if (serviceRunning(status)) {
+		actions.push(actionButton(_('Stop'), 'stop', 'negative', 'oxidns-service-stop'));
+		actions.push(actionButton(_('Restart'), 'restart', 'action', 'oxidns-service-restart'));
+	} else {
+		actions.push(actionButton(_('Start'), 'start', 'positive', 'oxidns-service-start'));
+	}
+
+	return actions;
+}
+
+function serviceActionStateKey(status) {
+	return '%s:%s'.format(
+		coreInstalled(status) ? 'core' : 'missing-core',
+		serviceRunning(status) ? 'running' : 'stopped');
+}
+
+function replaceContent(node, content) {
+	while (node.firstChild)
+		node.removeChild(node.firstChild);
+
+	if (Array.isArray(content)) {
+		content.forEach(function(child) {
+			if (child)
+				node.appendChild(child);
+		});
+	} else if (content && content.nodeType) {
+		node.appendChild(content);
+	} else {
+		node.textContent = valueOrDash(content);
+	}
+}
+
+function updateServiceActions(status) {
+	var node = document.getElementById('oxidns-service-actions');
+	if (!node)
+		return;
+
+	var nextKey = serviceActionStateKey(status);
+	if (nextKey === serviceActionsKey)
+		return;
+
+	serviceActionsKey = nextKey;
+	replaceContent(node, serviceActionButtons(status));
 }
 
 function refreshStatus() {
@@ -219,107 +311,6 @@ function refreshStatus() {
 		});
 
 		updateServiceActions(statusState);
-	});
-}
-
-function handleServiceAction(action) {
-	var call = serviceCalls[action];
-	if (!call)
-		return;
-
-	var blocked = blockedActionMessage(action, statusState);
-	if (blocked) {
-		ui.addNotification(null, E('p', {}, blocked), 'info');
-		return refreshStatus();
-	}
-
-	ui.showModal(_('OxiDNS'), [
-		E('p', {}, _('Applying service action...'))
-	]);
-
-	return L.resolveDefault(call(), null).then(function(result) {
-		ui.hideModal();
-		if (!result || result.ok === false) {
-			ui.addNotification(null, E('p', {}, i18n.message(result) || _('Service action failed')), 'danger');
-			return;
-		}
-		return refreshStatus();
-	}).catch(function(err) {
-		ui.hideModal();
-		ui.addNotification(null, E('p', {}, err.message || String(err)), 'danger');
-	});
-}
-
-function actionButton(label, action, style, id) {
-	var attrs = {
-		'id': id,
-		'class': 'btn cbi-button cbi-button-%s'.format(style || 'neutral'),
-		'click': function(ev) {
-			ev.preventDefault();
-			return handleServiceAction(action);
-		}
-	};
-
-	return E('button', attrs, label);
-}
-
-function disabledActionButton(label, hint, id) {
-	return E('button', {
-		'id': id,
-		'class': 'btn cbi-button cbi-button-neutral',
-		'type': 'button',
-		'disabled': 'disabled',
-		'title': hint
-	}, label);
-}
-
-function serviceActionButtons(status) {
-	var actions = [];
-	var missingCoreHint = _('Install the OxiDNS core before using service controls.');
-
-	if (!coreInstalled(status)) {
-		actions.push(disabledActionButton(_('Start'), missingCoreHint, 'oxidns-service-start'));
-		actions.push(disabledActionButton(_('Enable on boot'), missingCoreHint, 'oxidns-service-enable'));
-		return actions;
-	}
-
-	if (serviceRunning(status)) {
-		actions.push(actionButton(_('Stop'), 'stop', 'negative', 'oxidns-service-stop'));
-		actions.push(actionButton(_('Restart'), 'restart', 'action', 'oxidns-service-restart'));
-	} else {
-		actions.push(actionButton(_('Start'), 'start', 'positive', 'oxidns-service-start'));
-	}
-
-	if (serviceEnabled(status))
-		actions.push(actionButton(_('Disable on boot'), 'disable', 'neutral', 'oxidns-service-disable'));
-	else
-		actions.push(actionButton(_('Enable on boot'), 'enable', 'positive', 'oxidns-service-enable'));
-
-	return actions;
-}
-
-function serviceActionStateKey(status) {
-	return '%s:%s:%s'.format(
-		coreInstalled(status) ? 'core' : 'missing-core',
-		serviceRunning(status) ? 'running' : 'stopped',
-		serviceEnabled(status) ? 'enabled' : 'disabled');
-}
-
-function updateServiceActions(status) {
-	var node = document.getElementById('oxidns-service-actions');
-	if (!node)
-		return;
-
-	var nextKey = serviceActionStateKey(status);
-	if (nextKey === serviceActionsKey)
-		return;
-
-	serviceActionsKey = nextKey;
-	while (node.firstChild)
-		node.removeChild(node.firstChild);
-
-	serviceActionButtons(status).forEach(function(button) {
-		node.appendChild(button);
 	});
 }
 
@@ -357,13 +348,13 @@ return view.extend({
 				E('div', { 'class': 'table cbi-section-table' }, rows)
 			]),
 			E('div', { 'class': 'cbi-section' }, [
-				E('h3', {}, _('Service')),
+				E('h3', {}, _('Service control')),
 				E('div', { 'class': 'cbi-section-descr' },
-					_('Start, stop, and restart control the running process; boot autostart only affects the next boot.')),
+					_('Start, stop, and restart control the running process.')),
 				E('div', {
 					'id': 'oxidns-service-actions',
 					'class': 'cbi-button-row',
-					'style': 'display: flex; flex-wrap: wrap; gap: .5em; padding-inline: var(--section-inset, 0); padding-bottom: var(--field-gap, 1em);'
+					'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); padding-bottom: var(--field-gap, 1em);'
 				}, serviceActionButtons(statusState))
 			])
 		]);

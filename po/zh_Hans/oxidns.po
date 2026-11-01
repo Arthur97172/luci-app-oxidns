@@ -28,11 +28,17 @@ msgstr "参数"
 msgid "Available"
 msgstr "可用"
 
+msgid "Autostart"
+msgstr "自启设置"
+
 msgid "Basic Settings"
 msgstr "基本设置"
 
 msgid "Build"
 msgstr "构建信息"
+
+msgid "Boot autostart only affects the next boot."
+msgstr "开机自启仅影响下次开机。"
 
 msgid "Cancel"
 msgstr "取消"
@@ -217,8 +223,8 @@ msgstr "OxiDNS 已经在运行。"
 msgid "OxiDNS is already stopped."
 msgstr "OxiDNS 已经停止。"
 
-msgid "OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Saving restarts OxiDNS when it is running."
-msgstr "OxiDNS 会把日志写入此目录下的 oxidns.log。默认路径：/tmp/oxidns。保存时如果服务正在运行，会自动重启 OxiDNS。"
+msgid "OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Save and Apply restarts OxiDNS so the new log path takes effect."
+msgstr "OxiDNS 会把日志写入此目录下的 oxidns.log。默认路径：/tmp/oxidns。点击“保存并应用”重启 OxiDNS 后新日志路径才会生效。"
 
 msgid "Pause"
 msgstr "暂停"
@@ -268,14 +274,14 @@ msgstr "运行中"
 msgid "Save"
 msgstr "保存"
 
-msgid "Save Settings"
-msgstr "保存设置"
-
 msgid "Save and Apply"
 msgstr "保存并应用"
 
 msgid "Saving and applying configuration..."
 msgstr "正在保存并应用配置..."
+
+msgid "Saving and applying settings..."
+msgstr "正在保存并应用设置..."
 
 msgid "Saving configuration..."
 msgstr "正在保存配置..."
@@ -283,11 +289,11 @@ msgstr "正在保存配置..."
 msgid "Saving settings..."
 msgstr "正在保存设置..."
 
-msgid "Service"
-msgstr "服务"
-
 msgid "Service action failed"
 msgstr "服务操作失败"
+
+msgid "Service control"
+msgstr "服务控制"
 
 msgid "Service status"
 msgstr "服务状态"
@@ -301,8 +307,11 @@ msgstr "设置已保存，但无法检查日志路径。"
 msgid "Settings saved."
 msgstr "设置已保存。"
 
-msgid "Settings saved. OxiDNS was restarted to apply the log path."
-msgstr "设置已保存。已重启 OxiDNS 以应用日志路径。"
+msgid "Settings saved, but OxiDNS could not be restarted."
+msgstr "设置已保存，但无法重启 OxiDNS。"
+
+msgid "Settings saved and OxiDNS restarted."
+msgstr "设置已保存，OxiDNS 已重启。"
 
 msgid "Select release archive"
 msgstr "选择 release 压缩包"
@@ -316,8 +325,8 @@ msgstr "启动"
 msgid "Start on boot"
 msgstr "开机自启"
 
-msgid "Start, stop, and restart control the running process; boot autostart only affects the next boot."
-msgstr "启动、停止、重启控制当前进程；开机自启只影响下次开机。"
+msgid "Start, stop, and restart control the running process."
+msgstr "启动、停止和重启控制正在运行的进程。"
 
 msgid "Start the OxiDNS service before opening WebUI."
 msgstr "请先启动 OxiDNS 服务再打开 WebUI。"
@@ -330,9 +339,6 @@ msgstr "已停止"
 
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
-
-msgid "The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page."
-msgstr "保存的配置需要到“基本设置”页面重启 OxiDNS 服务后才会生效。"
 
 msgid "The file must be named config.yaml."
 msgstr "文件名必须为 config.yaml。"
@@ -487,8 +493,8 @@ msgstr "工作目录"
 msgid "Write to system log"
 msgstr "写入系统日志"
 
-msgid "When disabled, OxiDNS no longer writes runtime output to the system log. Restart OxiDNS after changing this setting."
-msgstr "关闭后，OxiDNS 不再把运行输出写入系统日志；修改后需重启 OxiDNS 服务。"
+msgid "When disabled, OxiDNS no longer writes runtime output to the system log. Use Save and Apply to restart OxiDNS so the change takes effect."
+msgstr "关闭后，OxiDNS 不再把运行输出写入系统日志；点击“保存并应用”重启 OxiDNS 后更改才会生效。"
 
 msgid "YAML"
 msgstr "YAML"
@@ -768,6 +774,9 @@ msgstr "普通模式不可用：%s"
 
 msgid "Normal mode needs valid YAML. Fix the YAML in advanced mode first."
 msgstr "普通模式需要有效的 YAML，请先在高级模式中修正。"
+
+msgid "This configuration uses YAML anchors, aliases, or merge keys. Normal mode is read-only for this file; edit it in advanced mode."
+msgstr "此配置使用了 YAML 锚点、别名或合并键。该文件的普通模式为只读；请使用高级模式编辑。"
 
 msgid "360 Public DNS (DNS over HTTPS)"
 msgstr "360 公共 DNS（DoH）"

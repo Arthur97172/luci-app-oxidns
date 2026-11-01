@@ -1283,6 +1283,7 @@ emit_logs_path_save() {
 	INPUT="$(cat)"
 	LOG_DIR_VALUE="$(input_value path "$INPUT")"
 	BASE_MTIME="$(input_value base_mtime "$INPUT")"
+	RESTART="$(input_value restart "$INPUT")"
 	while [ "${LOG_DIR_VALUE%/}" != "$LOG_DIR_VALUE" ]; do
 		LOG_DIR_VALUE="${LOG_DIR_VALUE%/}"
 	done
@@ -1332,7 +1333,7 @@ emit_logs_path_save() {
 
 	RESTART_STATUS="not_requested"
 	MESSAGE="log path saved"
-	if service_running; then
+	if [ "$RESTART" != "false" ] && [ "$RESTART" != "0" ] && service_running; then
 		INIT="$(init_script)"
 		SERVICE_OUT="$(mktemp "$TMP_ROOT/oxidns-service.XXXXXX")"
 		if [ ! -x "$INIT" ]; then
@@ -2682,7 +2683,7 @@ case "${1:-}" in
 		printf '"settings_save":{"core_repository":"string","core_bundle":"string","config_path":"string","working_dir":"string","download_proxy":"string","github_token":"string","clear_download_proxy":"boolean","clear_github_token":"boolean","log_syslog":"string"},'
 		printf '"logs_recent":{"limit":"number"},'
 		printf '"logs_path_read":{},'
-		printf '"logs_path_save":{"path":"string","base_mtime":"string"}'
+		printf '"logs_path_save":{"path":"string","base_mtime":"string","restart":"boolean"}'
 		printf '}\n'
 		;;
 	call)

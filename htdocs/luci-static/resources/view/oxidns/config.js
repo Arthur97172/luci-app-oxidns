@@ -4,6 +4,7 @@
 'require ui';
 'require oxidns.yaml as yaml';
 'require view.oxidns.config-guided as guided';
+'require view.oxidns.config-yaml as yamlEditor';
 'require oxidns.i18n as i18n';
 
 var callConfigRead = rpc.declare({
@@ -56,6 +57,8 @@ var state = {
 	mode: 'guided',
 	preview: true,
 	bindings: [],
+	readOnly: false,
+	parsedContent: '',
 	advancedDraft: '',
 	schema: null,
 	pluginTypes: null
@@ -73,9 +76,9 @@ function coreInstalled(status) {
 	return !!(status && status.core && status.core.installed);
 }
 
-function textareaValue() {
-	var textarea = document.getElementById('oxidns-config-content');
-	return textarea ? textarea.value : state.advancedDraft;
+function guidedApply() {
+	if (!state.readOnly)
+		guided.apply(state.doc, state.bindings);
 }
 
 function setStatus(message, danger) {
@@ -89,6 +92,7 @@ function setStatus(message, danger) {
 function parseContent(content) {
 	state.doc = null;
 	state.parseError = null;
+	state.parsedContent = content || '';
 
 	try {
 		var doc = yaml.parseDocument(content || '');
@@ -116,7 +120,10 @@ function guidedContent() {
 	if (!state.doc)
 		return state.raw;
 
-	guided.apply(state.doc, state.bindings);
+	if (state.readOnly)
+		return state.parsedContent;
+
+	guidedApply();
 
 	try {
 		return state.doc.toString({ lineWidth: 0 });
@@ -129,16 +136,16 @@ function guidedContent() {
 
 function currentContent() {
 	if (state.mode === 'advanced')
-		return textareaValue();
+		return yamlEditor.value(state.advancedDraft);
 
 	return guidedContent();
 }
 
 function guidedProblems() {
-	if (state.mode !== 'guided' || !state.doc)
+	if (state.mode !== 'guided' || !state.doc || state.readOnly)
 		return [];
 
-	guided.apply(state.doc, state.bindings);
+	guidedApply();
 
 	var problems = typeof guided.validate === 'function' ? guided.validate(state.doc) : [];
 
@@ -195,10 +202,13 @@ function saveYaml(restart) {
 	if (guidedProblems().length)
 		return Promise.resolve();
 
-	return runConfigCall(restart ? _('Saving and applying configuration...') : _('Saving configuration...'), callConfigSave, [
+	var changed = diffText(content) !== diffText(state.raw);
+	var restartService = !!restart && changed;
+
+	return runConfigCall(restartService ? _('Saving and applying configuration...') : _('Saving configuration...'), callConfigSave, [
 		content,
 		state.mtime,
-		!!restart
+		restartService
 	], function(result) {
 		state.mtime = result.mtime !== undefined ? result.mtime : state.mtime;
 		applySavedContent(content);
@@ -464,26 +474,19 @@ function previewSection() {
 	]);
 }
 
-function advancedSection() {
-	var textarea = E('textarea', {
-		'id': 'oxidns-config-content',
-		'class': 'cbi-input-textarea',
-		'style': 'width: 100%; min-height: 420px; font-family: monospace;',
-		'spellcheck': 'false',
-		'input': function(ev) {
-			state.advancedDraft = ev.target.value;
-		}
+function lockGuidedForm(node) {
+	Array.prototype.forEach.call(node.querySelectorAll('input, select, textarea'), function(control) {
+		control.disabled = true;
 	});
 
-	textarea.value = state.advancedDraft;
-	textarea.defaultValue = state.advancedDraft;
+	Array.prototype.forEach.call(node.querySelectorAll('button'), function(button) {
+		var id = button.getAttribute('id') || '';
 
-	return E('div', { 'class': 'cbi-section' }, [
-		E('h3', {}, _('YAML')),
-		E('div', { 'class': 'cbi-section-descr' },
-			_('Advanced mode saves the text exactly as written. Normal mode rewrites only the fields it manages.')),
-		textarea
-	]);
+		if (id.indexOf('oxidns-cfg-upstream-options-toggle-') === 0)
+			return;
+
+		button.disabled = true;
+	});
 }
 
 function modeButton(mode, label) {
@@ -512,7 +515,7 @@ function switchMode(mode) {
 		return;
 
 	if (mode === 'guided') {
-		var content = textareaValue();
+		var content = yamlEditor.value(state.advancedDraft);
 
 		if (!parseContent(content)) {
 			ui.addNotification(null, E('p', {},
@@ -541,7 +544,11 @@ function fillBody(body) {
 				_('Normal mode is unavailable: %s').format(state.parseError)));
 		}
 
-		body.appendChild(advancedSection());
+		body.appendChild(yamlEditor.render(state.advancedDraft, {
+			'onInput': function(value) {
+				state.advancedDraft = value;
+			}
+		}));
 	}
 	else if (!state.doc) {
 		body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
@@ -549,9 +556,7 @@ function fillBody(body) {
 	}
 	else {
 		var rendered = guided.render(state.doc, {
-			'beforeChange': function() {
-				guided.apply(state.doc, state.bindings);
-			},
+			'beforeChange': guidedApply,
 			'rerender': renderBody,
 			'onInput': schedulePreview,
 			'schema': state.schema,
@@ -559,6 +564,14 @@ function fillBody(body) {
 		});
 
 		state.bindings = rendered.bindings;
+		state.readOnly = typeof guided.isReadOnly === 'function' && guided.isReadOnly(state.doc);
+
+		if (state.readOnly) {
+			lockGuidedForm(rendered.node);
+			body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
+				_('This configuration uses YAML anchors, aliases, or merge keys. Normal mode is read-only for this file; edit it in advanced mode.')));
+		}
+
 		body.appendChild(rendered.node);
 		body.appendChild(previewSection());
 	}
@@ -586,6 +599,14 @@ function actionButtons() {
 			}
 		}, _('Validate')),
 		E('button', {
+			'class': 'btn cbi-button cbi-button-action',
+			'click': function(ev) {
+				ev.preventDefault();
+				return downloadYaml();
+			}
+		}, _('Download Config')),
+		uploadInput(),
+		E('button', {
 			'class': 'btn cbi-button cbi-button-positive',
 			'click': function(ev) {
 				ev.preventDefault();
@@ -605,15 +626,7 @@ function actionButtons() {
 				ev.preventDefault();
 				resetYaml();
 			}
-		}, _('Reset')),
-		E('button', {
-			'class': 'btn cbi-button cbi-button-action',
-			'click': function(ev) {
-				ev.preventDefault();
-				return downloadYaml();
-			}
-		}, _('Download Config')),
-		uploadInput()
+		}, _('Reset'))
 	]);
 }
 
@@ -698,10 +711,6 @@ return view.extend({
 					'class': 'alert-message warning',
 					'style': 'margin: 1em 0;'
 				}, configMessage) : '',
-				E('div', {
-					'class': 'cbi-section-descr',
-					'style': 'margin-top: .5em;'
-				}, _('The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page.')),
 				E('div', {
 					'id': 'oxidns-config-modes',
 					'class': 'cbi-button-row',

@@ -26,10 +26,16 @@ msgstr ""
 msgid "Available"
 msgstr ""
 
+msgid "Autostart"
+msgstr ""
+
 msgid "Basic Settings"
 msgstr ""
 
 msgid "Build"
+msgstr ""
+
+msgid "Boot autostart only affects the next boot."
 msgstr ""
 
 msgid "Cancel"
@@ -215,7 +221,7 @@ msgstr ""
 msgid "OxiDNS is already stopped."
 msgstr ""
 
-msgid "OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Saving restarts OxiDNS when it is running."
+msgid "OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Save and Apply restarts OxiDNS so the new log path takes effect."
 msgstr ""
 
 msgid "Pause"
@@ -269,10 +275,10 @@ msgstr ""
 msgid "Save and Apply"
 msgstr ""
 
-msgid "Save Settings"
+msgid "Saving and applying configuration..."
 msgstr ""
 
-msgid "Saving and applying configuration..."
+msgid "Saving and applying settings..."
 msgstr ""
 
 msgid "Saving configuration..."
@@ -281,7 +287,7 @@ msgstr ""
 msgid "Saving settings..."
 msgstr ""
 
-msgid "Service"
+msgid "Service control"
 msgstr ""
 
 msgid "Service action failed"
@@ -299,7 +305,10 @@ msgstr ""
 msgid "Settings saved."
 msgstr ""
 
-msgid "Settings saved. OxiDNS was restarted to apply the log path."
+msgid "Settings saved, but OxiDNS could not be restarted."
+msgstr ""
+
+msgid "Settings saved and OxiDNS restarted."
 msgstr ""
 
 msgid "Select release archive"
@@ -314,7 +323,7 @@ msgstr ""
 msgid "Start on boot"
 msgstr ""
 
-msgid "Start, stop, and restart control the running process; boot autostart only affects the next boot."
+msgid "Start, stop, and restart control the running process."
 msgstr ""
 
 msgid "Start the OxiDNS service before opening WebUI."
@@ -330,9 +339,6 @@ msgid "The file must be named config.yaml."
 msgstr ""
 
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
-msgstr ""
-
-msgid "The saved configuration takes effect after restarting the OxiDNS service from the Basic Settings page."
 msgstr ""
 
 msgid "Details"
@@ -485,7 +491,7 @@ msgstr ""
 msgid "Write to system log"
 msgstr ""
 
-msgid "When disabled, OxiDNS no longer writes runtime output to the system log. Restart OxiDNS after changing this setting."
+msgid "When disabled, OxiDNS no longer writes runtime output to the system log. Use Save and Apply to restart OxiDNS so the change takes effect."
 msgstr ""
 
 msgid "YAML"
@@ -765,6 +771,9 @@ msgid "Normal mode is unavailable: %s"
 msgstr ""
 
 msgid "Normal mode needs valid YAML. Fix the YAML in advanced mode first."
+msgstr ""
+
+msgid "This configuration uses YAML anchors, aliases, or merge keys. Normal mode is read-only for this file; edit it in advanced mode."
 msgstr ""
 
 msgid "360 Public DNS (DNS over HTTPS)"

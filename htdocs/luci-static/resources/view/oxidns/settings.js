@@ -2,6 +2,7 @@
 'require view';
 'require rpc';
 'require ui';
+'require poll';
 'require oxidns.i18n as i18n';
 
 var callSettingsRead = rpc.declare({
@@ -36,9 +37,20 @@ var callLogsPathRead = rpc.declare({
 var callLogsPathSave = rpc.declare({
 	object: 'luci.oxidns',
 	method: 'logs_path_save',
-	params: [ 'path', 'base_mtime' ],
+	params: [ 'path', 'base_mtime', 'restart' ],
 	expect: {}
 });
+
+var callServiceRestart = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'service_restart',
+	expect: {}
+});
+
+var serviceCalls = {
+	enable: rpc.declare({ object: 'luci.oxidns', method: 'service_enable', expect: {} }),
+	disable: rpc.declare({ object: 'luci.oxidns', method: 'service_disable', expect: {} })
+};
 
 var callStatus = rpc.declare({
 	object: 'luci.oxidns',
@@ -91,11 +103,15 @@ var callCoreRemove = rpc.declare({
 });
 
 var coreState = {};
+var coreActionsKey = null;
+var serviceActionsKey = null;
 
 var state = {
 	logDir: '',
 	logDirKnown: false,
-	defaultLogDir: '/tmp/oxidns'
+	defaultLogDir: '/tmp/oxidns',
+	snapshot: null,
+	applyPending: false
 };
 
 function field(id) {
@@ -106,6 +122,112 @@ function field(id) {
 function checked(id) {
 	var node = document.getElementById(id);
 	return !!(node && node.checked);
+}
+
+function settingsSnapshot(settings, logDir, logDirKnown) {
+	settings = settings || {};
+
+	return {
+		core_repository: settings.core_repository || 'svenshi/oxidns',
+		core_bundle: settings.core_bundle || 'full',
+		config_path: settings.config_path || '/etc/oxidns/config.yaml',
+		working_dir: settings.working_dir || '/var/lib/oxidns',
+		log_syslog: settings.log_syslog !== false,
+		download_proxy: settings.download_proxy || '',
+		download_proxy_set: !!settings.download_proxy_set,
+		github_token_set: !!settings.github_token_set,
+		log_dir: logDir || '',
+		log_dir_known: !!logDirKnown
+	};
+}
+
+function currentSettings() {
+	return {
+		core_repository: field('oxidns-setting-core-repository') || 'svenshi/oxidns',
+		core_bundle: field('oxidns-setting-core-bundle') || 'full',
+		config_path: field('oxidns-setting-config-path') || '/etc/oxidns/config.yaml',
+		working_dir: field('oxidns-setting-working-dir') || '/var/lib/oxidns',
+		download_proxy: field('oxidns-setting-download-proxy'),
+		github_token: field('oxidns-setting-github-token'),
+		clear_download_proxy: checked('oxidns-setting-clear-download-proxy'),
+		clear_github_token: checked('oxidns-setting-clear-github-token'),
+		log_syslog: checked('oxidns-setting-log-syslog'),
+		log_dir: (field('oxidns-setting-log-dir') || '').trim()
+	};
+}
+
+function settingsChanged(current) {
+	var snap = state.snapshot;
+
+	if (!snap)
+		return true;
+
+	return current.core_repository !== snap.core_repository ||
+		current.core_bundle !== snap.core_bundle ||
+		current.config_path !== snap.config_path ||
+		current.working_dir !== snap.working_dir ||
+		current.download_proxy !== snap.download_proxy ||
+		current.github_token !== '' ||
+		current.clear_download_proxy ||
+		current.clear_github_token ||
+		current.log_syslog !== snap.log_syslog ||
+		current.log_dir !== snap.log_dir;
+}
+
+function snapshotFromForm(result) {
+	var current = currentSettings();
+	var previous = state.snapshot || {};
+
+	state.snapshot = settingsSnapshot({
+		core_repository: current.core_repository,
+		core_bundle: current.core_bundle,
+		config_path: current.config_path,
+		working_dir: current.working_dir,
+		log_syslog: current.log_syslog,
+		download_proxy: current.download_proxy,
+		download_proxy_set: result && result.download_proxy_set !== undefined
+			? result.download_proxy_set : previous.download_proxy_set,
+		github_token_set: result && result.github_token_set !== undefined
+			? result.github_token_set : previous.github_token_set
+	}, state.logDir, state.logDirKnown);
+}
+
+function setFieldValue(id, value) {
+	var node = document.getElementById(id);
+	if (node)
+		node.value = value;
+}
+
+function setFieldChecked(id, value) {
+	var node = document.getElementById(id);
+	if (node)
+		node.checked = !!value;
+}
+
+function resetSettings() {
+	var snap = state.snapshot;
+
+	if (!snap)
+		return;
+
+	setFieldValue('oxidns-setting-core-repository', snap.core_repository);
+	setFieldValue('oxidns-setting-core-bundle', snap.core_bundle);
+	setFieldValue('oxidns-setting-config-path', snap.config_path);
+	setFieldValue('oxidns-setting-log-dir', snap.log_dir);
+	setFieldValue('oxidns-setting-working-dir', snap.working_dir);
+	setFieldValue('oxidns-setting-download-proxy', snap.download_proxy);
+	setFieldValue('oxidns-setting-github-token', '');
+	setFieldChecked('oxidns-setting-log-syslog', snap.log_syslog);
+	setFieldChecked('oxidns-setting-clear-download-proxy', false);
+	setFieldChecked('oxidns-setting-clear-github-token', false);
+	setClearOptionVisible('oxidns-setting-clear-download-proxy', snap.download_proxy_set);
+	setClearOptionVisible('oxidns-setting-clear-github-token', snap.github_token_set);
+	setDescription('oxidns-setting-download-proxy-description', proxyDescription());
+	setDescription('oxidns-setting-github-token-description',
+		snap.github_token_set ? _('A token is currently configured. Enter a new value to replace it.') : _('Optional. The token is never shown after saving.'));
+	state.logDir = snap.log_dir;
+	state.logDirKnown = !!snap.log_dir_known;
+	setStatus(_('Unsaved changes were discarded.'), false);
 }
 
 function row(label, input) {
@@ -200,6 +322,48 @@ function coreInstalled(status) {
 
 function webuiInstalled(status) {
 	return !!(status && status.webui && status.webui.installed);
+}
+
+function serviceEnabled(status) {
+	return !!(status && status.service_status && status.service_status.enabled);
+}
+
+function blockedServiceActionMessage(action, status) {
+	if (!coreInstalled(status))
+		return _('Install the OxiDNS core before using service controls.');
+	if (action === 'enable' && serviceEnabled(status))
+		return _('OxiDNS is already enabled on boot.');
+	if (action === 'disable' && !serviceEnabled(status))
+		return _('OxiDNS is already disabled on boot.');
+	return null;
+}
+
+function handleServiceAction(action) {
+	var call = serviceCalls[action];
+	if (!call)
+		return Promise.resolve();
+
+	var blocked = blockedServiceActionMessage(action, coreState);
+	if (blocked) {
+		ui.addNotification(null, E('p', {}, blocked), 'info');
+		return refreshCoreStatus();
+	}
+
+	ui.showModal(_('OxiDNS'), [
+		E('p', {}, _('Applying service action...'))
+	]);
+
+	return L.resolveDefault(call(), null).then(function(result) {
+		ui.hideModal();
+		if (!result || result.ok === false) {
+			ui.addNotification(null, E('p', {}, i18n.message(result) || _('Service action failed')), 'danger');
+			return;
+		}
+		return refreshCoreStatus();
+	}).catch(function(err) {
+		ui.hideModal();
+		ui.addNotification(null, E('p', {}, (err && err.message) || String(err)), 'danger');
+	});
 }
 
 function callWithRpcTimeout(call, seconds) {
@@ -396,6 +560,7 @@ function refreshCoreStatus() {
 	return L.resolveDefault(callStatus(), {}).then(function(status) {
 		coreState = status || {};
 		refreshActionButtons();
+		updateServiceActions(coreState);
 		return coreState;
 	});
 }
@@ -528,14 +693,58 @@ function handleRemove() {
 	});
 }
 
-function actionButton(label, handler, style) {
-	return E('button', {
+function actionButton(label, handler, style, id) {
+	var attrs = {
 		'class': 'btn cbi-button cbi-button-%s'.format(style || 'neutral'),
 		'click': function(ev) {
 			ev.preventDefault();
 			return handler();
 		}
+	};
+
+	if (id)
+		attrs.id = id;
+
+	return E('button', attrs, label);
+}
+
+function disabledActionButton(label, hint, id) {
+	return E('button', {
+		'id': id,
+		'class': 'btn cbi-button cbi-button-neutral',
+		'type': 'button',
+		'disabled': 'disabled',
+		'title': hint
 	}, label);
+}
+
+function serviceActionButtons(status) {
+	if (!coreInstalled(status))
+		return [disabledActionButton(_('Enable on boot'), _('Install the OxiDNS core before using service controls.'), 'oxidns-service-enable')];
+
+	if (serviceEnabled(status))
+		return [actionButton(_('Disable on boot'), function() { return handleServiceAction('disable'); }, 'neutral', 'oxidns-service-disable')];
+
+	return [actionButton(_('Enable on boot'), function() { return handleServiceAction('enable'); }, 'positive', 'oxidns-service-enable')];
+}
+
+function serviceActionStateKey(status) {
+	return '%s:%s'.format(
+		coreInstalled(status) ? 'core' : 'missing-core',
+		serviceEnabled(status) ? 'enabled' : 'disabled');
+}
+
+function updateServiceActions(status) {
+	var node = document.getElementById('oxidns-service-actions');
+	if (!node)
+		return;
+
+	var nextKey = serviceActionStateKey(status);
+	if (nextKey === serviceActionsKey)
+		return;
+
+	serviceActionsKey = nextKey;
+	replaceContent(node, serviceActionButtons(status));
 }
 
 function actionButtons(status) {
@@ -559,13 +768,26 @@ function actionButtons(status) {
 	];
 }
 
-function refreshActionButtons() {
-	var node = document.getElementById('oxidns-core-actions');
-	if (node)
-		replaceContent(node, actionButtons(coreState));
+function coreActionStateKey(status) {
+	return '%s:%s'.format(
+		coreInstalled(status) ? 'core' : 'missing-core',
+		webuiInstalled(status) ? 'webui' : 'no-webui');
 }
 
-function saveLogPath(path) {
+function refreshActionButtons() {
+	var node = document.getElementById('oxidns-core-actions');
+	if (!node)
+		return;
+
+	var nextKey = coreActionStateKey(coreState);
+	if (nextKey === coreActionsKey)
+		return;
+
+	coreActionsKey = nextKey;
+	replaceContent(node, actionButtons(coreState));
+}
+
+function saveLogPath(path, restart) {
 	if (path === state.logDir)
 		return Promise.resolve({ skipped: true });
 
@@ -575,23 +797,13 @@ function saveLogPath(path) {
 		if (info && info.ok !== false && (info.log_dir || '') === path)
 			return { skipped: true };
 
-		return L.resolveDefault(callLogsPathSave(path, mtime), null);
+		return L.resolveDefault(callLogsPathSave(path, mtime, !!restart), null);
 	});
 }
 
-function saveSettings() {
-	var logDir = (field('oxidns-setting-log-dir') || '').trim();
-	var payload = {
-		core_repository: field('oxidns-setting-core-repository') || 'svenshi/oxidns',
-		core_bundle: field('oxidns-setting-core-bundle') || 'full',
-		config_path: field('oxidns-setting-config-path') || '/etc/oxidns/config.yaml',
-		working_dir: field('oxidns-setting-working-dir') || '/var/lib/oxidns',
-		download_proxy: field('oxidns-setting-download-proxy'),
-		github_token: field('oxidns-setting-github-token'),
-		clear_download_proxy: checked('oxidns-setting-clear-download-proxy'),
-		clear_github_token: checked('oxidns-setting-clear-github-token'),
-		log_syslog: checked('oxidns-setting-log-syslog') ? '1' : '0'
-	};
+function saveSettings(apply) {
+	var current = currentSettings();
+	var logDir = current.log_dir;
 
 	if (!logDir) {
 		if (state.logDirKnown) {
@@ -603,20 +815,22 @@ function saveSettings() {
 		}
 	}
 
+	var restartWanted = !!apply && (state.applyPending || settingsChanged(current));
+
 	ui.showModal(_('OxiDNS'), [
-		E('p', {}, _('Saving settings...'))
+		E('p', {}, restartWanted ? _('Saving and applying settings...') : _('Saving settings...'))
 	]);
 
 	return L.resolveDefault(callSettingsSave(
-		payload.core_repository,
-		payload.core_bundle,
-		payload.config_path,
-		payload.working_dir,
-		payload.download_proxy,
-		payload.github_token,
-		payload.clear_download_proxy,
-		payload.clear_github_token,
-		payload.log_syslog
+		current.core_repository,
+		current.core_bundle,
+		current.config_path,
+		current.working_dir,
+		current.download_proxy,
+		current.github_token,
+		current.clear_download_proxy,
+		current.clear_github_token,
+		current.log_syslog ? '1' : '0'
 	), null).then(function(result) {
 		if (!result || result.ok === false) {
 			ui.hideModal();
@@ -624,26 +838,47 @@ function saveSettings() {
 			return;
 		}
 
-		var logSave = logDir ? saveLogPath(logDir) : Promise.resolve({ skipped: true });
+		var logSave = logDir ? saveLogPath(logDir, false) : Promise.resolve({ skipped: true });
 
 		return logSave.then(function(logResult) {
-			ui.hideModal();
-
 			if (!logResult) {
+				ui.hideModal();
 				setStatus(_('Settings saved, but the log path could not be checked.'), true);
 				return;
 			}
 			if (logResult.ok === false) {
+				ui.hideModal();
 				setStatus(i18n.message(logResult) || _('Failed to save the log path.'), true);
 				return;
 			}
 
+			var syslogChanged = !!state.snapshot &&
+				current.log_syslog !== state.snapshot.log_syslog;
+			var logPathWritten = !!(logResult && logResult.ok !== false && !logResult.skipped);
+
 			state.logDirKnown = true;
 			state.logDir = logDir;
-			setStatus(logResult.restart === 'restarted'
-				? _('Settings saved. OxiDNS was restarted to apply the log path.')
-				: _('Settings saved.'), false);
+			state.applyPending = state.applyPending || syslogChanged || logPathWritten;
 			refreshSecretFields(result);
+			snapshotFromForm(result);
+
+			if (!restartWanted) {
+				ui.hideModal();
+				setStatus(_('Settings saved.'), false);
+				return;
+			}
+
+			return L.resolveDefault(callServiceRestart(), null).then(function(restartResult) {
+				ui.hideModal();
+
+				if (!restartResult || restartResult.ok === false) {
+					setStatus(i18n.message(restartResult) || _('Settings saved, but OxiDNS could not be restarted.'), true);
+					return;
+				}
+
+				state.applyPending = false;
+				setStatus(_('Settings saved and OxiDNS restarted.'), false);
+			});
 		});
 	}).catch(function(err) {
 		ui.hideModal();
@@ -698,6 +933,10 @@ return view.extend({
 		state.logDir = logPath && logPath.ok !== false ? (logPath.log_dir || '') : '';
 		state.logDirKnown = !!(logPath && logPath.ok !== false);
 		state.defaultLogDir = (logPath && logPath.default_dir) || '/tmp/oxidns';
+		state.snapshot = settingsSnapshot(settings, state.logDir, state.logDirKnown);
+		coreActionsKey = coreActionStateKey(coreState);
+		serviceActionsKey = serviceActionStateKey(coreState);
+		poll.add(refreshCoreStatus, 5);
 
 		return E('div', { 'class': 'cbi-map' }, [
 			E('div', { 'class': 'cbi-section' }, [
@@ -707,8 +946,18 @@ return view.extend({
 				E('div', {
 					'id': 'oxidns-core-actions',
 					'class': 'cbi-button-row',
-					'style': 'display: flex; flex-wrap: wrap; gap: .5em; padding-inline: var(--section-inset, 0); padding-bottom: var(--field-gap, 1em);'
+					'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); padding-bottom: var(--field-gap, 1em);'
 				}, actionButtons(coreState))
+			]),
+			E('div', { 'class': 'cbi-section' }, [
+				E('h3', {}, _('Autostart')),
+				E('div', { 'class': 'cbi-section-descr' },
+					_('Boot autostart only affects the next boot.')),
+				E('div', {
+					'id': 'oxidns-service-actions',
+					'class': 'cbi-button-row',
+					'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); padding-bottom: var(--field-gap, 1em);'
+				}, serviceActionButtons(coreState))
 			]),
 			E('div', { 'class': 'cbi-section' }, [
 				E('div', { 'class': 'table cbi-section-table' }, [
@@ -722,7 +971,7 @@ return view.extend({
 					row(_('Log path'), E('div', {}, [
 						textInput('oxidns-setting-log-dir', state.logDir, false, state.defaultLogDir),
 						E('div', { 'class': 'cbi-value-description' },
-							_('OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Saving restarts OxiDNS when it is running.'))
+							_('OxiDNS writes oxidns.log in this directory. Default: /tmp/oxidns. Save and Apply restarts OxiDNS so the new log path takes effect.'))
 					])),
 					row(_('Working directory'), textInput('oxidns-setting-working-dir', settings.working_dir || '/var/lib/oxidns')),
 					row(_('Write to system log'), E('div', {}, [
@@ -732,7 +981,7 @@ return view.extend({
 							'checked': settings.log_syslog !== false ? 'checked' : null
 						}),
 						E('div', { 'class': 'cbi-value-description' },
-							_('When disabled, OxiDNS no longer writes runtime output to the system log. Restart OxiDNS after changing this setting.'))
+							_('When disabled, OxiDNS no longer writes runtime output to the system log. Use Save and Apply to restart OxiDNS so the change takes effect.'))
 					])),
 					row(_('Download proxy'), secretSettingInput(
 						textInput('oxidns-setting-download-proxy', settings.download_proxy || '', false, _('Example: http://127.0.0.1:7890')),
@@ -751,15 +1000,29 @@ return view.extend({
 				]),
 				E('div', {
 					'class': 'cbi-button-row',
-					'style': 'padding-inline: var(--section-inset, 0);'
+					'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0);'
 				}, [
 					E('button', {
 						'class': 'btn cbi-button cbi-button-positive',
 						'click': function(ev) {
 							ev.preventDefault();
-							return saveSettings();
+							return saveSettings(true);
 						}
-					}, _('Save Settings'))
+					}, _('Save and Apply')),
+					E('button', {
+						'class': 'btn cbi-button cbi-button-positive',
+						'click': function(ev) {
+							ev.preventDefault();
+							return saveSettings(false);
+						}
+					}, _('Save')),
+					E('button', {
+						'class': 'btn cbi-button cbi-button-negative',
+						'click': function(ev) {
+							ev.preventDefault();
+							resetSettings();
+						}
+					}, _('Reset'))
 				]),
 				E('div', { 'id': 'oxidns-settings-status', 'style': 'margin-top: 1em;' })
 			])
