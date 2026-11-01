@@ -389,7 +389,7 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 			'class': 'cbi-input-text',
 			'type': 'number',
 			'step': '1',
-			'style': 'width: 100%; box-sizing: border-box;',
+			'style': 'width: 210px; box-sizing: border-box;',
 			'min': field.min !== undefined ? field.min : null,
 			'max': field.max !== undefined ? field.max : null,
 			'value': absent ? '' : String(value)
@@ -400,7 +400,7 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 		return E('select', {
 			'id': id,
 			'class': 'cbi-input-select',
-			'style': 'width: 100%; box-sizing: border-box;'
+			'style': 'width: 210px; box-sizing: border-box;'
 		},
 			[
 				E('option', { 'value': '', 'selected': absent ? 'selected' : null }, _('Default'))
@@ -417,28 +417,11 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 			'id': id,
 			'class': 'cbi-input-text',
 			'type': 'text',
-			'style': 'width: 100%; box-sizing: border-box;',
+			'style': 'width: 210px; box-sizing: border-box;',
 			'value': text(value),
 			'placeholder': field.placeholder || null
 		});
 	}
-}
-
-function upstreamFieldCell(doc, index, position, field, bindings) {
-	var children = [];
-
-	if (field.type !== 'boolean')
-		children.push(E('label', {
-			'for': upstreamFieldId(index, position, field.key),
-			'style': 'font-size: .9em; opacity: .85;'
-		}, field.label));
-
-	children.push(upstreamFieldControl(doc, index, position, field, bindings));
-
-	if (field.help)
-		children.push(E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .25em;' }, field.help));
-
-	return E('div', { 'style': 'display: flex; flex-direction: column; gap: .3em; min-width: 0;' }, children);
 }
 
 function upstreamAdvancedPresent(doc, index, position) {
@@ -447,18 +430,24 @@ function upstreamAdvancedPresent(doc, index, position) {
 	});
 }
 
-function upstreamAdvancedPanel(doc, index, position, bindings) {
-	var cells = UPSTREAM_FIELDS.map(function(field) {
-		return upstreamFieldCell(doc, index, position, field, bindings);
+function upstreamAdvancedRows(doc, index, position, bindings) {
+	var rows = [
+		E('div', { 'class': 'tr' }, [
+			E('div', { 'class': 'td left', 'style': 'width: 240px' }, ''),
+			E('div', { 'class': 'td left' }, E('div', { 'class': 'cbi-value-description' },
+				_('Leave fields empty to use the protocol defaults.')))
+		])
+	];
+
+	UPSTREAM_FIELDS.forEach(function(field) {
+		rows.push(row(
+			field.type === 'boolean' ? '' : field.label,
+			upstreamFieldControl(doc, index, position, field, bindings),
+			field.help || null
+		));
 	});
 
-	return E('div', {
-		'id': 'oxidns-cfg-upstream-options-%d-%d'.format(index, position),
-		'style': 'display: grid; grid-template-columns: repeat(auto-fill, 210px); justify-content: start; align-items: start; gap: .9em 1.25em; padding: .75em 0 .25em;'
-	}, [
-		E('div', { 'class': 'cbi-value-description', 'style': 'grid-column: 1 / -1;' },
-			_('Leave fields empty to use the protocol defaults.'))
-	].concat(cells));
+	return rows;
 }
 
 function upstreamSection(doc, bindings, options) {
@@ -488,18 +477,22 @@ function upstreamSection(doc, bindings, options) {
 			addBinding(bindings, id,
 				[ 'plugins', index, 'args', 'upstreams', position, 'addr' ], 'delete');
 
-			var panel = upstreamAdvancedPanel(doc, index, position, bindings);
+			var advancedRows = upstreamAdvancedRows(doc, index, position, bindings);
 			var expanded = upstreamAdvancedPresent(doc, index, position);
 
-			panel.style.display = expanded ? 'grid' : 'none';
+			advancedRows.forEach(function(advancedRow) {
+				advancedRow.style.display = expanded ? '' : 'none';
+			});
 
 			var toggle = E('button', {
 				'id': 'oxidns-cfg-upstream-options-toggle-%d-%d'.format(index, position),
 				'class': 'btn cbi-button cbi-button-neutral',
 				'click': function(ev) {
 					ev.preventDefault();
-					var show = panel.style.display === 'none';
-					panel.style.display = show ? 'grid' : 'none';
+					var show = advancedRows[0].style.display === 'none';
+					advancedRows.forEach(function(advancedRow) {
+						advancedRow.style.display = show ? '' : 'none';
+					});
 					toggle.textContent = show ? _('Hide options') : _('Options');
 					toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
 				}
@@ -517,10 +510,9 @@ function upstreamSection(doc, bindings, options) {
 					}, options)
 				])));
 
-			rows.push(E('div', { 'class': 'tr' }, [
-				E('div', { 'class': 'td left', 'style': 'width: 240px' }, ''),
-				E('div', { 'class': 'td left' }, panel)
-			]));
+			advancedRows.forEach(function(advancedRow) {
+				rows.push(advancedRow);
+			});
 		});
 
 		if (!upstreams.length)
