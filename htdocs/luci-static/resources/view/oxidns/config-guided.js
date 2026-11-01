@@ -742,12 +742,6 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 	}
 }
 
-function upstreamAdvancedPresent(doc, index, position) {
-	return UPSTREAM_FIELDS.some(function(field) {
-		return hasNodePath(doc, upstreamFieldPath(index, position, field.key));
-	});
-}
-
 function upstreamAdvancedRows(doc, index, position, bindings) {
 	var rows = [
 		E('div', { 'class': 'tr' }, [
@@ -795,10 +789,11 @@ function upstreamSection(doc, bindings, options) {
 				[ 'plugins', index, 'args', 'upstreams', position, 'addr' ], 'delete');
 
 			var advancedRows = upstreamAdvancedRows(doc, index, position, bindings);
-			var expanded = upstreamAdvancedPresent(doc, index, position);
 
+			// Per-upstream options stay collapsed on load even when the
+			// upstream already carries them; expand only on user request.
 			advancedRows.forEach(function(advancedRow) {
-				advancedRow.style.display = expanded ? '' : 'none';
+				advancedRow.style.display = 'none';
 			});
 
 			var toggle = E('button', {
@@ -813,8 +808,8 @@ function upstreamSection(doc, bindings, options) {
 					toggle.textContent = show ? _('Hide options') : _('Options');
 					toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
 				}
-			}, expanded ? _('Hide options') : _('Options'));
-			toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+			}, _('Options'));
+			toggle.setAttribute('aria-expanded', 'false');
 
 			rows.push(row(_('Upstream address') + ' ' + (position + 1),
 				E('div', { 'style': 'display: flex; gap: .5em; align-items: center; justify-content: flex-start; width: 100%; flex-wrap: wrap;' }, [
@@ -837,7 +832,9 @@ function upstreamSection(doc, bindings, options) {
 
 		rows.push(E('div', { 'class': 'tr' }, [
 			E('div', { 'class': 'td left', 'style': 'width: 240px' }, ''),
-			E('div', { 'class': 'td left', 'style': 'padding-top: .75em; padding-bottom: .5em;' }, [
+			E('div', { 'class': 'td left' }, E('div', {
+				'style': 'display: flex; justify-content: flex-start; padding-top: .75em; padding-bottom: .5em;'
+			}, [
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',
 					'click': function(ev) {
@@ -850,7 +847,7 @@ function upstreamSection(doc, bindings, options) {
 						options.rerender();
 					}
 				}, _('Add upstream DNS'))
-			])
+			]))
 		]));
 	});
 
