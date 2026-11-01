@@ -339,7 +339,7 @@ function proxyDescription() {
 }
 
 function coreInstalled(status) {
-	return !!(status && status.core && status.core.installed);
+	return !!(status && status.ok !== false && status.core && status.core.installed);
 }
 
 function webuiInstalled(status) {
@@ -736,13 +736,24 @@ function disabledActionButton(label, hint, id) {
 		'class': 'btn cbi-button cbi-button-neutral',
 		'type': 'button',
 		'disabled': 'disabled',
+		'aria-disabled': 'true',
 		'title': hint
 	}, label);
 }
 
+function serviceLockedHint() {
+	return E('span', {
+		'class': 'cbi-value-description',
+		'style': 'align-self: center;'
+	}, _('Install the OxiDNS core before using service controls.'));
+}
+
 function serviceActionButtons(status) {
 	if (!coreInstalled(status))
-		return [disabledActionButton(_('Enable on boot'), _('Install the OxiDNS core before using service controls.'), 'oxidns-service-enable')];
+		return [
+			disabledActionButton(_('Enable on boot'), _('Install the OxiDNS core before using service controls.'), 'oxidns-service-enable'),
+			serviceLockedHint()
+		];
 
 	if (serviceEnabled(status))
 		return [actionButton(_('Disable on boot'), function() { return handleServiceAction('disable'); }, 'neutral', 'oxidns-service-disable')];

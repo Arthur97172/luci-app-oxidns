@@ -35,7 +35,7 @@ function serviceRunning(status) {
 }
 
 function coreInstalled(status) {
-	return !!(status && status.core && status.core.installed);
+	return !!(status && status.ok !== false && status.core && status.core.installed);
 }
 
 function statusBadge(text, good) {
@@ -232,8 +232,16 @@ function disabledActionButton(label, hint, id) {
 		'class': 'btn cbi-button cbi-button-neutral',
 		'type': 'button',
 		'disabled': 'disabled',
+		'aria-disabled': 'true',
 		'title': hint
 	}, label);
+}
+
+function serviceLockedHint() {
+	return E('span', {
+		'class': 'cbi-value-description',
+		'style': 'align-self: center;'
+	}, _('Install the OxiDNS core before using service controls.'));
 }
 
 function serviceActionButtons(status) {
@@ -241,6 +249,7 @@ function serviceActionButtons(status) {
 
 	if (!coreInstalled(status)) {
 		actions.push(disabledActionButton(_('Start'), _('Install the OxiDNS core before using service controls.'), 'oxidns-service-start'));
+		actions.push(serviceLockedHint());
 		return actions;
 	}
 
