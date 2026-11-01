@@ -364,9 +364,6 @@ msgstr "已停止"
 msgid "Success TTL (seconds)"
 msgstr "成功 TTL（秒）"
 
-msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files, TLS, authentication, or CORS. Use Advanced Mode to switch to the expanded form before configuring them."
-msgstr "API 当前使用简写形式（api.http: \"ip:port\"）。该形式只设置监听地址，无法托管 WebUI 文件，也无法配置 TLS、认证或 CORS。请在高级模式中改为详写形式后再配置这些功能。"
-
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
 
@@ -1332,3 +1329,72 @@ msgstr "API WebUI 根目录不能为空。"
 
 msgid "The API WebUI index cannot be empty."
 msgstr "API WebUI 首页文件不能为空。"
+
+msgid "Included Files"
+msgstr "包含文件"
+
+msgid "Only plugins are loaded from these files; other settings in them are ignored. Relative paths are resolved against the directory of this configuration file."
+msgstr "这些文件只会载入其中的 plugins 插件设置，其余配置不会合并。相对路径以当前配置文件所在目录为基准。"
+
+msgid "Included configuration files"
+msgstr "包含的配置文件"
+
+msgid "One path per line. Plugins from included files are not listed on this page."
+msgstr "每行一个路径。被包含文件中的插件不会显示在此页面。"
+
+msgid "Convert to expanded form"
+msgstr "转换为详写形式"
+
+msgid "The shorthand form only sets the listen address. Convert it to configure the WebUI, TLS, authentication, and CORS."
+msgstr "简写形式只设置监听地址。转换为详写形式后即可配置 WebUI、TLS、认证和 CORS。"
+
+msgid "The ttl plugin %s sets a minimum TTL above its maximum."
+msgstr "ttl 插件 %s 的最短 TTL 大于最长 TTL。"
+
+msgid "The include field must be a list of configuration file paths."
+msgstr "include 字段必须是配置文件路径列表。"
+
+msgid "Include entry %d cannot be empty."
+msgstr "第 %d 个包含条目不能为空。"
+
+msgid "Include entry %d duplicates another include entry."
+msgstr "第 %d 个包含条目与其他条目重复。"
+
+msgid "Prefer IPv4"
+msgstr "优先 IPv4"
+
+msgid "Prefer IPv6"
+msgstr "优先 IPv6"
+
+msgid "Probe executor"
+msgstr "探测执行器"
+
+msgid "Executor tag used for the internal preferred-address probe."
+msgstr "用于内部优选地址探测的 executor tag。"
+
+msgid "Cache preferred state"
+msgstr "缓存优选状态"
+
+msgid "Preferred state TTL (seconds)"
+msgstr "优选状态 TTL（秒）"
+
+msgid "Reverse Lookup"
+msgstr "反向查询"
+
+msgid "Mapping TTL (seconds)"
+msgstr "映射 TTL（秒）"
+
+msgid "Answer PTR from cache"
+msgstr "使用缓存应答 PTR"
+
+msgid "TTL"
+msgstr "TTL"
+
+msgid "Fixed TTL (seconds)"
+msgstr "固定 TTL（秒）"
+
+msgid "Minimum TTL (seconds)"
+msgstr "最小 TTL（秒）"
+
+msgid "Maximum TTL (seconds)"
+msgstr "最大 TTL（秒）"

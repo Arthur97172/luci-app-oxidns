@@ -71,6 +71,22 @@
 				{ "path": [ "cache", "failure_ttl" ], "label": "Failure TTL (seconds)", "type": "integer", "min": 0, "default": 60 }
 			]
 		},
+		"prefer_ipv4": {
+			"title": "Prefer IPv4",
+			"fields": [
+				{ "path": [ "probe_executor" ], "label": "Probe executor", "type": "string", "help": "Executor tag used for the internal preferred-address probe." },
+				{ "path": [ "cache" ], "label": "Cache preferred state", "type": "boolean", "default": true },
+				{ "path": [ "cache_ttl" ], "label": "Preferred state TTL (seconds)", "type": "integer", "min": 0, "default": 3600 }
+			]
+		},
+		"prefer_ipv6": {
+			"title": "Prefer IPv6",
+			"fields": [
+				{ "path": [ "probe_executor" ], "label": "Probe executor", "type": "string", "help": "Executor tag used for the internal preferred-address probe." },
+				{ "path": [ "cache" ], "label": "Cache preferred state", "type": "boolean", "default": true },
+				{ "path": [ "cache_ttl" ], "label": "Preferred state TTL (seconds)", "type": "integer", "min": 0, "default": 3600 }
+			]
+		},
 		"learn_domain": {
 			"title": "Learn Domain",
 			"fields": [
@@ -97,6 +113,22 @@
 				{ "path": [ "retention_days" ], "label": "Retention days", "type": "integer", "min": 1, "default": 7 },
 				{ "path": [ "cleanup_interval_hours" ], "label": "Cleanup interval (hours)", "type": "integer", "min": 1, "default": 1 },
 				{ "path": [ "reader_concurrency" ], "label": "Reader concurrency", "type": "integer", "min": 1, "default": 2 }
+			]
+		},
+		"reverse_lookup": {
+			"title": "Reverse Lookup",
+			"fields": [
+				{ "path": [ "size" ], "label": "Cache size (entries)", "type": "integer", "min": 0, "default": 65535 },
+				{ "path": [ "ttl" ], "label": "Mapping TTL (seconds)", "type": "integer", "min": 0, "default": 7200 },
+				{ "path": [ "handle_ptr" ], "label": "Answer PTR from cache", "type": "boolean", "default": false }
+			]
+		},
+		"ttl": {
+			"title": "TTL",
+			"fields": [
+				{ "path": [ "fix" ], "label": "Fixed TTL (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "min" ], "label": "Minimum TTL (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "max" ], "label": "Maximum TTL (seconds)", "type": "integer", "min": 0 }
 			]
 		},
 		"download": {

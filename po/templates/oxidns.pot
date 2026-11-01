@@ -362,9 +362,6 @@ msgstr ""
 msgid "Success TTL (seconds)"
 msgstr ""
 
-msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files, TLS, authentication, or CORS. Use Advanced Mode to switch to the expanded form before configuring them."
-msgstr ""
-
 msgid "The file must be named config.yaml."
 msgstr ""
 
@@ -1329,4 +1326,73 @@ msgid "The API WebUI root cannot be empty."
 msgstr ""
 
 msgid "The API WebUI index cannot be empty."
+msgstr ""
+
+msgid "Included Files"
+msgstr ""
+
+msgid "Only plugins are loaded from these files; other settings in them are ignored. Relative paths are resolved against the directory of this configuration file."
+msgstr ""
+
+msgid "Included configuration files"
+msgstr ""
+
+msgid "One path per line. Plugins from included files are not listed on this page."
+msgstr ""
+
+msgid "Convert to expanded form"
+msgstr ""
+
+msgid "The shorthand form only sets the listen address. Convert it to configure the WebUI, TLS, authentication, and CORS."
+msgstr ""
+
+msgid "The ttl plugin %s sets a minimum TTL above its maximum."
+msgstr ""
+
+msgid "The include field must be a list of configuration file paths."
+msgstr ""
+
+msgid "Include entry %d cannot be empty."
+msgstr ""
+
+msgid "Include entry %d duplicates another include entry."
+msgstr ""
+
+msgid "Prefer IPv4"
+msgstr ""
+
+msgid "Prefer IPv6"
+msgstr ""
+
+msgid "Probe executor"
+msgstr ""
+
+msgid "Executor tag used for the internal preferred-address probe."
+msgstr ""
+
+msgid "Cache preferred state"
+msgstr ""
+
+msgid "Preferred state TTL (seconds)"
+msgstr ""
+
+msgid "Reverse Lookup"
+msgstr ""
+
+msgid "Mapping TTL (seconds)"
+msgstr ""
+
+msgid "Answer PTR from cache"
+msgstr ""
+
+msgid "TTL"
+msgstr ""
+
+msgid "Fixed TTL (seconds)"
+msgstr ""
+
+msgid "Minimum TTL (seconds)"
+msgstr ""
+
+msgid "Maximum TTL (seconds)"
 msgstr ""

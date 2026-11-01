@@ -35,8 +35,8 @@ OxiDNS 用插件组合出完整的 DNS 处理流程：
 
 LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxidns/config.yaml`，只是操作方式不同：
 
-- `普通模式`：表单方式，适合日常修改日志、API、监听地址、上游和常用插件参数。
-- `高级模式`：完整 YAML 编辑器，适合修改任意字段、插件组合、sequence 规则和 `network`、`include` 等顶层配置。
+- `普通模式`：表单方式，适合日常修改日志、运行时、包含文件、API、监听地址、上游和常用插件参数。
+- `高级模式`：完整 YAML 编辑器，适合修改任意字段、插件组合、sequence 规则和 `network` 等顶层配置。
 - `OxiDNS WebUI`：图形化管理插件、sequence、查询记录、缓存等，并可以查看仪表盘和运行日志。
 
 ### 开始前的检查
@@ -136,7 +136,29 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 - 只有需要限制 CPU 占用或固定线程数时才需要填写。留空不会把 `worker_threads` 写入配置文件。
 - 清空一个已经存在的值会删除该字段，恢复为默认并行度。
 
-### 3.3 API（管理接口与 WebUI）
+### 3.3 包含文件（Include）
+
+对应顶层配置 `include`。
+
+| 界面字段 | 配置字段 | 说明 |
+| --- | --- | --- |
+| 包含的配置文件（`Included configuration files`） | `include` | 每行一个配置文件路径。 |
+
+说明：
+
+- 被包含文件中**只合并 `plugins`**，其中的 `log`、`runtime`、`api` 等其他配置一律忽略。
+- 相对路径以声明该 `include` 的配置文件所在目录为基准。
+- 最多递归 8 层。
+- 多个文件中合并后的插件 `tag` 必须全局唯一。
+- 被包含文件中的插件不会显示在本页面；如需修改，请到高级模式或 WebUI 编辑对应文件。
+- 清空文本框会删除整个 `include` 字段。
+
+校验规则：
+
+- `include` 必须是字符串列表，不能写成单个字符串。
+- 列表项不能为空，且不能重复。
+
+### 3.4 API（管理接口与 WebUI）
 
 对应配置路径 `api.http`。
 
@@ -185,7 +207,7 @@ api:
 
 普通模式识别当前写法：
 
-- 简写时，`普通模式` 只显示 `HTTP 监听地址`，并提示简写形式不能提供 WebUI，也不能配置 TLS、认证或 CORS。此时必须到高级模式改为详写，普通模式才会出现其余字段。
+- 简写时，`普通模式` 只显示 `HTTP 监听地址`，并提示简写形式不能提供 WebUI，也不能配置 TLS、认证或 CORS。点击 `转换为详写形式` 可以就地改为详写形式：原监听地址会保留到 `listen`，原有注释和引号风格也会保留。转换只在点击按钮时发生，不会自动改写配置文件。
 - 详写时，会显示监听地址、WebUI、TLS、Basic 认证和 CORS 字段。
 - 认证相关字段在保存时会自动补上 `auth.type: basic`；如果只填写用户名或只填写密码，校验会提示两者必须同时填写。
 - 密码只在填写时写入配置文件，页面之后只显示“已设置”，不会回显明文。需要更换密码时直接输入新密码；需要关闭认证时勾选 `移除 Basic 认证`。
@@ -207,7 +229,7 @@ api:
 
 > `基本设置` 页面的 `打开 WebUI` 按钮根据这个监听地址生成 URL。监听 `127.0.0.1` 或 `::1` 时只能在路由器本机访问，LuCI 会显示提示；需要从局域网访问时，把监听地址改为 LAN 地址或 `0.0.0.0:9199`。
 
-### 3.4 监听地址（Listen Addresses）
+### 3.5 监听地址（Listen Addresses）
 
 对应 `plugins` 中的 `udp_server`、`tcp_server`、`quic_server` 实例。
 
@@ -241,7 +263,7 @@ api:
 - 如果配置了 `quic_server`，还需要在对应插件参数区配置 TLS 证书和私钥。
 - 如果页面提示“未找到 UDP、TCP 或 QUIC 服务插件”，说明当前配置没有对应插件，需要在高级模式或 WebUI 中创建。
 
-### 3.5 上游 DNS（Upstream DNS）
+### 3.6 上游 DNS（Upstream DNS）
 
 对应 `forward` 插件的 `plugins[i].args.upstreams`。
 
@@ -301,7 +323,7 @@ api:
 
 后端最终仍会执行 `oxidns check`，以核心的校验结果为准。
 
-### 3.6 常用插件参数
+### 3.7 常用插件参数
 
 普通模式会按插件类型显示 schema 中定义的字段。下面是常见插件的字段和各字段默认值。
 
@@ -373,6 +395,16 @@ api:
 | `Success TTL (seconds)` | 成功结果缓存时间，默认 3600。 |
 | `Failure TTL (seconds)` | 失败结果缓存时间，默认 60。 |
 
+#### prefer_ipv4 / prefer_ipv6
+
+| 字段 | 说明 |
+| --- | --- |
+| `Probe executor` | 用于内部优选地址探测的 executor tag。 |
+| `Cache preferred state` | 是否缓存优选状态，默认开启。 |
+| `Preferred state TTL (seconds)` | 优选状态缓存时间，默认 3600。 |
+
+`prefer_ipv4` 与 `prefer_ipv6` 参数相同，只是偏好方向相反。
+
 #### learn_domain
 
 | 字段 | 说明 |
@@ -400,6 +432,24 @@ api:
 | `Retention days` | 保留天数，默认 7。 |
 | `Cleanup interval (hours)` | 清理间隔，默认 1 小时。 |
 | `Reader concurrency` | 读取并发数，默认 2。 |
+
+#### reverse_lookup
+
+| 字段 | 说明 |
+| --- | --- |
+| `Cache size (entries)` | 反向映射缓存条目数，默认 65535。 |
+| `Mapping TTL (seconds)` | 映射缓存时间，默认 7200。 |
+| `Answer PTR from cache` | 是否直接使用缓存应答 PTR，默认关闭。 |
+
+#### ttl
+
+| 字段 | 说明 |
+| --- | --- |
+| `Fixed TTL (seconds)` | 固定 TTL；填写后忽略响应原有 TTL。 |
+| `Minimum TTL (seconds)` | 最小 TTL。 |
+| `Maximum TTL (seconds)` | 最大 TTL。 |
+
+最少/最大值同时填写时，最小值不能大于最大值。
 
 #### download
 
@@ -429,7 +479,7 @@ api:
 
 对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的必填项、数值范围和枚举取值都会参与保存前校验；DoH 入口的 `Request path` 必须以 `/` 开头。插件自身要求的必填字段（例如 `fallback` 的主备执行器、`query_recorder` 的数据库路径、`geosite` / `geoip` 的数据文件、`dynamic_domain_set` 的规则文件、`quic_server` 的证书和私钥）缺失时也会直接提示。
 
-### 3.7 插件概览
+### 3.8 插件概览
 
 页面最下方的 `Plugins` 区域只读显示：
 
@@ -555,7 +605,7 @@ nas.lan 192.168.1.10
 
 - 新增或删除插件；
 - 编写 sequence、matcher 规则；
-- 配置 `network.outbound`、`include`、`runtime`；
+- 配置 `network.outbound`、sequence/rules 等普通模式未覆盖的顶层字段；
 - 配置 API 的认证、TLS、CORS；
 - 普通模式未覆盖的插件参数。
 
@@ -775,7 +825,7 @@ api:
   http: "0.0.0.0:9199"
 ```
 
-需要到 `高级模式` 改为详写，或在 WebUI 的 `系统配置 -> 管理 API -> WebUI 静态文件` 中启用。简写形式只能提供 API，不能挂载 WebUI。
+可以在 `DNS 配置 -> 普通模式` 点击 `转换为详写形式`，也可以在 `高级模式` 手动改为详写，或在 WebUI 的 `系统配置 -> 管理 API -> WebUI 静态文件` 中启用。简写形式只能提供 API，不能挂载 WebUI。
 
 WebUI 和管理 API 同源：
 

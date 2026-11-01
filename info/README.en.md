@@ -35,8 +35,8 @@ A minimal working configuration normally has:
 
 The LuCI `DNS Configuration` page and the OxiDNS WebUI edit the **same** `/etc/oxidns/config.yaml`; only the editing method differs:
 
-- `Normal Mode`: forms for everyday changes to logging, the API, listen addresses, upstreams, and common plugin arguments.
-- `Advanced Mode`: a full YAML editor for any field, plugin composition, sequence rules, and top-level settings such as `network` and `include`.
+- `Normal Mode`: forms for everyday changes to logging, runtime settings, included files, the API, listen addresses, upstreams, and common plugin arguments.
+- `Advanced Mode`: a full YAML editor for any field, plugin composition, sequence rules, and top-level settings such as `network`.
 - `OxiDNS WebUI`: graphical management of plugins, sequences, query records, caches, and upgrades, with a dashboard and runtime logs.
 
 ### Before You Start
@@ -134,7 +134,29 @@ Notes:
 - Set this only when you need to limit CPU usage or pin the thread count. Leaving it empty does not write `worker_threads` to the file.
 - Clearing an existing value removes the key and restores the default parallelism.
 
-### 3.3 API (Management API and WebUI)
+### 3.3 Included Files (Include)
+
+Configuration path: top-level `include`.
+
+| Field | Config key | Description |
+| --- | --- | --- |
+| `Included configuration files` | `include` | One configuration file path per line. |
+
+Notes:
+
+- Only `plugins` are merged from included files; other settings such as `log`, `runtime`, and `api` in them are ignored.
+- Relative paths are resolved from the directory of the configuration file that declares the `include`.
+- Recursion is limited to 8 levels.
+- Plugin tags must be globally unique after merging all files.
+- Plugins from included files are not listed on this page. Edit the corresponding file in Advanced Mode or the WebUI instead.
+- Clearing the text area removes the whole `include` key.
+
+Validation rules:
+
+- `include` must be a list of strings, not a single string.
+- Entries cannot be empty and cannot be duplicated.
+
+### 3.4 API (Management API and WebUI)
 
 Configuration path: `api.http`.
 
@@ -183,7 +205,7 @@ api:
 
 Normal Mode detects the current form:
 
-- With the shorthand, only `HTTP listen` is shown, with a note that the shorthand cannot serve the WebUI, TLS, authentication, or CORS. Switch to the expanded form in Advanced Mode to get the other fields.
+- With the shorthand, only `HTTP listen` is shown, with a note that the shorthand cannot serve the WebUI, TLS, authentication, or CORS. Click `Convert to expanded form` to convert in place: the current listen address is kept as `listen`, and existing comments and quote style are preserved. The conversion only happens when you click the button; the file is never rewritten automatically.
 - With the expanded form, the listen address, WebUI, TLS, Basic authentication, and CORS fields appear.
 - Saving authentication fields adds `auth.type: basic` automatically. If only a username or only a password is filled in, validation reports that both are required.
 - The password is written only when you type a new one; afterwards the page only says a password is configured and never echoes it. Enter a new value to change it, or check `Remove Basic authentication` to disable authentication.
@@ -205,7 +227,7 @@ Listen address formats:
 
 > The `Open WebUI` button on `Basic Settings` builds its URL from this listen address. If it listens on `127.0.0.1` or `::1`, only the router itself can reach it and LuCI shows a hint. For LAN access, use the LAN address or `0.0.0.0:9199`.
 
-### 3.4 Listen Addresses
+### 3.5 Listen Addresses
 
 Configuration path: instances of `udp_server`, `tcp_server`, and `quic_server` under `plugins`.
 
@@ -239,7 +261,7 @@ Notes:
 - A `quic_server` instance also needs its TLS certificate and private key.
 - If the page reports that no UDP, TCP, or QUIC server plugins were found, the configuration has none; create them in Advanced Mode or the WebUI.
 
-### 3.5 Upstream DNS
+### 3.6 Upstream DNS
 
 Configuration path: `plugins[i].args.upstreams` of the `forward` plugin.
 
@@ -299,7 +321,7 @@ The front end checks before saving:
 
 The backend still runs `oxidns check`, and the core's result is authoritative.
 
-### 3.6 Common Plugin Fields
+### 3.7 Common Plugin Fields
 
 Normal Mode renders fields from the schema for each plugin type already present. Labels are English; the defaults below come from the current schema.
 
@@ -371,6 +393,16 @@ Normal Mode renders fields from the schema for each plugin type already present.
 | `Success TTL (seconds)` | Success cache duration, default 3600. |
 | `Failure TTL (seconds)` | Failure cache duration, default 60. |
 
+#### prefer_ipv4 / prefer_ipv6
+
+| Field | Description |
+| --- | --- |
+| `Probe executor` | Executor tag used for the internal preferred-address probe. |
+| `Cache preferred state` | Cache the preferred state, enabled by default. |
+| `Preferred state TTL (seconds)` | Preferred state cache duration, default 3600. |
+
+`prefer_ipv4` and `prefer_ipv6` take the same fields; only the preferred address family differs.
+
 #### learn_domain
 
 | Field | Description |
@@ -398,6 +430,24 @@ Normal Mode renders fields from the schema for each plugin type already present.
 | `Retention days` | Retention in days, default 7. |
 | `Cleanup interval (hours)` | Cleanup interval, default 1 hour. |
 | `Reader concurrency` | Reader concurrency, default 2. |
+
+#### reverse_lookup
+
+| Field | Description |
+| --- | --- |
+| `Cache size (entries)` | Reverse mapping cache entries, default 65535. |
+| `Mapping TTL (seconds)` | Mapping cache duration, default 7200. |
+| `Answer PTR from cache` | Answer PTR queries directly from the cache, disabled by default. |
+
+#### ttl
+
+| Field | Description |
+| --- | --- |
+| `Fixed TTL (seconds)` | Fixed TTL; overrides the TTLs in responses when set. |
+| `Minimum TTL (seconds)` | Minimum TTL. |
+| `Maximum TTL (seconds)` | Maximum TTL. |
+
+When both are set, the minimum cannot exceed the maximum.
 
 #### download
 
@@ -427,7 +477,7 @@ List fields (`entries`, `files`, `selectors`, `rules`, and similar) take **one i
 
 Object-list fields (`Downloads`, `DoH entries`) can add and remove entries individually. Required fields, numeric ranges, and enum values of each entry are validated before saving; a DoH entry's `Request path` must start with `/`. Missing required plugin fields (such as the primary and standby executors for `fallback`, the database path for `query_recorder`, the data files for `geosite` / `geoip`, the rules file for `dynamic_domain_set`, and the certificate and key for `quic_server`) are reported directly as well.
 
-### 3.7 Plugin Overview
+### 3.8 Plugin Overview
 
 The read-only `Plugins` section at the bottom shows:
 
@@ -554,7 +604,7 @@ Normal Mode can edit fields of existing `black_hole`, `domain_set`, and `adguard
 
 - add or remove plugins;
 - write sequence and matcher rules;
-- configure `network.outbound`, `include`, and `runtime`;
+- configure `network.outbound`, sequence/rules, and other top-level fields not covered by Normal Mode;
 - configure API authentication, TLS, and CORS;
 - edit plugin arguments Normal Mode does not cover.
 
@@ -774,7 +824,7 @@ api:
   http: "0.0.0.0:9199"
 ```
 
-switch to the expanded form in `Advanced Mode`, or enable the WebUI under `System Settings -> Management API -> WebUI static files` in the WebUI. The shorthand serves only the API.
+click `Convert to expanded form` in `DNS Configuration -> Normal Mode`, switch to the expanded form manually in `Advanced Mode`, or enable the WebUI under `System Settings -> Management API -> WebUI static files` in the WebUI. The shorthand serves only the API.
 
 The WebUI and management API are same-origin:
 

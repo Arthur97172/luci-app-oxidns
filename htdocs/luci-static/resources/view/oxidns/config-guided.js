@@ -410,7 +410,49 @@ function runtimeSection(doc, bindings) {
 		]);
 }
 
-function apiSection(doc, bindings) {
+function includeSection(doc, bindings) {
+	addBinding(bindings, 'oxidns-cfg-include', [ 'include' ], 'delete', 'string-list');
+
+	return section(_('Included Files'),
+		_('Only plugins are loaded from these files; other settings in them are ignored. Relative paths are resolved against the directory of this configuration file.'),
+		[
+			row(_('Included configuration files'), E('textarea', {
+				'id': 'oxidns-cfg-include',
+				'class': 'cbi-input-textarea',
+				'rows': 3,
+				'style': 'width: 100%; font-family: monospace;',
+				'placeholder': './plugins/common.yaml'
+			}, schemaListValue(plainValue(doc, [ 'include' ]))),
+				_('One path per line. Plugins from included files are not listed on this page.'))
+		]);
+}
+
+/*
+ * Turn api.http: "ip:port" into the expanded form so the WebUI, TLS,
+ * authentication, and CORS fields can be configured. Only the listen value is
+ * moved; comments attached to the original node are carried over.
+ */
+function expandApiHttp(doc) {
+	var old = doc.getIn([ 'api', 'http' ], true);
+	var listen = old && old.value !== undefined ? text(old.value) : '';
+	var expanded = doc.createNode({ 'listen': listen });
+	var pair = expanded.items && expanded.items[0];
+
+	if (pair) {
+		if (old && old.type)
+			pair.value.type = old.type;
+		if (old && old.comment)
+			pair.value.comment = old.comment;
+		if (old && old.commentBefore)
+			pair.key.commentBefore = old.commentBefore;
+		if (old && old.spaceBefore)
+			pair.key.spaceBefore = old.spaceBefore;
+	}
+
+	doc.setIn([ 'api', 'http' ], expanded);
+}
+
+function apiSection(doc, bindings, options) {
 	var http = plainValue(doc, [ 'api', 'http' ]);
 	var shorthand = typeof http === 'string';
 	var listen = shorthand ? http : text(doc.getIn([ 'api', 'http', 'listen' ]));
@@ -423,7 +465,22 @@ function apiSection(doc, bindings) {
 	];
 
 	if (shorthand) {
-		rows.push(noteRow(_('The API uses the shorthand form (api.http: "ip:port"). This form only sets the listen address and cannot serve WebUI files, TLS, authentication, or CORS. Use Advanced Mode to switch to the expanded form before configuring them.')));
+		rows.push(row('', E('button', {
+			'id': 'oxidns-cfg-api-expand',
+			'class': 'btn cbi-button cbi-button-action',
+			'click': function(ev) {
+				ev.preventDefault();
+
+				if (typeof options.beforeChange === 'function')
+					options.beforeChange();
+
+				expandApiHttp(doc);
+
+				if (typeof options.rerender === 'function')
+					options.rerender();
+			}
+		}, _('Convert to expanded form')),
+			_('The shorthand form only sets the listen address. Convert it to configure the WebUI, TLS, authentication, and CORS.')));
 	}
 	else {
 		addBinding(bindings, 'oxidns-cfg-api-root', [ 'api', 'http', 'webui', 'root' ], 'delete');
@@ -1184,6 +1241,19 @@ function validateConfig(doc, options) {
 			}
 		}
 
+		if (type === 'ttl') {
+			var ttlMin = plainValue(doc, argsPath.concat([ 'min' ]));
+			var ttlMax = plainValue(doc, argsPath.concat([ 'max' ]));
+
+			if (!isEmptyValue(ttlMin) && !isEmptyValue(ttlMax)) {
+				var ttlMinValue = Number(ttlMin);
+				var ttlMaxValue = Number(ttlMax);
+
+				if (isFinite(ttlMinValue) && isFinite(ttlMaxValue) && ttlMinValue > ttlMaxValue)
+					problems.push(_('The ttl plugin %s sets a minimum TTL above its maximum.').format(tag));
+			}
+		}
+
 		var definition = definitions[type];
 
 		if (definition && Array.isArray(definition.fields))
@@ -1227,6 +1297,31 @@ function validateConfig(doc, options) {
 
 		if (!isFinite(threads) || threads < 1)
 			problems.push(_('The worker thread count must be at least 1.'));
+	}
+
+	var include = plainValue(doc, [ 'include' ]);
+
+	if (include !== undefined) {
+		if (!Array.isArray(include)) {
+			problems.push(_('The include field must be a list of configuration file paths.'));
+		}
+		else {
+			var seenIncludes = {};
+
+			include.forEach(function(entry, position) {
+				var includePath = text(entry);
+
+				if (!includePath) {
+					problems.push(_('Include entry %d cannot be empty.').format(position + 1));
+					return;
+				}
+
+				if (seenIncludes[includePath])
+					problems.push(_('Include entry %d duplicates another include entry.').format(position + 1));
+
+				seenIncludes[includePath] = true;
+			});
+		}
 	}
 
 	var http = plainValue(doc, [ 'api', 'http' ]);
@@ -1319,7 +1414,8 @@ return baseclass.extend({
 			bootstrap ? E('style', {}, BOOTSTRAP_FORM_STYLE) : '',
 			logSection(doc, bindings),
 			runtimeSection(doc, bindings),
-			apiSection(doc, bindings),
+			includeSection(doc, bindings),
+			apiSection(doc, bindings, handlers),
 			listenSection(doc, bindings),
 			upstreamSection(doc, bindings, handlers)
 		].concat(schemaSections(doc, bindings, handlers));
