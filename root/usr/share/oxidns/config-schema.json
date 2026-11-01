@@ -123,6 +123,30 @@
 				{ "path": [ "handle_ptr" ], "label": "Answer PTR from cache", "type": "boolean", "default": false }
 			]
 		},
+		"query_summary": {
+			"title": "Query Summary",
+			"fields": [
+				{ "path": [ "msg" ], "label": "Summary label", "type": "string", "help": "Extra label for the periodic summary." }
+			]
+		},
+		"metrics_collector": {
+			"title": "Metrics Collector",
+			"fields": [
+				{ "path": [ "name" ], "label": "Metrics namespace", "type": "string", "help": "Metrics are exposed through GET /api/metrics." }
+			]
+		},
+		"debug_print": {
+			"title": "Debug Print",
+			"fields": [
+				{ "path": [ "msg" ], "label": "Message", "type": "string", "placeholder": "debug print" }
+			]
+		},
+		"sleep": {
+			"title": "Sleep",
+			"fields": [
+				{ "path": [ "duration" ], "label": "Sleep duration (ms)", "type": "string", "placeholder": "100" }
+			]
+		},
 		"ttl": {
 			"title": "TTL",
 			"fields": [
@@ -150,6 +174,29 @@
 				{ "path": [ "outbound" ], "label": "Outbound profile", "type": "string" },
 				{ "path": [ "socks5" ], "label": "SOCKS5 proxy", "type": "string" },
 				{ "path": [ "startup_if_missing" ], "label": "Download at startup when missing", "type": "boolean", "default": true }
+			]
+		},
+		"ipset": {
+			"title": "IPSet",
+			"fields": [
+				{ "path": [ "set_name4" ], "label": "IPv4 set name", "type": "string", "placeholder": "oxidns_v4" },
+				{ "path": [ "set_name6" ], "label": "IPv6 set name", "type": "string", "placeholder": "oxidns_v6" },
+				{ "path": [ "mask4" ], "label": "IPv4 prefix length", "type": "integer", "min": 0, "max": 32, "default": 24 },
+				{ "path": [ "mask6" ], "label": "IPv6 prefix length", "type": "integer", "min": 0, "max": 128, "default": 32 }
+			]
+		},
+		"nftset": {
+			"title": "NftSet",
+			"description": "Edits the structured ipv4 and ipv6 targets. Compatibility-form fields remain in Advanced Mode.",
+			"fields": [
+				{ "path": [ "ipv4", "table_family" ], "label": "IPv4 table family", "type": "string", "placeholder": "ip" },
+				{ "path": [ "ipv4", "table_name" ], "label": "IPv4 table name", "type": "string", "placeholder": "mangle" },
+				{ "path": [ "ipv4", "set_name" ], "label": "IPv4 set name", "type": "string", "placeholder": "dns_v4" },
+				{ "path": [ "ipv4", "mask" ], "label": "IPv4 prefix length", "type": "integer", "min": 0, "max": 32 },
+				{ "path": [ "ipv6", "table_family" ], "label": "IPv6 table family", "type": "string", "placeholder": "ip6" },
+				{ "path": [ "ipv6", "table_name" ], "label": "IPv6 table name", "type": "string", "placeholder": "mangle" },
+				{ "path": [ "ipv6", "set_name" ], "label": "IPv6 set name", "type": "string", "placeholder": "dns_v6" },
+				{ "path": [ "ipv6", "mask" ], "label": "IPv6 prefix length", "type": "integer", "min": 0, "max": 128 }
 			]
 		},
 		"domain_set": {

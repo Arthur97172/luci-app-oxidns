@@ -386,8 +386,9 @@ function logSection(doc, bindings) {
 			'type': 'number',
 			'step': '1',
 			'min': '0',
-			'value': maxFiles
-		}), _('Set to 0 to keep all historical rotation files.'))
+			'value': maxFiles,
+			'placeholder': '0'
+		}), _('Leave empty or set to 0 to keep all historical rotation files.'))
 	]);
 }
 
@@ -424,6 +425,49 @@ function includeSection(doc, bindings) {
 				'placeholder': './plugins/common.yaml'
 			}, schemaListValue(plainValue(doc, [ 'include' ]))),
 				_('One path per line. Plugins from included files are not listed on this page.'))
+		]);
+}
+
+function outboundProfiles(doc) {
+	var profiles = plainValue(doc, [ 'network', 'outbound', 'profiles' ]);
+
+	if (!profiles || typeof profiles !== 'object' || Array.isArray(profiles))
+		return [];
+
+	return Object.keys(profiles);
+}
+
+function outboundSection(doc, bindings) {
+	var current = text(doc.getIn([ 'network', 'outbound', 'default' ]));
+	var profiles = outboundProfiles(doc);
+	var choices = [ '' ].concat(profiles);
+
+	if (current && choices.indexOf(current) === -1)
+		choices.push(current);
+
+	addBinding(bindings, 'oxidns-cfg-outbound-default',
+		[ 'network', 'outbound', 'default' ], 'delete', 'string');
+
+	return section(_('Outbound Network'),
+		profiles.length
+			? _('Profiles are defined under network.outbound.profiles.')
+			: _('No outbound profiles are defined. Add them under network.outbound.profiles in Advanced Mode or the WebUI.'),
+		[
+			row(_('Default outbound profile'),
+				E('select', {
+					'id': 'oxidns-cfg-outbound-default',
+					'class': 'cbi-input-select oxidns-control'
+				}, choices.map(function(name) {
+					var label = name === ''
+						? _('None (system DNS and direct connections)')
+						: (profiles.indexOf(name) === -1 ? _('%s (not defined)').format(name) : name);
+
+					return E('option', {
+						'value': name,
+						'selected': name === current ? 'selected' : null
+					}, label);
+				})),
+				_('Used by HTTP clients and upstreams that do not set an outbound profile.'))
 		]);
 }
 
@@ -1311,6 +1355,12 @@ function validateConfig(doc, options) {
 		}
 	}
 
+	var outboundDefault = text(plainValue(doc, [ 'network', 'outbound', 'default' ]));
+
+	if (outboundDefault && outboundProfiles(doc).indexOf(outboundDefault) === -1)
+		problems.push(_('The default outbound profile %s is not defined under network.outbound.profiles.')
+			.format(outboundDefault));
+
 	var http = plainValue(doc, [ 'api', 'http' ]);
 
 	if (http !== undefined) {
@@ -1402,6 +1452,7 @@ return baseclass.extend({
 			logSection(doc, bindings),
 			runtimeSection(doc, bindings),
 			includeSection(doc, bindings),
+			outboundSection(doc, bindings),
 			apiSection(doc, bindings, handlers),
 			listenSection(doc, bindings),
 			upstreamSection(doc, bindings, handlers)

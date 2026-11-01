@@ -319,8 +319,8 @@ msgstr "服务控制"
 msgid "Service status"
 msgstr "服务状态"
 
-msgid "Set to 0 to keep all historical rotation files."
-msgstr "设为 0 时保留全部历史轮转文件。"
+msgid "Leave empty or set to 0 to keep all historical rotation files."
+msgstr "留空或设为 0 时保留全部历史轮转文件。"
 
 msgid "Settings"
 msgstr "设置"
@@ -1396,3 +1396,90 @@ msgstr "最小 TTL（秒）"
 
 msgid "Maximum TTL (seconds)"
 msgstr "最大 TTL（秒）"
+
+msgid "Outbound Network"
+msgstr "出站网络"
+
+msgid "Profiles are defined under network.outbound.profiles."
+msgstr "配置文件定义在 network.outbound.profiles 下。"
+
+msgid "No outbound profiles are defined. Add them under network.outbound.profiles in Advanced Mode or the WebUI."
+msgstr "尚未定义出站配置。可在高级模式或 WebUI 的 network.outbound.profiles 下添加。"
+
+msgid "Default outbound profile"
+msgstr "默认出站配置"
+
+msgid "None (system DNS and direct connections)"
+msgstr "无（使用系统 DNS 和直连）"
+
+msgid "%s (not defined)"
+msgstr "%s（未定义）"
+
+msgid "Used by HTTP clients and upstreams that do not set an outbound profile."
+msgstr "供未指定出站配置的 HTTP 客户端和上游使用。"
+
+msgid "The default outbound profile %s is not defined under network.outbound.profiles."
+msgstr "默认出站配置 %s 未在 network.outbound.profiles 中定义。"
+
+msgid "Query Summary"
+msgstr "查询统计"
+
+msgid "Summary label"
+msgstr "统计标签"
+
+msgid "Extra label for the periodic summary."
+msgstr "周期性统计的附加标签。"
+
+msgid "Metrics Collector"
+msgstr "指标采集器"
+
+msgid "Metrics namespace"
+msgstr "指标命名空间"
+
+msgid "Metrics are exposed through GET /api/metrics."
+msgstr "指标通过 GET /api/metrics 暴露。"
+
+msgid "Debug Print"
+msgstr "调试输出"
+
+msgid "Message"
+msgstr "消息"
+
+msgid "Sleep"
+msgstr "休眠"
+
+msgid "Sleep duration (ms)"
+msgstr "休眠时长（毫秒）"
+
+msgid "IPSet"
+msgstr "IPSet"
+
+msgid "IPv4 set name"
+msgstr "IPv4 集合名称"
+
+msgid "IPv6 set name"
+msgstr "IPv6 集合名称"
+
+msgid "IPv4 prefix length"
+msgstr "IPv4 前缀长度"
+
+msgid "IPv6 prefix length"
+msgstr "IPv6 前缀长度"
+
+msgid "NftSet"
+msgstr "NftSet"
+
+msgid "Edits the structured ipv4 and ipv6 targets. Compatibility-form fields remain in Advanced Mode."
+msgstr "编辑结构化的 ipv4 和 ipv6 目标。兼容形式字段仍可在高级模式中编辑。"
+
+msgid "IPv4 table family"
+msgstr "IPv4 表族"
+
+msgid "IPv4 table name"
+msgstr "IPv4 表名"
+
+msgid "IPv6 table family"
+msgstr "IPv6 表族"
+
+msgid "IPv6 table name"
+msgstr "IPv6 表名"

@@ -113,7 +113,7 @@ Configuration path: `log`.
 | `Log level` | `log.level` | `off`, `trace`, `debug`, `info`, `warn`, or `error`; default `info`. |
 | `Log file` | `log.file` | Log file path, default `/tmp/oxidns/oxidns.log`. Leave empty to log only to standard output. |
 | `Rotation` | `log.rotation.type` | `never` (default), `minutely`, `hourly`, `daily`, or `weekly`. |
-| `Maximum rotation files` | `log.rotation.max_files` | Number of history files to keep. `0` means no automatic deletion. |
+| `Maximum rotation files` | `log.rotation.max_files` | Number of history files to keep. Leave it empty or set `0` to disable automatic deletion; the field is only written when you enter a value. |
 
 Notes:
 
@@ -156,7 +156,23 @@ Validation rules:
 - `include` must be a list of strings, not a single string.
 - Entries cannot be empty and cannot be duplicated.
 
-### 3.4 API (Management API and WebUI)
+### 3.4 Outbound Network
+
+Configuration path: `network.outbound.default`.
+
+| Field | Config key | Description |
+| --- | --- | --- |
+| `Default outbound profile` | `network.outbound.default` | Selects the default outbound profile from the `network.outbound.profiles` already defined in the configuration. Selecting "None" deletes the field. |
+
+Notes:
+
+- The drop-down lists only profile names that already exist under `network.outbound.profiles`. When none are defined, only "None" is available; add profiles in Advanced mode or the WebUI first.
+- The default is used by HTTP clients and upstreams that do not set their own outbound profile. Individual upstreams and plugins such as `ip_selector` and `download` can still override it with their own `Outbound profile`.
+- A `default` that points to an undefined profile stays selected and is marked "not defined"; validation reports it before saving. Define that profile under `network.outbound.profiles` or select a defined one.
+- Selecting "None" deletes `network.outbound.default` and restores the core default behavior (system DNS and direct connections).
+- Normal mode does not edit the contents of `network.outbound.profiles`.
+
+### 3.5 API (Management API and WebUI)
 
 Configuration path: `api.http`.
 
@@ -227,7 +243,7 @@ Listen address formats:
 
 > The `Open WebUI` button on `Basic Settings` builds its URL from this listen address. If it listens on `127.0.0.1` or `::1`, only the router itself can reach it and LuCI shows a hint. For LAN access, use the LAN address or `0.0.0.0:9199`.
 
-### 3.5 Listen Addresses
+### 3.6 Listen Addresses
 
 Configuration path: instances of `udp_server`, `tcp_server`, and `quic_server` under `plugins`.
 
@@ -261,7 +277,7 @@ Notes:
 - A `quic_server` instance also needs its TLS certificate and private key.
 - If the page reports that no UDP, TCP, or QUIC server plugins were found, the configuration has none; create them in Advanced Mode or the WebUI.
 
-### 3.6 Upstream DNS
+### 3.7 Upstream DNS
 
 Configuration path: `plugins[i].args.upstreams` of the `forward` plugin.
 
@@ -321,7 +337,7 @@ The front end checks before saving:
 
 The backend still runs `oxidns check`, and the core's result is authoritative.
 
-### 3.7 Common Plugin Fields
+### 3.8 Common Plugin Fields
 
 Normal Mode renders fields from the schema for each plugin type already present. Labels are English; the defaults below come from the current schema.
 
@@ -459,6 +475,46 @@ Processing order is `fix` → `min` → `max`; when both bounds are set, the max
 | `Outbound profile` / `SOCKS5 proxy` | Outbound profile or proxy for downloads. |
 | `Download at startup when missing` | Download missing files at startup, enabled by default. |
 
+#### query_summary / metrics_collector / debug_print / sleep
+
+| Plugin | Field | Description |
+| --- | --- | --- |
+| `query_summary` | `Summary label` (`msg`) | Extra label for the periodic query summary. May be empty. |
+| `metrics_collector` | `Metrics namespace` (`name`) | Metrics namespace. May be empty. Metrics are exposed through `GET /api/metrics`. |
+| `debug_print` | `Message` (`msg`) | Extra message written to the debug log. May be empty. |
+| `sleep` | `Sleep duration (ms)` (`duration`) | Sleep duration as a string, for example `100` or `100ms`. May be empty. |
+
+None of these fields is required. The core accepts empty arguments (`args: {}`), so Normal mode does not refuse to save because a field is empty.
+
+#### ipset
+
+| Field | Description |
+| --- | --- |
+| `IPv4 set name` (`set_name4`) | IPv4 set name. |
+| `IPv6 set name` (`set_name6`) | IPv6 set name. |
+| `IPv4 prefix length` (`mask4`) | IPv4 prefix length, 0–32, default 24. |
+| `IPv6 prefix length` (`mask6`) | IPv6 prefix length, 0–128, default 32. |
+
+The sets must already exist in the firewall or be created with `ipset`; every field may be empty.
+
+#### nftset
+
+| Field | Description |
+| --- | --- |
+| `IPv4 table family` (`ipv4.table_family`) | IPv4 table family, for example `ip`. |
+| `IPv4 table name` (`ipv4.table_name`) | IPv4 table name, for example `mangle`. |
+| `IPv4 set name` (`ipv4.set_name`) | IPv4 set name. |
+| `IPv4 prefix length` (`ipv4.mask`) | IPv4 prefix length, 0–32. |
+| `IPv6 table family` (`ipv6.table_family`) | IPv6 table family, for example `ip6`. |
+| `IPv6 table name` (`ipv6.table_name`) | IPv6 table name. |
+| `IPv6 set name` (`ipv6.set_name`) | IPv6 set name. |
+| `IPv6 prefix length` (`ipv6.mask`) | IPv6 prefix length, 0–128. |
+
+Notes:
+
+- Normal mode edits the structured `ipv4` / `ipv6` target objects. The compatibility-form flat fields (`table_family4`, `table_name4`, `set_name4`, `mask4`, and their IPv6 counterparts) remain editable only in Advanced mode.
+- Every field in both targets may be empty; the sets must already exist in nftables.
+
 #### Other Plugins
 
 | Plugin | Main fields |
@@ -477,7 +533,7 @@ List fields (`entries`, `files`, `selectors`, `rules`, and similar) take **one i
 
 Object-list fields (`Downloads`, `DoH entries`) can add and remove entries individually. Required fields, numeric ranges, and enum values of each entry are validated before saving; a DoH entry's `Request path` must start with `/`. Missing required plugin fields (such as the primary and standby executors for `fallback`, the database path for `query_recorder`, the data files for `geosite` / `geoip`, the rules file for `dynamic_domain_set`, and the certificate and key for `quic_server`) are reported directly as well.
 
-### 3.8 Plugin Overview
+### 3.9 Plugin Overview
 
 The read-only `Plugins` section at the bottom shows:
 
@@ -521,7 +577,7 @@ This section never modifies the configuration. Use Advanced Mode or the WebUI pl
 3. Click `Save and Apply`.
 4. Test with `nslookup -po=<port> example.com 127.0.0.1` or the matching address.
 
-To use port 53, stop whatever else occupies it (usually dnsmasq's DNS function). The recommended setup keeps dnsmasq and forwards to port 5335; see [README.en.md](../README.en.md#make-oxidns-the-system-dns).
+To use port 53, stop whatever else occupies it (usually dnsmasq's DNS function). The recommended setup keeps dnsmasq and forwards to port 5335; see [4.9 Forward Through dnsmasq (Recommended)](#49-forward-through-dnsmasq-recommended).
 
 ### 4.4 Enable Caching
 
@@ -586,7 +642,7 @@ Normal Mode can edit fields of existing `black_hole`, `domain_set`, and `adguard
 
 1. Set `Log level` to `debug` temporarily when troubleshooting; keep `info` or `warn` day to day.
 2. Point `Log file` at a persistent path to survive reboots.
-3. Set `Rotation` and `Maximum rotation files` to prune old logs.
+3. Set `Rotation` and `Maximum rotation files` to prune old logs (leave it empty to keep all files).
 4. Click `Save and Apply`.
 
 ### 4.8 Backup, Restore, and Roll Back
@@ -596,6 +652,61 @@ Normal Mode can edit fields of existing `black_hole`, `domain_set`, and `adguard
 - Inspect changes: `Change Preview` shows only page edits relative to the on-disk file.
 - The backend also backs up the old file under `config-backups/` in the working directory (for example `/var/lib/oxidns/config-backups/`), which you can restore manually.
 
+### 4.9 Forward Through dnsmasq (Recommended)
+
+OxiDNS's `udp_server` / `tcp_server` plugins listen on `:5335` by default, while port 53 on OpenWrt belongs to dnsmasq, which also serves DHCP. The recommended setup keeps dnsmasq and lets it forward queries to OxiDNS, so LAN DHCP, `xxx.lan` hostnames and lease names keep working and clients need no changes.
+
+1. Open `Services -> OxiDNS -> DNS Configuration`, change both DNS servers under `Listen Addresses` in Normal mode to the loopback address, then click `Save and Apply`:
+
+```yaml
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+
+  - tag: tcp_server
+    type: tcp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+```
+
+Upstream servers are configured in the `forward` plugin's `upstreams`, which defaults to `223.5.5.5`.
+
+2. Point dnsmasq at OxiDNS:
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='1'
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5335'
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+`noresolv=1` makes dnsmasq ignore `/tmp/resolv.conf.d/resolv.conf.auto`, so a WAN reconnect cannot silently bypass OxiDNS.
+
+3. Verify:
+
+```sh
+nslookup -po=5335 www.baidu.com 127.0.0.1   # OxiDNS directly
+nslookup www.baidu.com 127.0.0.1            # through dnsmasq
+```
+
+Queries through dnsmasq should time out while OxiDNS is stopped and recover when it starts again, which confirms the traffic really goes through OxiDNS.
+
+Roll back with:
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='0'
+uci -q delete dhcp.@dnsmasq[0].server
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+If OxiDNS needs to apply per-client policies based on the source address, it can listen on port 53 instead: run `uci set dhcp.@dnsmasq[0].port='0'` to turn off dnsmasq's DNS function (DHCP keeps working), make sure DHCP still advertises the router as DNS, then change both `listen` values above to `":53"`. The trade-offs are that `xxx.lan` hostnames, DHCP lease names and dnsmasq's rebind protection no longer apply, and IPv6 clients require OxiDNS to listen on IPv6 as well, for example `"[::]:53"`.
+
+Either way, never expose port 53 or 5335 to the WAN, or the router becomes an open resolver.
+
 ---
 
 ## 5. Advanced Mode
@@ -604,7 +715,7 @@ Normal Mode can edit fields of existing `black_hole`, `domain_set`, and `adguard
 
 - add or remove plugins;
 - write sequence and matcher rules;
-- configure `network.outbound`, sequence/rules, and other top-level fields not covered by Normal Mode;
+- configure `network.outbound.profiles`, sequence/rules, and other fields not covered by Normal Mode;
 - configure API authentication, TLS, and CORS;
 - edit plugin arguments Normal Mode does not cover.
 

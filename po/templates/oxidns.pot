@@ -317,7 +317,7 @@ msgstr ""
 msgid "Service status"
 msgstr ""
 
-msgid "Set to 0 to keep all historical rotation files."
+msgid "Leave empty or set to 0 to keep all historical rotation files."
 msgstr ""
 
 msgid "Settings"
@@ -1393,4 +1393,91 @@ msgid "Minimum TTL (seconds)"
 msgstr ""
 
 msgid "Maximum TTL (seconds)"
+msgstr ""
+
+msgid "Outbound Network"
+msgstr ""
+
+msgid "Profiles are defined under network.outbound.profiles."
+msgstr ""
+
+msgid "No outbound profiles are defined. Add them under network.outbound.profiles in Advanced Mode or the WebUI."
+msgstr ""
+
+msgid "Default outbound profile"
+msgstr ""
+
+msgid "None (system DNS and direct connections)"
+msgstr ""
+
+msgid "%s (not defined)"
+msgstr ""
+
+msgid "Used by HTTP clients and upstreams that do not set an outbound profile."
+msgstr ""
+
+msgid "The default outbound profile %s is not defined under network.outbound.profiles."
+msgstr ""
+
+msgid "Query Summary"
+msgstr ""
+
+msgid "Summary label"
+msgstr ""
+
+msgid "Extra label for the periodic summary."
+msgstr ""
+
+msgid "Metrics Collector"
+msgstr ""
+
+msgid "Metrics namespace"
+msgstr ""
+
+msgid "Metrics are exposed through GET /api/metrics."
+msgstr ""
+
+msgid "Debug Print"
+msgstr ""
+
+msgid "Message"
+msgstr ""
+
+msgid "Sleep"
+msgstr ""
+
+msgid "Sleep duration (ms)"
+msgstr ""
+
+msgid "IPSet"
+msgstr ""
+
+msgid "IPv4 set name"
+msgstr ""
+
+msgid "IPv6 set name"
+msgstr ""
+
+msgid "IPv4 prefix length"
+msgstr ""
+
+msgid "IPv6 prefix length"
+msgstr ""
+
+msgid "NftSet"
+msgstr ""
+
+msgid "Edits the structured ipv4 and ipv6 targets. Compatibility-form fields remain in Advanced Mode."
+msgstr ""
+
+msgid "IPv4 table family"
+msgstr ""
+
+msgid "IPv4 table name"
+msgstr ""
+
+msgid "IPv6 table family"
+msgstr ""
+
+msgid "IPv6 table name"
 msgstr ""

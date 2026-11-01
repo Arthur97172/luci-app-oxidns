@@ -115,7 +115,7 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 | 日志级别（`Log level`） | `log.level` | 可选 `off`、`trace`、`debug`、`info`、`warn`、`error`，默认 `info`。 |
 | 日志文件（`Log file`） | `log.file` | 日志文件路径，默认 `/tmp/oxidns/oxidns.log`。留空表示不写日志文件，只输出到标准输出。 |
 | 轮转（`Rotation`） | `log.rotation.type` | 轮转周期：`never`（不轮转，默认）、`minutely`、`hourly`、`daily`、`weekly`。 |
-| 最大轮转文件数（`Maximum rotation files`） | `log.rotation.max_files` | 最多保留多少个历史文件。`0` 表示不自动删除。 |
+| 最大轮转文件数（`Maximum rotation files`） | `log.rotation.max_files` | 最多保留多少个历史文件。留空或填写 `0` 表示不自动删除；只有填写了值才会写入配置文件。 |
 
 说明：
 
@@ -158,7 +158,23 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 - `include` 必须是字符串列表，不能写成单个字符串。
 - 列表项不能为空，且不能重复。
 
-### 3.4 API（管理接口与 WebUI）
+### 3.4 出站网络（Outbound Network）
+
+对应配置路径 `network.outbound.default`。
+
+| 界面字段 | 配置字段 | 说明 |
+| --- | --- | --- |
+| 默认出站配置（`Default outbound profile`） | `network.outbound.default` | 从当前配置中已定义的 `network.outbound.profiles` 中选择默认出站配置。选择“无”会删除该字段。 |
+
+说明：
+
+- 下拉框只列出 `network.outbound.profiles` 中已经存在的配置名称。没有定义任何 profile 时只能选择“无”，需要先在高级模式或 WebUI 中添加 profile。
+- 该设置供未单独指定出站配置的 HTTP 客户端和上游使用；单个上游、`ip_selector`、`download` 等插件仍可用各自的 `Outbound profile` 覆盖。
+- 配置文件中指向未定义 profile 的 `default` 会保留在下拉框中并标记为“未定义”，保存前会提示校验错误。请先在 `network.outbound.profiles` 中定义该 profile，或改选已定义的 profile。
+- 选择“无”会删除 `network.outbound.default`，恢复核心默认行为（使用系统 DNS 和直连连接）。
+- 普通模式不编辑 `network.outbound.profiles` 的具体内容。
+
+### 3.5 API（管理接口与 WebUI）
 
 对应配置路径 `api.http`。
 
@@ -229,7 +245,7 @@ api:
 
 > `基本设置` 页面的 `打开 WebUI` 按钮根据这个监听地址生成 URL。监听 `127.0.0.1` 或 `::1` 时只能在路由器本机访问，LuCI 会显示提示；需要从局域网访问时，把监听地址改为 LAN 地址或 `0.0.0.0:9199`。
 
-### 3.5 监听地址（Listen Addresses）
+### 3.6 监听地址（Listen Addresses）
 
 对应 `plugins` 中的 `udp_server`、`tcp_server`、`quic_server` 实例。
 
@@ -263,7 +279,7 @@ api:
 - 如果配置了 `quic_server`，还需要在对应插件参数区配置 TLS 证书和私钥。
 - 如果页面提示“未找到 UDP、TCP 或 QUIC 服务插件”，说明当前配置没有对应插件，需要在高级模式或 WebUI 中创建。
 
-### 3.6 上游 DNS（Upstream DNS）
+### 3.7 上游 DNS（Upstream DNS）
 
 对应 `forward` 插件的 `plugins[i].args.upstreams`。
 
@@ -323,7 +339,7 @@ api:
 
 后端最终仍会执行 `oxidns check`，以核心的校验结果为准。
 
-### 3.7 常用插件参数
+### 3.8 常用插件参数
 
 普通模式会按插件类型显示 schema 中定义的字段。下面是常见插件的字段和各字段默认值。
 
@@ -461,6 +477,46 @@ api:
 | `Outbound profile` / `SOCKS5 proxy` | 下载使用的出站配置或代理。 |
 | `Download at startup when missing` | 文件缺失时是否在启动阶段下载，默认开启。 |
 
+#### query_summary / metrics_collector / debug_print / sleep
+
+| 插件 | 字段 | 说明 |
+| --- | --- | --- |
+| `query_summary` | `Summary label`（`msg`） | 周期性查询统计的附加标签，可留空。 |
+| `metrics_collector` | `Metrics namespace`（`name`） | 指标命名空间，可留空。指标通过 `GET /api/metrics` 暴露。 |
+| `debug_print` | `Message`（`msg`） | 写入调试日志的附加消息，可留空。 |
+| `sleep` | `Sleep duration (ms)`（`duration`） | 休眠时长，按字符串填写，例如 `100` 或 `100ms`，可留空。 |
+
+这些字段都不是必填项。核心允许空参数（`args: {}`），普通模式不会因为字段留空而拒绝保存。
+
+#### ipset
+
+| 字段 | 说明 |
+| --- | --- |
+| `IPv4 set name`（`set_name4`） | IPv4 集合名称。 |
+| `IPv6 set name`（`set_name6`） | IPv6 集合名称。 |
+| `IPv4 prefix length`（`mask4`） | IPv4 前缀长度，0–32，默认 24。 |
+| `IPv6 prefix length`（`mask6`） | IPv6 前缀长度，0–128，默认 32。 |
+
+集合需要事先由防火墙或 `ipset` 工具创建；字段均可留空。
+
+#### nftset
+
+| 字段 | 说明 |
+| --- | --- |
+| `IPv4 table family`（`ipv4.table_family`） | IPv4 表族，例如 `ip`。 |
+| `IPv4 table name`（`ipv4.table_name`） | IPv4 表名，例如 `mangle`。 |
+| `IPv4 set name`（`ipv4.set_name`） | IPv4 集合名称。 |
+| `IPv4 prefix length`（`ipv4.mask`） | IPv4 前缀长度，0–32。 |
+| `IPv6 table family`（`ipv6.table_family`） | IPv6 表族，例如 `ip6`。 |
+| `IPv6 table name`（`ipv6.table_name`） | IPv6 表名。 |
+| `IPv6 set name`（`ipv6.set_name`） | IPv6 集合名称。 |
+| `IPv6 prefix length`（`ipv6.mask`） | IPv6 前缀长度，0–128。 |
+
+说明：
+
+- 普通模式编辑结构化的 `ipv4` / `ipv6` 目标对象；兼容形式的扁平字段（`table_family4`、`table_name4`、`set_name4`、`mask4` 及 IPv6 对应项）仍可在高级模式中编辑。
+- 两类目标的字段均可留空，集合需事先由 nftables 创建。
+
 #### 其他插件
 
 | 插件 | 主要字段 |
@@ -479,7 +535,7 @@ api:
 
 对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的必填项、数值范围和枚举取值都会参与保存前校验；DoH 入口的 `Request path` 必须以 `/` 开头。插件自身要求的必填字段（例如 `fallback` 的主备执行器、`query_recorder` 的数据库路径、`geosite` / `geoip` 的数据文件、`dynamic_domain_set` 的规则文件、`quic_server` 的证书和私钥）缺失时也会直接提示。
 
-### 3.8 插件概览
+### 3.9 插件概览
 
 页面最下方的 `Plugins` 区域只读显示：
 
@@ -522,7 +578,7 @@ api:
 3. 点击 `保存并应用`。
 4. 用 `nslookup -po=<端口> example.com 127.0.0.1`（或对应地址）验证。
 
-如果把端口改为 53，需要先停止占用 53 的 dnsmasq DNS 功能；推荐保留 dnsmasq 并让它转发到 5335，具体见 [README.md](../README.md#让-oxidns-成为系统-dns)。
+如果把端口改为 53，需要先停止占用 53 的 dnsmasq DNS 功能；推荐保留 dnsmasq 并让它转发到 5335，具体见 [4.9 用 dnsmasq 转发（推荐）](#49-用-dnsmasq-转发推荐)。
 
 ### 4.4 启用缓存
 
@@ -587,7 +643,7 @@ nas.lan 192.168.1.10
 
 1. `Log level` 改为 `debug` 可临时排查问题；日常建议保持 `info` 或 `warn`。
 2. `Log file` 改为持久化路径，避免重启后丢失。
-3. 需要自动清理旧日志时设置 `Rotation` 和 `Maximum rotation files`。
+3. 需要自动清理旧日志时设置 `Rotation` 和 `Maximum rotation files`（留空表示不自动删除）。
 4. 点击 `保存并应用`。
 
 ### 4.8 备份、恢复与回滚
@@ -597,6 +653,61 @@ nas.lan 192.168.1.10
 - 查看改动：`改动预览` 只显示当前页面相对磁盘内容的差异。
 - 后端在写入前会把旧文件备份到工作目录下的 `config-backups/`（例如 `/var/lib/oxidns/config-backups/`），需要时可以手工恢复。
 
+### 4.9 用 dnsmasq 转发（推荐）
+
+OxiDNS 的 `udp_server` / `tcp_server` 插件默认监听 `:5335`，而 OpenWrt 的 53 端口由 dnsmasq 占用，DHCP 也由它提供。推荐保留 dnsmasq，让它把查询转发给 OxiDNS：局域网 DHCP、`xxx.lan` 主机名和租约名解析都不受影响，客户端也无需改动。
+
+1. 在 `服务 -> OxiDNS -> DNS配置` 的 `普通模式` 中，把两个 DNS 服务改为只监听本机，然后点击 `保存并应用`：
+
+```yaml
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+
+  - tag: tcp_server
+    type: tcp_server
+    args:
+      entry: main_sequence
+      listen: "127.0.0.1:5335"
+```
+
+上游服务器在 `forward` 插件的 `upstreams` 中配置，默认是 `223.5.5.5`。
+
+2. 让 dnsmasq 只向 OxiDNS 查询：
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='1'
+uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5335'
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+`noresolv=1` 让 dnsmasq 忽略 `/tmp/resolv.conf.d/resolv.conf.auto`，WAN 重连重写它也不会绕过 OxiDNS。
+
+3. 验证：
+
+```sh
+nslookup -po=5335 www.baidu.com 127.0.0.1   # 直连 OxiDNS
+nslookup www.baidu.com 127.0.0.1            # 经 dnsmasq
+```
+
+停掉 OxiDNS 后经 dnsmasq 的查询应当超时或失败，重新启动后恢复，这说明流量确实经过 OxiDNS。
+
+回滚：
+
+```sh
+uci set dhcp.@dnsmasq[0].noresolv='0'
+uci -q delete dhcp.@dnsmasq[0].server
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+如果 OxiDNS 需要按客户端源地址做策略，也可以让它直接监听 53 端口：先执行 `uci set dhcp.@dnsmasq[0].port='0'` 关闭 dnsmasq 的 DNS 功能（DHCP 不受影响），并确认 DHCP 仍下发本机地址作为 DNS，再把上面两个 `listen` 改为 `":53"`。代价是 `xxx.lan` 主机名、DHCP 租约名和 dnsmasq 的 rebind 保护不再生效；IPv6 客户端还需要 OxiDNS 同时监听 IPv6，例如 `"[::]:53"`。
+
+无论哪种方式，都不要把 53 或 5335 端口暴露到 WAN，否则路由器会成为开放解析器。
+
 ---
 
 ## 五、高级模式详解
@@ -605,7 +716,7 @@ nas.lan 192.168.1.10
 
 - 新增或删除插件；
 - 编写 sequence、matcher 规则；
-- 配置 `network.outbound`、sequence/rules 等普通模式未覆盖的顶层字段；
+- 配置 `network.outbound.profiles`、sequence/rules 等普通模式未覆盖的字段；
 - 配置 API 的认证、TLS、CORS；
 - 普通模式未覆盖的插件参数。
 
