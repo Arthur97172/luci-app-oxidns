@@ -1212,7 +1212,14 @@ function schemaFieldProblems(doc, basePath, fields, pluginTitle, tag, problems) 
 		var value = plainValue(doc, path);
 		var label = _(text(field.label) || field.path.join('.'));
 
-		if (field.required && isEmptyValue(value))
+		/*
+		 * A required nested field only applies when its containing object
+		 * exists. Optional objects such as nftset ipv4/ipv6 may be omitted
+		 * entirely, but inside an object the core requires the named fields.
+		 */
+		var parentPresent = field.path.length < 2 || hasNodePath(doc, path.slice(0, -1));
+
+		if (field.required && parentPresent && isEmptyValue(value))
 			problems.push(_('The %s plugin %s requires the %s field.')
 				.format(pluginTitle, tag, label));
 

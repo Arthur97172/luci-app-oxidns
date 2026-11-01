@@ -479,12 +479,12 @@ Processing order is `fix` → `min` → `max`; when both bounds are set, the max
 
 | Plugin | Field | Description |
 | --- | --- | --- |
-| `query_summary` | `Summary label` (`msg`) | Extra label for the periodic query summary. May be empty. |
-| `metrics_collector` | `Metrics namespace` (`name`) | Metrics namespace. May be empty. Metrics are exposed through `GET /api/metrics`. |
-| `debug_print` | `Message` (`msg`) | Extra message written to the debug log. May be empty. |
-| `sleep` | `Sleep duration (ms)` (`duration`) | Sleep duration as a string, for example `100` or `100ms`. May be empty. |
+| `query_summary` | `Summary label` (`msg`) | Extra label for the periodic query summary. Defaults to `query summary`. |
+| `metrics_collector` | `Metrics namespace` (`name`) | Metrics namespace. Defaults to `default`. Metrics are exposed through `GET /api/metrics`. |
+| `debug_print` | `Message` (`msg`) | Extra message written to the debug log. Defaults to `debug print`. |
+| `sleep` | `Sleep duration (ms)` (`duration`) | Sleep duration as an integer number of milliseconds. Defaults to `0`, which means no delay. |
 
-None of these fields is required. The core accepts empty arguments (`args: {}`), so Normal mode does not refuse to save because a field is empty.
+None of these fields is required. The core accepts empty arguments (`args: {}`), so Normal mode does not refuse to save because a field is empty. The form shows the core defaults, but writes them only when the field is actually changed.
 
 #### ipset
 
@@ -504,16 +504,16 @@ The sets must already exist in the firewall or be created with `ipset`; every fi
 | `IPv4 table family` (`ipv4.table_family`) | IPv4 table family, for example `ip`. |
 | `IPv4 table name` (`ipv4.table_name`) | IPv4 table name, for example `mangle`. |
 | `IPv4 set name` (`ipv4.set_name`) | IPv4 set name. |
-| `IPv4 prefix length` (`ipv4.mask`) | IPv4 prefix length, 0–32. |
+| `IPv4 prefix length` (`ipv4.mask`) | IPv4 prefix length, 0–32, default 24. |
 | `IPv6 table family` (`ipv6.table_family`) | IPv6 table family, for example `ip6`. |
 | `IPv6 table name` (`ipv6.table_name`) | IPv6 table name. |
 | `IPv6 set name` (`ipv6.set_name`) | IPv6 set name. |
-| `IPv6 prefix length` (`ipv6.mask`) | IPv6 prefix length, 0–128. |
+| `IPv6 prefix length` (`ipv6.mask`) | IPv6 prefix length, 0–128, default 48. |
 
 Notes:
 
 - Normal mode edits the structured `ipv4` / `ipv6` target objects. The compatibility-form flat fields (`table_family4`, `table_name4`, `set_name4`, `mask4`, and their IPv6 counterparts) remain editable only in Advanced mode.
-- Every field in both targets may be empty; the sets must already exist in nftables.
+- The `ipv4` / `ipv6` targets may be omitted entirely; when a target is configured, its `table_family`, `table_name`, and `set_name` fields are required. The sets must already exist in nftables.
 
 #### Other Plugins
 

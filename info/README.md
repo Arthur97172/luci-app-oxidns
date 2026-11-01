@@ -481,12 +481,12 @@ api:
 
 | 插件 | 字段 | 说明 |
 | --- | --- | --- |
-| `query_summary` | `Summary label`（`msg`） | 周期性查询统计的附加标签，可留空。 |
-| `metrics_collector` | `Metrics namespace`（`name`） | 指标命名空间，可留空。指标通过 `GET /api/metrics` 暴露。 |
-| `debug_print` | `Message`（`msg`） | 写入调试日志的附加消息，可留空。 |
-| `sleep` | `Sleep duration (ms)`（`duration`） | 休眠时长，按字符串填写，例如 `100` 或 `100ms`，可留空。 |
+| `query_summary` | `Summary label`（`msg`） | 周期性查询统计的附加标签，默认 `query summary`。 |
+| `metrics_collector` | `Metrics namespace`（`name`） | 指标命名空间，默认 `default`。指标通过 `GET /api/metrics` 暴露。 |
+| `debug_print` | `Message`（`msg`） | 写入调试日志的附加消息，默认 `debug print`。 |
+| `sleep` | `Sleep duration (ms)`（`duration`） | 休眠时长，按整数毫秒填写，默认 `0`，表示不等待。 |
 
-这些字段都不是必填项。核心允许空参数（`args: {}`），普通模式不会因为字段留空而拒绝保存。
+这些字段都不是必填项。核心允许空参数（`args: {}`），普通模式不会因为字段留空而拒绝保存。表单会显示核心的默认值，但只有实际改动字段时才会写入配置。
 
 #### ipset
 
@@ -506,16 +506,16 @@ api:
 | `IPv4 table family`（`ipv4.table_family`） | IPv4 表族，例如 `ip`。 |
 | `IPv4 table name`（`ipv4.table_name`） | IPv4 表名，例如 `mangle`。 |
 | `IPv4 set name`（`ipv4.set_name`） | IPv4 集合名称。 |
-| `IPv4 prefix length`（`ipv4.mask`） | IPv4 前缀长度，0–32。 |
+| `IPv4 prefix length`（`ipv4.mask`） | IPv4 前缀长度，0–32，默认 24。 |
 | `IPv6 table family`（`ipv6.table_family`） | IPv6 表族，例如 `ip6`。 |
 | `IPv6 table name`（`ipv6.table_name`） | IPv6 表名。 |
 | `IPv6 set name`（`ipv6.set_name`） | IPv6 集合名称。 |
-| `IPv6 prefix length`（`ipv6.mask`） | IPv6 前缀长度，0–128。 |
+| `IPv6 prefix length`（`ipv6.mask`） | IPv6 前缀长度，0–128，默认 48。 |
 
 说明：
 
 - 普通模式编辑结构化的 `ipv4` / `ipv6` 目标对象；兼容形式的扁平字段（`table_family4`、`table_name4`、`set_name4`、`mask4` 及 IPv6 对应项）仍可在高级模式中编辑。
-- 两类目标的字段均可留空，集合需事先由 nftables 创建。
+- `ipv4` / `ipv6` 目标可以整体不配置；一旦配置了某个目标，其 `table_family`、`table_name` 和 `set_name` 必填。集合需事先由 nftables 创建。
 
 #### 其他插件
 
