@@ -73,6 +73,9 @@ msgstr "除非勾选下面的选项，否则配置和工作目录数据会保留
 msgid "Configuration downloaded."
 msgstr "配置已下载。"
 
+msgid "Configuration uploaded. Listen addresses now use %s."
+msgstr "配置已上传。监听地址中的 IP 已更新为 %s。"
+
 msgid "Confirm"
 msgstr "确认"
 
@@ -760,6 +763,9 @@ msgstr "无法更新配置文件。"
 msgid "Unknown"
 msgstr "未知"
 
+msgid "%s exited with code %s"
+msgstr "%s 退出码 %s"
+
 msgid "%s exited with code %s: %s"
 msgstr "%s 退出码 %s：%s"
 
@@ -782,7 +788,121 @@ msgid "Unknown download error."
 msgstr "未知下载错误。"
 
 msgid "jsonfilter is not installed or unavailable; wanted asset=%s repository=%s release=%s."
-msgstr "jsonfilter 未安装或不可用；需要 asset=%s repository=%s release=%s。"
+msgstr "jsonfilter 未安装或不可用；需要资源 %s，仓库 %s，版本 %s。"
+
+msgid "The archive must contain a file named oxidns."
+msgstr "压缩包中必须包含名为 oxidns 的文件。"
+
+msgid "The uploaded binary is not executable for this target, or build-info failed."
+msgstr "上传的二进制文件无法在此目标上执行，或 build-info 执行失败。"
+
+msgid "A download proxy only works with curl on OpenWrt."
+msgstr "下载代理只能在 OpenWrt 上配合 curl 使用。"
+
+msgid "Failed to create the install directory."
+msgstr "无法创建安装目录。"
+
+msgid "Failed to write the oxidns binary."
+msgstr "无法写入 oxidns 可执行文件。"
+
+msgid "Failed to replace the oxidns binary."
+msgstr "无法替换 oxidns 可执行文件。"
+
+msgid "Failed to replace the WebUI files."
+msgstr "无法替换 WebUI 文件。"
+
+msgid "Cannot wait for OxiDNS to stop: ubus and jsonfilter are required."
+msgstr "无法等待 OxiDNS 停止：需要 ubus 和 jsonfilter。"
+
+msgid "Failed to query the OxiDNS service state while stopping."
+msgstr "停止 OxiDNS 时无法查询服务状态。"
+
+msgid "The OxiDNS service state is invalid while stopping."
+msgstr "停止 OxiDNS 时服务状态无效。"
+
+msgid "The OxiDNS service instance state is invalid while stopping."
+msgstr "停止 OxiDNS 时服务实例状态无效。"
+
+msgid "Timed out waiting for the old OxiDNS service instance to be removed."
+msgstr "等待旧 OxiDNS 服务实例移除超时。"
+
+msgid "error"
+msgstr "错误"
+
+msgid "connection refused"
+msgstr "连接被拒绝"
+
+msgid "network is unreachable"
+msgstr "网络不可达"
+
+msgid "no route to host"
+msgstr "无法路由到主机"
+
+msgid "connection timed out"
+msgstr "连接超时"
+
+msgid "could not connect to %s after %s ms: %s"
+msgstr "无法连接到 %s（%s 毫秒后）：%s"
+
+msgid "could not resolve host %s"
+msgstr "无法解析主机 %s"
+
+msgid "connection timed out after %s ms"
+msgstr "连接超时（%s 毫秒后）"
+
+msgid "operation timed out after %s ms with %s bytes received"
+msgstr "操作超时（%s 毫秒后，已接收 %s 字节）"
+
+msgid "the requested URL returned error %s"
+msgstr "请求的 URL 返回错误 %s"
+
+msgid "SSL connection error"
+msgstr "SSL 连接错误"
+
+msgid "Required asset %s from repository %s, release %s."
+msgstr "需要资源 %s，仓库 %s，版本 %s。"
+
+msgid "Asset: %s; digest: %s"
+msgstr "资源：%s；摘要：%s"
+
+msgid "Asset: %s; URL: %s; %s"
+msgstr "资源：%s；URL：%s；%s"
+
+msgid "Asset: %s; expected: %s; actual: %s"
+msgstr "资源：%s；预期：%s；实际：%s"
+
+msgid "Asset: %s; bundle: %s"
+msgstr "资源：%s；捆绑包：%s"
+
+msgid "Asset: %s"
+msgstr "资源：%s"
+
+msgid "Bundle: %s. Upload an official full or standard .tar.gz archive to install the WebUI."
+msgstr "捆绑包：%s。请上传官方 full 或 standard .tar.gz 压缩包以安装 WebUI。"
+
+msgid "Config: %s; working directory: %s"
+msgstr "配置：%s；工作目录：%s"
+
+msgid "Config: %s"
+msgstr "配置：%s"
+
+msgid "Source: %s"
+msgstr "来源：%s"
+
+msgid "Archive: %s"
+msgstr "归档：%s"
+
+msgid "Path: %s"
+msgstr "路径：%s"
+
+msgid "Working directory: %s"
+msgstr "工作目录：%s"
+
+msgid "missing"
+msgstr "缺失"
+
+msgid "API: %s; website: %s; repository: %s release: %s"
+msgstr "API：%s；网页：%s；仓库：%s 版本：%s"
 
 msgid "Advanced Mode"
 msgstr "高级模式"

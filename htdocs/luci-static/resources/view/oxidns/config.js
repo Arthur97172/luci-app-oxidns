@@ -166,14 +166,16 @@ function runConfigCall(label, call, args, onSuccess) {
 		ui.hideModal();
 		if (!result || result.ok === false) {
 			setStatus(i18n.message(result) || _('Operation failed'), true);
-			return;
+			return result;
 		}
 		if (onSuccess)
 			onSuccess(result);
 		setStatus(i18n.message(result) || _('Operation completed.'), false);
+		return result;
 	}).catch(function(err) {
 		ui.hideModal();
 		setStatus(err.message || String(err), true);
+		return null;
 	});
 }
 
@@ -281,6 +283,133 @@ function readTextFile(file) {
 	});
 }
 
+function validIpv4(value) {
+	var parts = String(value || '').split('.');
+
+	if (parts.length !== 4)
+		return false;
+
+	for (var i = 0; i < parts.length; i++) {
+		if (!/^\d{1,3}$/.test(parts[i]) || Number(parts[i]) > 255)
+			return false;
+	}
+
+	return true;
+}
+
+function concreteIpv4(value) {
+	if (!validIpv4(value))
+		return false;
+	if (value === '0.0.0.0' || value === '255.255.255.255')
+		return false;
+	if (value.indexOf('127.') === 0)
+		return false;
+	return true;
+}
+
+function splitListen(value) {
+	var match = String(value || '').trim().match(/^(\[[^\]]+\]|[^:]*):(\d+)$/);
+
+	if (!match)
+		return null;
+
+	return { 'host': match[1], 'port': match[2] };
+}
+
+function listenNodes(doc) {
+	var nodes = [];
+	var http = doc.getIn([ 'api', 'http' ], true);
+	var apiListen;
+
+	if (http && typeof http.value === 'string' && http.range) {
+		nodes.push(http);
+	}
+	else {
+		apiListen = doc.getIn([ 'api', 'http', 'listen' ], true);
+		if (apiListen && typeof apiListen.value === 'string' && apiListen.range)
+			nodes.push(apiListen);
+	}
+
+	var plugins = doc.getIn([ 'plugins' ], true);
+	var items = plugins && plugins.items ? plugins.items : [];
+
+	for (var i = 0; i < items.length; i++) {
+		var args = items[i] && typeof items[i].get === 'function'
+			? items[i].get('args', true)
+			: null;
+		var listen = args && typeof args.get === 'function'
+			? args.get('listen', true)
+			: null;
+
+		if (listen && typeof listen.value === 'string' && listen.range)
+			nodes.push(listen);
+	}
+
+	return nodes;
+}
+
+/*
+ * A configuration exported from another router can carry that router's LAN
+ * address in listen fields. Replace concrete IPv4 hosts with this router's
+ * address while keeping wildcard, loopback, hostname, and IPv6 listeners as
+ * they are. Splice only the scalar literals so comments and formatting stay
+ * untouched.
+ */
+function localizeListenAddresses(content, localIp) {
+	var result = { 'content': content, 'changed': false, 'localIp': localIp };
+	var source = String(content || '');
+	var doc;
+
+	if (!concreteIpv4(localIp))
+		return result;
+
+	try {
+		doc = yaml.parseDocument(source);
+	}
+	catch (err) {
+		return result;
+	}
+
+	if (!doc || !doc.contents || (doc.errors && doc.errors.length))
+		return result;
+
+	var nodes = listenNodes(doc);
+	var changes = [];
+
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		var parsed = splitListen(node.value);
+
+		if (!parsed || !concreteIpv4(parsed.host) || parsed.host === localIp)
+			continue;
+
+		var literal = source.slice(node.range[0], node.range[1]);
+		var hostIndex = literal.indexOf(parsed.host);
+
+		if (hostIndex === -1)
+			continue;
+
+		changes.push({
+			'start': node.range[0],
+			'end': node.range[1],
+			'literal': literal.slice(0, hostIndex) +
+				localIp +
+				literal.slice(hostIndex + parsed.host.length)
+		});
+	}
+
+	if (!changes.length)
+		return result;
+
+	changes.sort(function(a, b) { return b.start - a.start; });
+
+	var output = source;
+	for (var j = 0; j < changes.length; j++)
+		output = output.slice(0, changes[j].start) + changes[j].literal + output.slice(changes[j].end);
+
+	return { 'content': output, 'changed': true, 'localIp': localIp };
+}
+
 function uploadYaml(file) {
 	if (!file)
 		return Promise.resolve();
@@ -289,14 +418,24 @@ function uploadYaml(file) {
 		return Promise.resolve();
 	}
 
-	return readTextFile(file).then(function(content) {
+	return Promise.all([
+		readTextFile(file),
+		L.resolveDefault(callStatus(), {})
+	]).then(function(results) {
+		var content = results[0];
+		var status = results[1] || {};
+		var localized = localizeListenAddresses(content, status.lan_ipv4 || '');
+
 		return runConfigCall(_('Uploading configuration...'), callConfigSave, [
-			content,
+			localized.content,
 			state.mtime,
 			false
 		], function(result) {
 			state.mtime = result.mtime !== undefined ? result.mtime : state.mtime;
-			applySavedContent(content);
+			applySavedContent(localized.content);
+		}).then(function(result) {
+			if (result && result.ok !== false && localized.changed)
+				setStatus(_('Configuration uploaded. Listen addresses now use %s.').format(localized.localIp), false);
 		});
 	}).catch(function(err) {
 		setStatus(err.message || String(err), true);

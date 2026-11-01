@@ -71,6 +71,9 @@ msgstr ""
 msgid "Configuration downloaded."
 msgstr ""
 
+msgid "Configuration uploaded. Listen addresses now use %s."
+msgstr ""
+
 msgid "Confirm"
 msgstr ""
 
@@ -758,6 +761,9 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
+msgid "%s exited with code %s"
+msgstr ""
+
 msgid "%s exited with code %s: %s"
 msgstr ""
 
@@ -780,6 +786,120 @@ msgid "Unknown download error."
 msgstr ""
 
 msgid "jsonfilter is not installed or unavailable; wanted asset=%s repository=%s release=%s."
+msgstr ""
+
+msgid "The archive must contain a file named oxidns."
+msgstr ""
+
+msgid "The uploaded binary is not executable for this target, or build-info failed."
+msgstr ""
+
+msgid "A download proxy only works with curl on OpenWrt."
+msgstr ""
+
+msgid "Failed to create the install directory."
+msgstr ""
+
+msgid "Failed to write the oxidns binary."
+msgstr ""
+
+msgid "Failed to replace the oxidns binary."
+msgstr ""
+
+msgid "Failed to replace the WebUI files."
+msgstr ""
+
+msgid "Cannot wait for OxiDNS to stop: ubus and jsonfilter are required."
+msgstr ""
+
+msgid "Failed to query the OxiDNS service state while stopping."
+msgstr ""
+
+msgid "The OxiDNS service state is invalid while stopping."
+msgstr ""
+
+msgid "The OxiDNS service instance state is invalid while stopping."
+msgstr ""
+
+msgid "Timed out waiting for the old OxiDNS service instance to be removed."
+msgstr ""
+
+msgid "error"
+msgstr ""
+
+msgid "connection refused"
+msgstr ""
+
+msgid "network is unreachable"
+msgstr ""
+
+msgid "no route to host"
+msgstr ""
+
+msgid "connection timed out"
+msgstr ""
+
+msgid "could not connect to %s after %s ms: %s"
+msgstr ""
+
+msgid "could not resolve host %s"
+msgstr ""
+
+msgid "connection timed out after %s ms"
+msgstr ""
+
+msgid "operation timed out after %s ms with %s bytes received"
+msgstr ""
+
+msgid "the requested URL returned error %s"
+msgstr ""
+
+msgid "SSL connection error"
+msgstr ""
+
+msgid "Required asset %s from repository %s, release %s."
+msgstr ""
+
+msgid "Asset: %s; digest: %s"
+msgstr ""
+
+msgid "Asset: %s; URL: %s; %s"
+msgstr ""
+
+msgid "Asset: %s; expected: %s; actual: %s"
+msgstr ""
+
+msgid "Asset: %s; bundle: %s"
+msgstr ""
+
+msgid "Asset: %s"
+msgstr ""
+
+msgid "Bundle: %s. Upload an official full or standard .tar.gz archive to install the WebUI."
+msgstr ""
+
+msgid "Config: %s; working directory: %s"
+msgstr ""
+
+msgid "Config: %s"
+msgstr ""
+
+msgid "Source: %s"
+msgstr ""
+
+msgid "Archive: %s"
+msgstr ""
+
+msgid "Path: %s"
+msgstr ""
+
+msgid "Working directory: %s"
+msgstr ""
+
+msgid "missing"
+msgstr ""
+
+msgid "API: %s; website: %s; repository: %s release: %s"
 msgstr ""
 
 msgid "Advanced Mode"

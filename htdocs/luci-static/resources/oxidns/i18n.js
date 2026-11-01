@@ -89,19 +89,111 @@ function build() {
 		'failed to resolve the latest release tag from github.com': _('Failed to resolve the latest release tag from github.com.'),
 		'failed to fetch release assets from github.com': _('Failed to fetch release assets from github.com.'),
 		'unknown download error': _('Unknown download error.'),
+		'expected file: oxidns': _('The archive must contain a file named oxidns.'),
+		'the uploaded binary either is not executable for this target or build-info failed': _('The uploaded binary is not executable for this target, or build-info failed.'),
+		'download_proxy only works with curl on OpenWrt': _('A download proxy only works with curl on OpenWrt.'),
+		'install_directory_failed': _('Failed to create the install directory.'),
+		'binary_write_failed': _('Failed to write the oxidns binary.'),
+		'binary_replace_failed': _('Failed to replace the oxidns binary.'),
+		'webui_replace_failed': _('Failed to replace the WebUI files.'),
+		'cannot wait for OxiDNS to stop: ubus and jsonfilter are required': _('Cannot wait for OxiDNS to stop: ubus and jsonfilter are required.'),
+		'failed to query OxiDNS service state while stopping': _('Failed to query the OxiDNS service state while stopping.'),
+		'invalid OxiDNS service state while stopping': _('The OxiDNS service state is invalid while stopping.'),
+		'invalid OxiDNS service instance state while stopping': _('The OxiDNS service instance state is invalid while stopping.'),
+		'timed out waiting for the old OxiDNS service instance to be removed': _('Timed out waiting for the old OxiDNS service instance to be removed.'),
 		'unknown': _('Unknown')
 	};
 }
 
+function translateCurlReason(reason) {
+	switch (reason) {
+	case 'Error':
+		return _('error');
+	case 'Connection refused':
+		return _('connection refused');
+	case 'Network is unreachable':
+		return _('network is unreachable');
+	case 'No route to host':
+		return _('no route to host');
+	case 'Connection timed out':
+		return _('connection timed out');
+	default:
+		return reason;
+	}
+}
+
+function translateCurlMessage(message) {
+	var match;
+
+	match = message.match(/^Failed to connect to ([\s\S]*?) after (\d+) ms: ([\s\S]+)$/);
+	if (match)
+		return _('could not connect to %s after %s ms: %s').format(match[1], match[2], translateCurlReason(match[3]));
+
+	match = message.match(/^Could not resolve host: ([\s\S]+)$/);
+	if (match)
+		return _('could not resolve host %s').format(match[1]);
+
+	match = message.match(/^Connection timed out after (\d+) milliseconds$/);
+	if (match)
+		return _('connection timed out after %s ms').format(match[1]);
+
+	match = message.match(/^Operation timed out after (\d+) milliseconds with (\d+) bytes received$/);
+	if (match)
+		return _('operation timed out after %s ms with %s bytes received').format(match[1], match[2]);
+
+	match = message.match(/^The requested URL returned error: (\d+)$/);
+	if (match)
+		return _('the requested URL returned error %s').format(match[1]);
+
+	if (message === 'SSL connect error')
+		return _('SSL connection error');
+
+	return '';
+}
+
+function translateDetailValuePart(value) {
+	if (value === 'missing')
+		return _('missing');
+	if (value === 'unknown')
+		return _('Unknown');
+	return value;
+}
+
+function translateCommandError(value) {
+	var match = value.match(/^([\w.-]+) exited with code (\d+)(?:: ([\s\S]+))?$/);
+	var inner;
+	var curl;
+
+	if (!match)
+		return '';
+
+	if (!match[3])
+		return _('%s exited with code %s').format(match[1], match[2]);
+
+	inner = match[3];
+	curl = inner.match(/^curl: \((\d+)\) ([\s\S]+)$/);
+	if (curl) {
+		var translated = translateCurlMessage(curl[2]);
+		inner = translated || curl[2];
+	}
+
+	return _('%s exited with code %s: %s').format(match[1], match[2], inner);
+}
+
 function translateDetailValue(value) {
 	var match;
+	var translated;
 
 	if (details[value])
 		return details[value];
 
-	match = value.match(/^([\w.-]+) exited with code (\d+): ([\s\S]+)$/);
-	if (match)
-		return _('%s exited with code %s: %s').format(match[1], match[2], match[3]);
+	translated = translateCommandError(value);
+	if (translated)
+		return translated;
+
+	match = value.match(/^curl: \(\d+\) ([\s\S]+)$/);
+	if (match && translateCurlMessage(match[1]))
+		return translateCurlMessage(match[1]);
 
 	match = value.match(/^release tag cannot be used in a github\.com URL: ([\s\S]+)$/);
 	if (match)
@@ -114,6 +206,58 @@ function translateDetailValue(value) {
 	match = value.match(/^jsonfilter is not installed or unavailable; wanted asset=([\s\S]+) repository=([\s\S]+) release=([\s\S]+)$/);
 	if (match)
 		return _('jsonfilter is not installed or unavailable; wanted asset=%s repository=%s release=%s.').format(match[1], match[2], match[3]);
+
+	match = value.match(/^wanted asset=([\s\S]+) repository=([\s\S]+) release=([\s\S]+)$/);
+	if (match)
+		return _('Required asset %s from repository %s, release %s.').format(match[1], match[2], match[3]);
+
+	match = value.match(/^asset=([\s\S]*?) digest=([\s\S]*)$/);
+	if (match)
+		return _('Asset: %s; digest: %s').format(match[1], translateDetailValuePart(match[2]));
+
+	match = value.match(/^asset=([\s\S]*?) url=([\s\S]*?); ([\s\S]+)$/);
+	if (match)
+		return _('Asset: %s; URL: %s; %s').format(match[1], match[2], translateDetailValue(match[3]));
+
+	match = value.match(/^asset=([\s\S]*?) expected=([\s\S]*?) actual=([\s\S]*)$/);
+	if (match)
+		return _('Asset: %s; expected: %s; actual: %s').format(match[1], match[2], translateDetailValuePart(match[3]));
+
+	match = value.match(/^asset=([\s\S]*?) bundle=([\s\S]*)$/);
+	if (match)
+		return _('Asset: %s; bundle: %s').format(match[1], translateDetailValuePart(match[2]));
+
+	match = value.match(/^asset=([\s\S]+)$/);
+	if (match)
+		return _('Asset: %s').format(match[1]);
+
+	match = value.match(/^bundle=([\s\S]*?); upload an official full or standard \.tar\.gz archive to install the WebUI$/);
+	if (match)
+		return _('Bundle: %s. Upload an official full or standard .tar.gz archive to install the WebUI.').format(translateDetailValuePart(match[1]));
+
+	match = value.match(/^config=([\s\S]*?) working_dir=([\s\S]*)$/);
+	if (match)
+		return _('Config: %s; working directory: %s').format(match[1], match[2]);
+
+	match = value.match(/^config=([\s\S]+)$/);
+	if (match)
+		return _('Config: %s').format(match[1]);
+
+	match = value.match(/^source=([\s\S]+)$/);
+	if (match)
+		return _('Source: %s').format(match[1]);
+
+	match = value.match(/^archive=([\s\S]+)$/);
+	if (match)
+		return _('Archive: %s').format(match[1]);
+
+	match = value.match(/^path=([\s\S]+)$/);
+	if (match)
+		return _('Path: %s').format(match[1]);
+
+	match = value.match(/^working_dir=([\s\S]+)$/);
+	if (match)
+		return _('Working directory: %s').format(match[1]);
 
 	return value;
 }
@@ -159,10 +303,11 @@ function detail(text) {
 	var composite = value.match(/^api=([\s\S]*?); web=([\s\S]*?); repository=([\s\S]*?) release=([\s\S]*)$/);
 
 	if (composite)
-		return 'api=' + translateDetailValue(composite[1]) +
-			'; web=' + translateDetailValue(composite[2]) +
-			'; repository=' + composite[3] +
-			' release=' + composite[4];
+		return _('API: %s; website: %s; repository: %s release: %s').format(
+			translateDetailValue(composite[1]),
+			translateDetailValue(composite[2]),
+			composite[3],
+			composite[4]);
 
 	return translateDetailValue(value);
 }

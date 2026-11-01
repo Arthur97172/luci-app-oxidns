@@ -479,6 +479,7 @@ emit_status() {
 	WEBUI_URL="$(webui_url_from_config 2>/dev/null || true)"
 	WEBUI_LISTEN="$(config_api_listen 2>/dev/null || true)"
 	WEBUI_HOST="$(listen_host_from_config 2>/dev/null || true)"
+	LAN_IPV4="$(lan_ipv4 2>/dev/null || true)"
 
 	if [ -x "$OXIDNS_BIN" ]; then CORE_INSTALLED=1; fi
 	if [ -d "$WEBUI_DIR" ]; then WEBUI_INSTALLED=1; fi
@@ -507,6 +508,8 @@ emit_status() {
 	json_string "$CONFIG_PATH"
 	printf ',"working_dir":'
 	json_string "$WORKING_DIR"
+	printf ',"lan_ipv4":'
+	json_string "$LAN_IPV4"
 	printf ',"service_status":{"running":'
 	json_bool "$RUNNING"
 	printf ',"enabled":'
@@ -1801,11 +1804,16 @@ lan_ipv4_from_interface() {
 	'
 }
 
-default_api_listen() {
+lan_ipv4() {
 	LAN_IP="$(lan_ipv4_from_uci 2>/dev/null || true)"
 	if [ -z "$LAN_IP" ]; then
 		LAN_IP="$(lan_ipv4_from_interface br-lan 2>/dev/null || true)"
 	fi
+	printf '%s' "$LAN_IP"
+}
+
+default_api_listen() {
+	LAN_IP="$(lan_ipv4)"
 	if ! valid_ipv4 "$LAN_IP"; then
 		LAN_IP="0.0.0.0"
 	fi
