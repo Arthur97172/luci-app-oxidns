@@ -24,6 +24,12 @@ var callConfigSchema = rpc.declare({
 	expect: {}
 });
 
+var callConfigPluginTypes = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'config_plugin_types',
+	expect: {}
+});
+
 var callConfigValidate = rpc.declare({
 	object: 'luci.oxidns',
 	method: 'config_validate',
@@ -51,7 +57,8 @@ var state = {
 	preview: true,
 	bindings: [],
 	advancedDraft: '',
-	schema: null
+	schema: null,
+	pluginTypes: null
 };
 
 var previewTimer = null;
@@ -547,7 +554,8 @@ function fillBody(body) {
 			},
 			'rerender': renderBody,
 			'onInput': schedulePreview,
-			'schema': state.schema
+			'schema': state.schema,
+			'pluginTypes': state.pluginTypes
 		});
 
 		state.bindings = rendered.bindings;
@@ -629,15 +637,23 @@ return view.extend({
 			return null;
 		});
 
+		var pluginTypesPromise = L.resolveDefault(callConfigPluginTypes(), null).then(function(result) {
+			return result && result.ok !== false && result.plugins ? result : null;
+		}).catch(function() {
+			return null;
+		});
+
 		return Promise.all([
 			configPromise,
 			L.resolveDefault(callStatus(), {}),
-			schemaPromise
+			schemaPromise,
+			pluginTypesPromise
 		]).then(function(results) {
 			return {
 				config: results[0],
 				status: results[1] || {},
-				schema: results[2] || null
+				schema: results[2] || null,
+				pluginTypes: results[3] || null
 			};
 		});
 	},
@@ -656,6 +672,7 @@ return view.extend({
 		state.advancedDraft = configContent;
 		state.preview = true;
 		state.schema = data && data.schema ? data.schema : null;
+		state.pluginTypes = data && data.pluginTypes ? data.pluginTypes : null;
 		state.mode = parseContent(configContent) ? 'guided' : 'advanced';
 
 		if (readFailed && !coreInstalled(statusState)) {

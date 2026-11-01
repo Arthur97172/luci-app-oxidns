@@ -75,6 +75,8 @@ tar_has_member "$OUT_DIR/${PKG_BASE}.ipk" data.tar.gz
 tar_nested_has_member "$OUT_DIR/${PKG_BASE}.ipk" control.tar.gz postinst
 tar_nested_has_member "$OUT_DIR/${PKG_BASE}.ipk" control.tar.gz postrm
 tar_nested_has_member "$OUT_DIR/${PKG_BASE}.ipk" data.tar.gz etc/init.d/oxidns
+tar_nested_has_member "$OUT_DIR/${PKG_BASE}.ipk" data.tar.gz usr/share/oxidns/config-schema.json
+tar_nested_has_member "$OUT_DIR/${PKG_BASE}.ipk" data.tar.gz usr/share/oxidns/plugin-types.json
 tar_has_member "$OUT_DIR/${I18N_BASE}.ipk" control.tar.gz
 tar_has_member "$OUT_DIR/${I18N_BASE}.ipk" data.tar.gz
 tar_nested_has_member "$OUT_DIR/${I18N_BASE}.ipk" control.tar.gz postinst
@@ -87,6 +89,8 @@ tar_has_member "$OUT_DIR/${PKG_BASE}.apk" etc/config
 tar_has_member "$OUT_DIR/${PKG_BASE}.apk" usr/share/luci/menu.d
 tar_has_member "$OUT_DIR/${PKG_BASE}.apk" www/luci-static/resources/view/oxidns
 tar_has_member "$OUT_DIR/${PKG_BASE}.apk" usr/libexec/rpcd/luci.oxidns
+tar_has_member "$OUT_DIR/${PKG_BASE}.apk" usr/share/oxidns/config-schema.json
+tar_has_member "$OUT_DIR/${PKG_BASE}.apk" usr/share/oxidns/plugin-types.json
 tar_has_member "$OUT_DIR/${PKG_BASE}.apk" etc/init.d/oxidns
 tar_has_member "$OUT_DIR/${PKG_BASE}.apk" .post-install
 tar_has_member "$OUT_DIR/${PKG_BASE}.apk" .post-upgrade

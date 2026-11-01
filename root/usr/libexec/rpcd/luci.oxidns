@@ -4,10 +4,11 @@ set -eu
 
 UCI_PACKAGE="oxidns"
 UCI_SECTION="main"
-OXIDNS_BIN="/usr/bin/oxidns"
+OXIDNS_BIN="${OXIDNS_BIN:-/usr/bin/oxidns}"
 WEBUI_DIR="/usr/share/oxidns/webui"
 TARGETS_FILE="${OXIDNS_TARGETS_FILE:-/usr/share/oxidns/targets.json}"
 SCHEMA_FILE="${OXIDNS_SCHEMA_FILE:-/usr/share/oxidns/config-schema.json}"
+PLUGIN_TYPES_FILE="${OXIDNS_PLUGIN_TYPES_FILE:-/usr/share/oxidns/plugin-types.json}"
 DEFAULT_CONFIG_PATH="/etc/oxidns/config.yaml"
 DEFAULT_WORKING_DIR="/var/lib/oxidns"
 DEFAULT_LOG_DIR="/tmp/oxidns"
@@ -664,6 +665,49 @@ emit_config_schema() {
 	fi
 	printf '{"ok":true,"schema":'
 	cat "$SCHEMA_FILE"
+	printf '}\n'
+}
+
+plugin_types_array() {
+	EXPR="$1"
+	VALUE="$(printf '%s' "$PLUGIN_BUILD_JSON" | jsonfilter -e "$EXPR" 2>/dev/null || true)"
+	case "$VALUE" in
+		\[*\])
+			printf '%s' "$VALUE"
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+emit_plugin_types() {
+	if [ -x "$OXIDNS_BIN" ] && command -v jsonfilter >/dev/null 2>&1; then
+		PLUGIN_BUILD_JSON="$("$OXIDNS_BIN" build-info 2>/dev/null || true)"
+		if [ -n "$PLUGIN_BUILD_JSON" ] &&
+			SERVERS="$(plugin_types_array '@.supported_plugins.servers')" &&
+			EXECUTORS="$(plugin_types_array '@.supported_plugins.executors')" &&
+			MATCHERS="$(plugin_types_array '@.supported_plugins.matchers')" &&
+			PROVIDERS="$(plugin_types_array '@.supported_plugins.providers')"; then
+			printf '{"ok":true,"source":"core","version":'
+			json_string "$(json_value_from_string version "$PLUGIN_BUILD_JSON")"
+			printf ',"plugins":{"servers":%s,"executors":%s,"matchers":%s,"providers":%s}}\n' \
+				"$SERVERS" "$EXECUTORS" "$MATCHERS" "$PROVIDERS"
+			return 0
+		fi
+	fi
+
+	if [ ! -r "$PLUGIN_TYPES_FILE" ]; then
+		json_error "plugin_types_not_found" "plugin type catalog not found"
+		return 1
+	fi
+	if command -v jsonfilter >/dev/null 2>&1 &&
+		! jsonfilter -e '@' < "$PLUGIN_TYPES_FILE" >/dev/null 2>&1; then
+		json_error "plugin_types_invalid" "plugin type catalog is not valid JSON"
+		return 1
+	fi
+	printf '{"ok":true,"source":"static","version":"","plugins":'
+	cat "$PLUGIN_TYPES_FILE"
 	printf '}\n'
 }
 
@@ -2631,6 +2675,7 @@ case "${1:-}" in
 		printf '"service_disable":{},'
 		printf '"config_read":{},'
 		printf '"config_schema":{},'
+		printf '"config_plugin_types":{},'
 		printf '"config_validate":{"content":"string"},'
 		printf '"config_save":{"content":"string","base_mtime":"string","restart":"boolean"},'
 		printf '"settings_read":{},'
@@ -2686,6 +2731,9 @@ case "${1:-}" in
 				;;
 			config_schema)
 				emit_config_schema
+				;;
+			config_plugin_types)
+				emit_plugin_types
 				;;
 			config_validate)
 				emit_config_validate

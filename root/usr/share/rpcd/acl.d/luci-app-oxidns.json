@@ -8,6 +8,7 @@
 					"core_progress",
 					"config_read",
 					"config_schema",
+					"config_plugin_types",
 					"settings_read",
 					"logs_recent",
 					"logs_path_read"

@@ -3,7 +3,7 @@
 set -eu
 
 node -e "for (const f of ['htdocs/luci-static/resources/view/oxidns/overview.js','htdocs/luci-static/resources/view/oxidns/config.js','htdocs/luci-static/resources/view/oxidns/config-guided.js','htdocs/luci-static/resources/view/oxidns/logs.js','htdocs/luci-static/resources/view/oxidns/settings.js','htdocs/luci-static/resources/oxidns/yaml.js','htdocs/luci-static/resources/oxidns/i18n.js']) new Function(require('fs').readFileSync(f,'utf8'));"
-node -e "for (const f of ['root/usr/share/luci/menu.d/luci-app-oxidns.json','root/usr/share/rpcd/acl.d/luci-app-oxidns.json','root/usr/share/oxidns/targets.json','root/usr/share/oxidns/config-schema.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
+node -e "for (const f of ['root/usr/share/luci/menu.d/luci-app-oxidns.json','root/usr/share/rpcd/acl.d/luci-app-oxidns.json','root/usr/share/oxidns/targets.json','root/usr/share/oxidns/config-schema.json','root/usr/share/oxidns/plugin-types.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
 node <<'NODE'
 const fs = require('fs');
 
@@ -45,6 +45,23 @@ for (const definition of Object.values(schema.plugins || {})) {
 				required.add(value.label);
 		}
 	}
+}
+
+const pluginTypes = JSON.parse(fs.readFileSync('root/usr/share/oxidns/plugin-types.json', 'utf8'));
+const pluginCategories = ['servers', 'executors', 'matchers', 'providers'];
+const knownPluginTypes = new Set();
+for (const category of pluginCategories) {
+	if (!Array.isArray(pluginTypes[category]) || !pluginTypes[category].length)
+		throw new Error(`plugin-types.json: ${category} must be a non-empty array`);
+	for (const type of pluginTypes[category]) {
+		if (typeof type !== 'string' || !type)
+			throw new Error(`plugin-types.json: ${category} contains an invalid plugin type`);
+		knownPluginTypes.add(type);
+	}
+}
+for (const type of Object.keys(schema.plugins || {})) {
+	if (!knownPluginTypes.has(type))
+		throw new Error(`plugin-types.json: schema plugin type ${type} is missing from the fallback catalog`);
 }
 
 function poIds(file) {

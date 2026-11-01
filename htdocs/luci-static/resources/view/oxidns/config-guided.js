@@ -586,31 +586,79 @@ function argsSummary(item) {
 	return '-';
 }
 
-function pluginSection(doc) {
+var PLUGIN_TYPE_CATEGORIES = [ 'servers', 'executors', 'matchers', 'providers' ];
+
+function pluginTypeSupport(pluginTypes) {
+	var plugins = pluginTypes && pluginTypes.plugins;
+
+	if (!plugins || typeof plugins !== 'object')
+		return null;
+
+	var supported = {};
+
+	PLUGIN_TYPE_CATEGORIES.forEach(function(category) {
+		var list = plugins[category];
+
+		if (!Array.isArray(list))
+			return;
+
+		list.forEach(function(type) {
+			supported[text(type)] = true;
+		});
+	});
+
+	return {
+		'supported': supported,
+		'core': text(pluginTypes.source) === 'core'
+	};
+}
+
+function pluginTypeStatus(type, support) {
+	if (!type)
+		return '-';
+
+	if (support.supported[type])
+		return E('span', { 'style': 'color: var(--success-color-high, #2e7d32);' }, _('Supported'));
+
+	return E('span', { 'style': 'color: var(--danger-color-high, #b71c1c);' },
+		support.core ? _('Not supported by this core') : _('Unknown plugin type'));
+}
+
+function pluginSection(doc, options) {
+	var support = pluginTypeSupport(options && options.pluginTypes);
 	var rows = [
 		E('div', { 'class': 'tr' }, [
 			E('div', { 'class': 'td left', 'style': 'width: 240px' }, E('strong', {}, _('Tag'))),
 			E('div', { 'class': 'td left', 'style': 'width: 160px' }, E('strong', {}, _('Type'))),
-			E('div', { 'class': 'td left' }, E('strong', {}, _('Arguments')))
+			E('div', { 'class': 'td left' }, E('strong', {}, _('Arguments'))),
+			support ? E('div', { 'class': 'td left', 'style': 'width: 200px' }, E('strong', {}, _('Status'))) : ''
 		])
 	];
 
 	var items = pluginItems(doc);
 
 	items.forEach(function(item, index) {
+		var type = pluginType(item);
+
 		rows.push(E('div', { 'class': 'tr' }, [
 			E('div', { 'class': 'td left' }, pluginTag(item, index)),
-			E('div', { 'class': 'td left' }, pluginType(item) || '-'),
-			E('div', { 'class': 'td left' }, argsSummary(item))
+			E('div', { 'class': 'td left' }, type || '-'),
+			E('div', { 'class': 'td left' }, argsSummary(item)),
+			support ? E('div', { 'class': 'td left' }, pluginTypeStatus(type, support)) : ''
 		]));
 	});
 
 	if (!items.length)
 		rows.push(noteRow(_('No plugins are configured.')));
 
-	return section(_('Plugins'),
-		_('Normal mode covers common settings only. Use Advanced Mode to edit plugins and options not listed here.'),
-		rows);
+	var description = _('Normal mode covers common settings only. Use Advanced Mode to edit plugins and options not listed here.');
+
+	if (support)
+		description += ' ' + (support.core
+			? _('Plugin types are read from the installed OxiDNS core.')
+			: _('The OxiDNS core is not installed, so plugin types come from the built-in catalog.'));
+
+	return section(_('Plugins'), description, rows);
 }
 
 function validateConfig(doc) {
@@ -653,7 +701,7 @@ return baseclass.extend({
 			upstreamSection(doc, bindings, handlers)
 		].concat(schemaSections(doc, bindings, handlers));
 
-		sections.push(pluginSection(doc));
+		sections.push(pluginSection(doc, handlers));
 
 		var node = E('div', {}, sections);
 

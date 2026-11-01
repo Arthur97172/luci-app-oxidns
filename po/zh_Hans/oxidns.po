@@ -1098,3 +1098,21 @@ msgstr "TLS 私钥"
 
 msgid "Top N addresses"
 msgstr "保留地址数"
+
+msgid "Not supported by this core"
+msgstr "当前核心不支持"
+
+msgid "Plugin types are read from the installed OxiDNS core."
+msgstr "插件类型来自已安装的 OxiDNS 核心。"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Supported"
+msgstr "受支持"
+
+msgid "The OxiDNS core is not installed, so plugin types come from the built-in catalog."
+msgstr "未安装 OxiDNS 核心，插件类型来自内置目录。"
+
+msgid "Unknown plugin type"
+msgstr "未知插件类型"

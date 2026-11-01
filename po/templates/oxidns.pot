@@ -1096,3 +1096,21 @@ msgstr ""
 
 msgid "Top N addresses"
 msgstr ""
+
+msgid "Not supported by this core"
+msgstr ""
+
+msgid "Plugin types are read from the installed OxiDNS core."
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Supported"
+msgstr ""
+
+msgid "The OxiDNS core is not installed, so plugin types come from the built-in catalog."
+msgstr ""
+
+msgid "Unknown plugin type"
+msgstr ""

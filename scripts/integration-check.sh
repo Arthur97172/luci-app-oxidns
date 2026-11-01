@@ -95,7 +95,7 @@ rm -rf "$INIT_STUB_DIR"
 scripts/check.sh
 scripts/service-check.sh
 
-root/usr/libexec/rpcd/luci.oxidns list | json_ok "'status' in v && 'core_install' in v && 'core_reinstall' in v && 'core_update' in v && 'core_upload_install' in v && 'core_webui_install' in v && 'core_progress' in v && 'core_remove' in v && 'logs_recent' in v && 'logs_path_read' in v && 'logs_path_save' in v && 'settings_read' in v && 'config_read' in v && 'config_schema' in v && 'config_save' in v && !('config_basic_read' in v) && !('config_basic_save' in v)"
+root/usr/libexec/rpcd/luci.oxidns list | json_ok "'status' in v && 'core_install' in v && 'core_reinstall' in v && 'core_update' in v && 'core_upload_install' in v && 'core_webui_install' in v && 'core_progress' in v && 'core_remove' in v && 'logs_recent' in v && 'logs_path_read' in v && 'logs_path_save' in v && 'settings_read' in v && 'config_read' in v && 'config_schema' in v && 'config_plugin_types' in v && 'config_save' in v && !('config_basic_read' in v) && !('config_basic_save' in v)"
 root/usr/libexec/rpcd/luci.oxidns call status | json_ok "v.ok === true && v.core && v.core.installed === false && v.webui && v.webui.installed === false && typeof v.webui.url === 'string' && typeof v.webui.local_only === 'boolean' && typeof v.webui.wildcard === 'boolean' && !('api' in v) && !('api_base_url' in v) && !('package' in v) && !('package_manager' in v)"
 TARGET_FAKE_BIN="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-target-fake-bin.XXXXXX")"
 TARGET_CASES="$(mktemp "${TMPDIR:-/tmp}/oxidns-target-cases.XXXXXX")"
@@ -189,7 +189,7 @@ test "$(cat "$OXIDNS_BIN")" = "old-core-2"
 test -f "$WEBUI_DIR/sub/app.js"
 test -z "$(find "$(dirname "$OXIDNS_BIN")" -name '.oxidns.previous.*' -print -quit)"
 rm -rf "$WEBUI_HELPER_DIR"
-node -e "const acl=JSON.parse(require('fs').readFileSync('root/usr/share/rpcd/acl.d/luci-app-oxidns.json','utf8'))['luci-app-oxidns']; const read=acl.read.ubus['luci.oxidns']; const write=acl.write.ubus['luci.oxidns']; if (read.includes('core_update') || !write.includes('core_update') || read.includes('core_webui_install') || !write.includes('core_webui_install') || read.includes('config_validate') || !write.includes('config_validate') || !read.includes('config_schema') || write.includes('config_schema')) process.exit(1);"
+node -e "const acl=JSON.parse(require('fs').readFileSync('root/usr/share/rpcd/acl.d/luci-app-oxidns.json','utf8'))['luci-app-oxidns']; const read=acl.read.ubus['luci.oxidns']; const write=acl.write.ubus['luci.oxidns']; if (read.includes('core_update') || !write.includes('core_update') || read.includes('core_webui_install') || !write.includes('core_webui_install') || read.includes('config_validate') || !write.includes('config_validate') || !read.includes('config_schema') || write.includes('config_schema') || !read.includes('config_plugin_types') || write.includes('config_plugin_types')) process.exit(1);"
 JSON_ESCAPED="$(printf '%s\n' 'listen: "127.0.0.1:9199"' | awk 'BEGIN { ORS = "" } { if (NR > 1) printf "\\n"; for (i = 1; i <= length($0); i++) { c = substr($0, i, 1); if (c == "\\") printf "\\\\"; else if (c == "\"") printf "\\\""; else if (c == "\t") printf "\\t"; else if (c == "\r") printf "\\r"; else printf "%s", c; } }')"
 test "$JSON_ESCAPED" = 'listen: \"127.0.0.1:9199\"'
 PROGRESS_TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-progress-test.XXXXXX")"
@@ -215,6 +215,73 @@ printf '%s' '{"content":""}' | root/usr/libexec/rpcd/luci.oxidns call config_val
 root/usr/libexec/rpcd/luci.oxidns call config_read | json_ok "v.ok === false && v.code === 'config_not_found'"
 OXIDNS_SCHEMA_FILE="$PWD/root/usr/share/oxidns/config-schema.json" root/usr/libexec/rpcd/luci.oxidns call config_schema | json_ok "v.ok === true && v.schema && v.schema.version === 1 && v.schema.plugins && typeof v.schema.plugins === 'object'"
 OXIDNS_SCHEMA_FILE=/nonexistent/config-schema.json root/usr/libexec/rpcd/luci.oxidns call config_schema | json_ok "v.ok === false && v.code === 'schema_not_found'"
+PLUGIN_STUB_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-plugin-types.XXXXXX")"
+cat > "$PLUGIN_STUB_DIR/jsonfilter" <<'EOF'
+#!/usr/bin/env node
+'use strict';
+const fs = require('fs');
+const args = process.argv.slice(2);
+const at = args.indexOf('-e');
+if (at === -1)
+	process.exit(2);
+const expr = args[at + 1];
+let doc;
+try {
+	doc = JSON.parse(fs.readFileSync(0, 'utf8'));
+}
+catch (err) {
+	process.exit(1);
+}
+let value = doc;
+if (expr !== '@') {
+	for (const part of expr.replace(/^@\.?/, '').split('.').filter(Boolean)) {
+		if (value === null || typeof value !== 'object' || !(part in value))
+			process.exit(1);
+		value = value[part];
+	}
+}
+if (value === undefined)
+	process.exit(1);
+if (typeof value === 'string')
+	process.stdout.write(value + '\n');
+else
+	process.stdout.write(JSON.stringify(value) + '\n');
+EOF
+chmod 755 "$PLUGIN_STUB_DIR/jsonfilter"
+cat > "$PLUGIN_STUB_DIR/oxidns" <<'EOF'
+#!/bin/sh
+[ "${1:-}" = "build-info" ] || exit 2
+cat <<'JSON'
+{
+  "version": "9.9.9-test",
+  "bundle": "full",
+  "enabled_bundles": ["full"],
+  "enabled_features": ["plugin-response"],
+  "supported_plugins": {
+    "servers": ["udp_server", "tcp_server"],
+    "executors": ["forward", "sequence"],
+    "matchers": ["qname"],
+    "providers": ["domain_set"]
+  }
+}
+JSON
+EOF
+chmod 755 "$PLUGIN_STUB_DIR/oxidns"
+printf '%s\n' '#!/bin/sh' 'printf "not-json\n"' > "$PLUGIN_STUB_DIR/bad-oxidns"
+chmod 755 "$PLUGIN_STUB_DIR/bad-oxidns"
+PATH="$PLUGIN_STUB_DIR:$PATH" OXIDNS_BIN="$PLUGIN_STUB_DIR/oxidns" \
+	root/usr/libexec/rpcd/luci.oxidns call config_plugin_types |
+	json_ok "v.ok === true && v.source === 'core' && v.version === '9.9.9-test' && v.plugins.servers.length === 2 && v.plugins.servers[0] === 'udp_server' && v.plugins.executors.includes('forward') && v.plugins.matchers[0] === 'qname' && v.plugins.providers[0] === 'domain_set' && !('bundle' in v) && !('enabled_bundles' in v) && !('enabled_features' in v)"
+PATH="$PLUGIN_STUB_DIR:$PATH" OXIDNS_BIN="$PLUGIN_STUB_DIR/bad-oxidns" OXIDNS_PLUGIN_TYPES_FILE="$PWD/root/usr/share/oxidns/plugin-types.json" \
+	root/usr/libexec/rpcd/luci.oxidns call config_plugin_types |
+	json_ok "v.ok === true && v.source === 'static' && v.plugins.executors.includes('forward')"
+PATH="$PLUGIN_STUB_DIR:$PATH" OXIDNS_BIN="$PLUGIN_STUB_DIR/missing-oxidns" OXIDNS_PLUGIN_TYPES_FILE="$PWD/root/usr/share/oxidns/plugin-types.json" \
+	root/usr/libexec/rpcd/luci.oxidns call config_plugin_types |
+	json_ok "v.ok === true && v.source === 'static' && v.version === '' && v.plugins.servers.includes('udp_server') && v.plugins.servers.includes('quic_server') && v.plugins.executors.includes('forward') && v.plugins.executors.includes('prefer_ipv4') && v.plugins.matchers.includes('qname') && v.plugins.providers.includes('domain_set')"
+PATH="$PLUGIN_STUB_DIR:$PATH" OXIDNS_BIN="$PLUGIN_STUB_DIR/missing-oxidns" OXIDNS_PLUGIN_TYPES_FILE=/nonexistent/plugin-types.json \
+	root/usr/libexec/rpcd/luci.oxidns call config_plugin_types |
+	json_ok "v.ok === false && v.code === 'plugin_types_not_found'"
+rm -rf "$PLUGIN_STUB_DIR"
 root/usr/libexec/rpcd/luci.oxidns call settings_read | json_ok "v.ok === true && v.log_syslog === true && v.core_repository === 'svenshi/oxidns' && v.core_bundle === 'full' && v.download_proxy === '' && v.github_token === '' && v.download_proxy_set === false && v.github_token_set === false && !('api_base_url' in v)"
 FAKE_UCI_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oxidns-fake-uci.XXXXXX")"
 FAKE_UCI_STATE="$FAKE_UCI_DIR/state"
