@@ -183,7 +183,7 @@ WebUI 使用 `api.http.webui.root` 指向的静态目录，管理接口固定为
 - 替换内核或 WebUI 前会先完整暂存新文件并校验；复制失败时会恢复旧的内核二进制和 WebUI，避免留下新内核搭配缺失 WebUI 的状态。
 - `基本设置` 的 WebUI 入口根据配置文件中的 HTTP listen 地址生成，并且要求 WebUI 文件已安装、OxiDNS 服务正在运行。监听 `127.0.0.1` 或 `::1` 时，LuCI 会保留链接并提示需要本机访问或 SSH 隧道；监听 `0.0.0.0` / `[::]` 时会替换为当前浏览器访问路由器所用的主机名。`minimal` bundle 或上传的单一二进制不含 WebUI 文件。
 - 普通模式只编辑当前配置中已经存在的插件实例。新增、删除插件或调整 sequence 规则需要在高级模式或 OxiDNS WebUI 中完成；配置中使用 YAML anchor、alias 或 merge key 时，普通模式会变为只读。
-- 普通模式覆盖日志、`runtime.worker_threads`、`include` 包含文件、管理 API（监听、WebUI、TLS、Basic 认证、CORS）、UDP/TCP/QUIC/HTTP 服务端入口与监听、上游 DNS，以及常见插件参数（包括 `http_server` 的 DoH 入口、`download` 的下载列表、`ttl`、`reverse_lookup`、`prefer_ipv4` / `prefer_ipv6`）。保存前会按内置 schema 校验必填字段、数值范围、枚举值、证书私钥成对配置、`ttl` 最小/最大值关系以及 `include` 列表项；`network.outbound`、sequence/rules 以及未列出的插件类型仍需在高级模式或 WebUI 中编辑。
+- 普通模式覆盖日志、`runtime.worker_threads`、`include` 包含文件、管理 API（监听、WebUI、TLS、Basic 认证、CORS）、UDP/TCP/QUIC/HTTP 服务端入口与监听、上游 DNS，以及常见插件参数（包括 `http_server` 的 DoH 入口、`download` 的下载列表、`ttl`、`reverse_lookup`、`prefer_ipv4` / `prefer_ipv6`）。保存前会按内置 schema 校验必填字段、数值范围、枚举值、证书私钥成对配置以及 `include` 列表项；`network.outbound`、sequence/rules 以及未列出的插件类型仍需在高级模式或 WebUI 中编辑。
 - 普通模式保存时会重新序列化配置，保留注释、字段顺序和表单未管理的字段，但可能轻微调整空白格式；只有明确改动的字段才会写入，未修改的默认值不会补进文件。高级模式按编辑框中的原文保存。
 - 普通模式、高级模式和 OxiDNS WebUI 编辑的是同一份配置文件。在 WebUI 保存后，LuCI 页面需要重新加载才能看到新内容；LuCI 保存时会检查文件 mtime，检测到外部修改会拒绝覆盖，WebUI 没有同样的冲突保护，建议同一时间只使用一个入口编辑。
 - 日志页优先读取配置文件中 `log.file` 指定的日志文件，默认为 `/tmp/oxidns/oxidns.log`；文件不存在或不可读时回退到 OpenWrt `logread`。`设置` 中的“日志路径”可修改日志目录，保存设置时会把 `log.file` 写入配置文件；服务正在运行时自动重启 OxiDNS 使设置生效。内核安装时默认写入 `/tmp/oxidns/oxidns.log`，重启后该目录会被清空。

@@ -1346,8 +1346,6 @@ msgstr ""
 msgid "The shorthand form only sets the listen address. Convert it to configure the WebUI, TLS, authentication, and CORS."
 msgstr ""
 
-msgid "The ttl plugin %s sets a minimum TTL above its maximum."
-msgstr ""
 
 msgid "The include field must be a list of configuration file paths."
 msgstr ""

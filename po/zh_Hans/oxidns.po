@@ -1348,8 +1348,6 @@ msgstr "转换为详写形式"
 msgid "The shorthand form only sets the listen address. Convert it to configure the WebUI, TLS, authentication, and CORS."
 msgstr "简写形式只设置监听地址。转换为详写形式后即可配置 WebUI、TLS、认证和 CORS。"
 
-msgid "The ttl plugin %s sets a minimum TTL above its maximum."
-msgstr "ttl 插件 %s 的最短 TTL 大于最长 TTL。"
 
 msgid "The include field must be a list of configuration file paths."
 msgstr "include 字段必须是配置文件路径列表。"

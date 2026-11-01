@@ -1241,19 +1241,6 @@ function validateConfig(doc, options) {
 			}
 		}
 
-		if (type === 'ttl') {
-			var ttlMin = plainValue(doc, argsPath.concat([ 'min' ]));
-			var ttlMax = plainValue(doc, argsPath.concat([ 'max' ]));
-
-			if (!isEmptyValue(ttlMin) && !isEmptyValue(ttlMax)) {
-				var ttlMinValue = Number(ttlMin);
-				var ttlMaxValue = Number(ttlMax);
-
-				if (isFinite(ttlMinValue) && isFinite(ttlMaxValue) && ttlMinValue > ttlMaxValue)
-					problems.push(_('The ttl plugin %s sets a minimum TTL above its maximum.').format(tag));
-			}
-		}
-
 		var definition = definitions[type];
 
 		if (definition && Array.isArray(definition.fields))

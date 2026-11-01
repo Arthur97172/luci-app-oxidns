@@ -449,7 +449,7 @@ api:
 | `Minimum TTL (seconds)` | 最小 TTL。 |
 | `Maximum TTL (seconds)` | 最大 TTL。 |
 
-最少/最大值同时填写时，最小值不能大于最大值。
+处理顺序为 `fix` → `min` → `max`；同时填写最小值和最大值时，最终 TTL 以最大值封顶。
 
 #### download
 

@@ -447,7 +447,7 @@ Normal Mode renders fields from the schema for each plugin type already present.
 | `Minimum TTL (seconds)` | Minimum TTL. |
 | `Maximum TTL (seconds)` | Maximum TTL. |
 
-When both are set, the minimum cannot exceed the maximum.
+Processing order is `fix` → `min` → `max`; when both bounds are set, the maximum caps the final TTL.
 
 #### download
 
