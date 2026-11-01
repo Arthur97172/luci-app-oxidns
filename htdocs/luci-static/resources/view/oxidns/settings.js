@@ -1000,7 +1000,7 @@ return view.extend({
 				]),
 				E('div', {
 					'class': 'cbi-button-row',
-					'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0);'
+					'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); margin-top: var(--field-gap, 1em);'
 				}, [
 					E('button', {
 						'class': 'btn cbi-button cbi-button-positive',
