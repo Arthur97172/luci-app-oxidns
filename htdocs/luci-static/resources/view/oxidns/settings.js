@@ -230,6 +230,28 @@ function resetSettings() {
 	setStatus(_('Unsaved changes were discarded.'), false);
 }
 
+/*
+ * The Bootstrap theme stretches inputs inside .cbi-section-table to the full
+ * cell width, while its normal form controls stay at 210px. Keep this page
+ * consistent with the theme's native control width.
+ */
+var BOOTSTRAP_FORM_STYLE =
+	'.oxidns-bootstrap-form .table.cbi-section-table .oxidns-control { ' +
+	'width: 210px; max-width: 100%; box-sizing: border-box; }';
+
+function isBootstrapTheme() {
+	var links = document.querySelectorAll('link[rel="stylesheet"]');
+
+	for (var i = 0; i < links.length; i++) {
+		var href = links[i].getAttribute('href') || '';
+
+		if (/(^|\/)bootstrap(?:-[a-z]+)?\/cascade\.css/.test(href))
+			return true;
+	}
+
+	return false;
+}
+
 function row(label, input) {
 	return E('div', { 'class': 'tr' }, [
 		E('div', { 'class': 'td left', 'style': 'width: 240px' }, label),
@@ -240,7 +262,7 @@ function row(label, input) {
 function textInput(id, value, password, placeholder) {
 	return E('input', {
 		'id': id,
-		'class': 'cbi-input-text',
+		'class': 'cbi-input-text oxidns-control',
 		'type': password ? 'password' : 'text',
 		'value': value || '',
 		'placeholder': placeholder || null
@@ -256,7 +278,7 @@ function option(value, label, selected) {
 
 function bundleSelect(id, value) {
 	var selected = value || 'full';
-	return E('select', { 'id': id, 'class': 'cbi-input-select' }, [
+	return E('select', { 'id': id, 'class': 'cbi-input-select oxidns-control' }, [
 		option('full', 'full', selected === 'full'),
 		option('standard', 'standard', selected === 'standard'),
 		option('minimal', 'minimal', selected === 'minimal')
@@ -938,7 +960,10 @@ return view.extend({
 		serviceActionsKey = serviceActionStateKey(coreState);
 		poll.add(refreshCoreStatus, 5);
 
-		return E('div', { 'class': 'cbi-map' }, [
+		var bootstrap = isBootstrapTheme();
+
+		return E('div', { 'class': 'cbi-map' + (bootstrap ? ' oxidns-bootstrap-form' : '') }, [
+			bootstrap ? E('style', {}, BOOTSTRAP_FORM_STYLE) : '',
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Core Actions')),
 				E('div', { 'class': 'cbi-section-descr' },

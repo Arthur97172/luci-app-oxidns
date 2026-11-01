@@ -16,6 +16,28 @@ var UPSTREAM_CHOICES = null;
 var UPSTREAM_SELECT_CLASS = 'oxidns-upstream-select';
 var UPSTREAM_SELECT_STYLE = '.' + UPSTREAM_SELECT_CLASS + ' { width: 100% !important; margin: 0; text-align: left; }';
 
+/*
+ * The Bootstrap theme stretches inputs inside .cbi-section-table to the full
+ * cell width, while its normal form controls stay at 210px. Keep this page
+ * consistent with the theme's native control width.
+ */
+var BOOTSTRAP_FORM_STYLE =
+	'.oxidns-bootstrap-form .table.cbi-section-table .oxidns-control { ' +
+	'width: 210px; max-width: 100%; box-sizing: border-box; }';
+
+function isBootstrapTheme() {
+	var links = document.querySelectorAll('link[rel="stylesheet"]');
+
+	for (var i = 0; i < links.length; i++) {
+		var href = links[i].getAttribute('href') || '';
+
+		if (/(^|\/)bootstrap(?:-[a-z]+)?\/cascade\.css/.test(href))
+			return true;
+	}
+
+	return false;
+}
+
 function upstreamChoices() {
 	if (!UPSTREAM_CHOICES) {
 		UPSTREAM_CHOICES = {
@@ -111,7 +133,7 @@ function section(title, description, rows, tableStyle, footer) {
 function textInput(id, value, placeholder) {
 	return E('input', {
 		'id': id,
-		'class': 'cbi-input-text',
+		'class': 'cbi-input-text oxidns-control',
 		'type': 'text',
 		'value': value || '',
 		'placeholder': placeholder || null
@@ -136,7 +158,7 @@ function levelSelect(id, value) {
 	if (value && levels.indexOf(value) === -1)
 		levels.push(value);
 
-	return E('select', { 'id': id, 'class': 'cbi-input-select' },
+	return E('select', { 'id': id, 'class': 'cbi-input-select oxidns-control' },
 		levels.map(function(level) {
 			return E('option', {
 				'value': level,
@@ -150,7 +172,7 @@ function rotationSelect(id, value) {
 	if (value && rotations.indexOf(value) === -1)
 		rotations.push(value);
 
-	return E('select', { 'id': id, 'class': 'cbi-input-select' },
+	return E('select', { 'id': id, 'class': 'cbi-input-select oxidns-control' },
 		rotations.map(function(rotation) {
 			return E('option', {
 				'value': rotation,
@@ -306,7 +328,7 @@ function logSection(doc, bindings) {
 		row(_('Rotation'), rotationSelect('oxidns-cfg-log-rotation', rotation)),
 		row(_('Maximum rotation files'), E('input', {
 			'id': 'oxidns-cfg-log-rotation-max-files',
-			'class': 'cbi-input-text',
+			'class': 'cbi-input-text oxidns-control',
 			'type': 'number',
 			'step': '1',
 			'min': '0',
@@ -438,7 +460,7 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 		addBinding(bindings, id, path, 'delete', 'number');
 		return E('input', {
 			'id': id,
-			'class': 'cbi-input-text',
+			'class': 'cbi-input-text oxidns-control',
 			'type': 'number',
 			'step': '1',
 			'style': 'width: 210px; box-sizing: border-box;',
@@ -452,7 +474,7 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 		addBinding(bindings, id, path, 'delete', 'number');
 		return E('select', {
 			'id': id,
-			'class': 'cbi-input-select',
+			'class': 'cbi-input-select oxidns-control',
 			'style': 'width: 210px; box-sizing: border-box;'
 		},
 			[
@@ -468,7 +490,7 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 		addBinding(bindings, id, path, 'delete', 'string');
 		return E('input', {
 			'id': id,
-			'class': 'cbi-input-text',
+			'class': 'cbi-input-text oxidns-control',
 			'type': 'text',
 			'style': 'width: 210px; box-sizing: border-box;',
 			'value': text(value),
@@ -657,7 +679,7 @@ function schemaEnumSelect(field, id, value) {
 	if (!matched)
 		options.push(E('option', { 'value': value, 'selected': 'selected' }, value));
 
-	return E('select', { 'id': id, 'class': 'cbi-input-select' }, options);
+	return E('select', { 'id': id, 'class': 'cbi-input-select oxidns-control' }, options);
 }
 
 function schemaListValue(value) {
@@ -697,7 +719,7 @@ function schemaControl(doc, index, fieldIndex, field, bindings) {
 		addBinding(bindings, id, path, empty, 'number', defaultValue);
 		return E('input', {
 			'id': id,
-			'class': 'cbi-input-text',
+			'class': 'cbi-input-text oxidns-control',
 			'type': 'number',
 			'step': field.type === 'integer' ? '1' : 'any',
 			'min': field.min !== undefined ? field.min : null,
@@ -934,9 +956,11 @@ return baseclass.extend({
 	render: function(doc, options) {
 		var bindings = [];
 		var handlers = options || {};
+		var bootstrap = isBootstrapTheme();
 
 		var sections = [
 			E('style', {}, UPSTREAM_SELECT_STYLE),
+			bootstrap ? E('style', {}, BOOTSTRAP_FORM_STYLE) : '',
 			logSection(doc, bindings),
 			apiSection(doc, bindings),
 			listenSection(doc, bindings),
@@ -945,7 +969,7 @@ return baseclass.extend({
 
 		sections.push(pluginSection(doc, handlers));
 
-		var node = E('div', {}, sections);
+		var node = E('div', { 'class': bootstrap ? 'oxidns-bootstrap-form' : null }, sections);
 
 		if (typeof handlers.onInput === 'function') {
 			node.addEventListener('input', handlers.onInput);
