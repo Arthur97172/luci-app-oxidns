@@ -1114,3 +1114,54 @@ msgstr ""
 
 msgid "Unknown plugin type"
 msgstr ""
+
+msgid "Bind to device"
+msgstr ""
+
+msgid "Bootstrap IP version"
+msgstr ""
+
+msgid "Bootstrap server"
+msgstr ""
+
+msgid "Dial address"
+msgstr ""
+
+msgid "Disables certificate verification for this upstream."
+msgstr ""
+
+msgid "Enable pipeline"
+msgstr ""
+
+msgid "Hide options"
+msgstr ""
+
+msgid "IPv4"
+msgstr ""
+
+msgid "IPv6"
+msgstr ""
+
+msgid "Leave fields empty to use the protocol defaults."
+msgstr ""
+
+msgid "Max connections"
+msgstr ""
+
+msgid "Min connections"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Port override"
+msgstr ""
+
+msgid "Query timeout"
+msgstr ""
+
+msgid "SO_MARK"
+msgstr ""
+
+msgid "Use Options to set per-upstream connection details."
+msgstr ""

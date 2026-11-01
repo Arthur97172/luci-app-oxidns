@@ -1116,3 +1116,54 @@ msgstr "未安装 OxiDNS 核心，插件类型来自内置目录。"
 
 msgid "Unknown plugin type"
 msgstr "未知插件类型"
+
+msgid "Bind to device"
+msgstr "绑定网卡"
+
+msgid "Bootstrap IP version"
+msgstr "引导 IP 版本"
+
+msgid "Bootstrap server"
+msgstr "引导服务器"
+
+msgid "Dial address"
+msgstr "直连地址"
+
+msgid "Disables certificate verification for this upstream."
+msgstr "关闭此上游的证书校验。"
+
+msgid "Enable pipeline"
+msgstr "启用流水线"
+
+msgid "Hide options"
+msgstr "收起选项"
+
+msgid "IPv4"
+msgstr "IPv4"
+
+msgid "IPv6"
+msgstr "IPv6"
+
+msgid "Leave fields empty to use the protocol defaults."
+msgstr "留空则使用协议默认值。"
+
+msgid "Max connections"
+msgstr "最大连接数"
+
+msgid "Min connections"
+msgstr "最小连接数"
+
+msgid "Options"
+msgstr "选项"
+
+msgid "Port override"
+msgstr "端口覆盖"
+
+msgid "Query timeout"
+msgstr "查询超时"
+
+msgid "SO_MARK"
+msgstr "SO_MARK"
+
+msgid "Use Options to set per-upstream connection details."
+msgstr "通过“选项”设置各上游的连接参数。"

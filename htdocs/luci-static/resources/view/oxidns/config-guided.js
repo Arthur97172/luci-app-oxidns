@@ -332,6 +332,129 @@ function upstreamButton(label, onClick, options) {
 	}, label);
 }
 
+var UPSTREAM_FIELDS = [
+	{ 'key': 'tag', 'type': 'text', 'label': _('Tag') },
+	{ 'key': 'outbound', 'type': 'text', 'label': _('Outbound profile') },
+	{ 'key': 'dial_addr', 'type': 'text', 'label': _('Dial address'), 'placeholder': '203.0.113.1' },
+	{ 'key': 'port', 'type': 'number', 'label': _('Port override'), 'min': 1, 'max': 65535 },
+	{ 'key': 'bootstrap', 'type': 'text', 'label': _('Bootstrap server'), 'placeholder': '8.8.8.8:53' },
+	{ 'key': 'bootstrap_version', 'type': 'select', 'label': _('Bootstrap IP version'), 'values': [
+		{ 'value': '4', 'label': _('IPv4') },
+		{ 'value': '6', 'label': _('IPv6') }
+	] },
+	{ 'key': 'socks5', 'type': 'text', 'label': _('SOCKS5 proxy'), 'placeholder': '127.0.0.1:1080' },
+	{ 'key': 'timeout', 'type': 'text', 'label': _('Query timeout'), 'placeholder': '5s' },
+	{ 'key': 'idle_timeout', 'type': 'text', 'label': _('Idle timeout'), 'placeholder': '10s' },
+	{ 'key': 'max_conns', 'type': 'number', 'label': _('Max connections'), 'min': 0, 'max': 4096 },
+	{ 'key': 'min_conns', 'type': 'number', 'label': _('Min connections'), 'min': 0, 'max': 4096 },
+	{ 'key': 'insecure_skip_verify', 'type': 'boolean', 'label': _('Skip TLS verification'),
+		'help': _('Disables certificate verification for this upstream.') },
+	{ 'key': 'enable_pipeline', 'type': 'boolean', 'label': _('Enable pipeline') },
+	{ 'key': 'enable_http3', 'type': 'boolean', 'label': _('Enable HTTP/3') },
+	{ 'key': 'so_mark', 'type': 'number', 'label': _('SO_MARK'), 'min': 0, 'max': 4294967295 },
+	{ 'key': 'bind_to_device', 'type': 'text', 'label': _('Bind to device'), 'placeholder': 'eth0' }
+];
+
+function upstreamFieldPath(index, position, key) {
+	return [ 'plugins', index, 'args', 'upstreams', position, key ];
+}
+
+function upstreamFieldId(index, position, key) {
+	return 'oxidns-cfg-upstream-%d-%d-%s'.format(index, position, key);
+}
+
+function upstreamFieldControl(doc, index, position, field, bindings) {
+	var path = upstreamFieldPath(index, position, field.key);
+	var id = upstreamFieldId(index, position, field.key);
+	var value = plainValue(doc, path);
+	var absent = value === undefined || value === null;
+
+	switch (field.type) {
+	case 'boolean':
+		addBinding(bindings, id, path, 'delete', 'boolean');
+		return E('label', { 'style': 'display: inline-flex; gap: .5em; align-items: center;' }, [
+			E('input', {
+				'id': id,
+				'type': 'checkbox',
+				'style': 'position: static; top: auto; right: auto; margin: 0;',
+				'checked': value === true ? 'checked' : null
+			}),
+			field.label
+		]);
+
+	case 'number':
+		addBinding(bindings, id, path, 'delete', 'number');
+		return E('input', {
+			'id': id,
+			'class': 'cbi-input-text',
+			'type': 'number',
+			'step': '1',
+			'min': field.min !== undefined ? field.min : null,
+			'max': field.max !== undefined ? field.max : null,
+			'value': absent ? '' : String(value)
+		});
+
+	case 'select':
+		addBinding(bindings, id, path, 'delete', 'number');
+		return E('select', { 'id': id, 'class': 'cbi-input-select' },
+			[
+				E('option', { 'value': '', 'selected': absent ? 'selected' : null }, _('Default'))
+			].concat(field.values.map(function(option) {
+				return E('option', {
+					'value': option.value,
+					'selected': !absent && String(value) === option.value ? 'selected' : null
+				}, option.label);
+			})));
+
+	default:
+		addBinding(bindings, id, path, 'delete', 'string');
+		return E('input', {
+			'id': id,
+			'class': 'cbi-input-text',
+			'type': 'text',
+			'value': text(value),
+			'placeholder': field.placeholder || null
+		});
+	}
+}
+
+function upstreamFieldCell(doc, index, position, field, bindings) {
+	var children = [];
+
+	if (field.type !== 'boolean')
+		children.push(E('label', {
+			'for': upstreamFieldId(index, position, field.key),
+			'style': 'font-size: .9em; opacity: .85;'
+		}, field.label));
+
+	children.push(upstreamFieldControl(doc, index, position, field, bindings));
+
+	if (field.help)
+		children.push(E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .25em;' }, field.help));
+
+	return E('div', { 'style': 'display: flex; flex-direction: column; gap: .3em; min-width: 0;' }, children);
+}
+
+function upstreamAdvancedPresent(doc, index, position) {
+	return UPSTREAM_FIELDS.some(function(field) {
+		return hasNodePath(doc, upstreamFieldPath(index, position, field.key));
+	});
+}
+
+function upstreamAdvancedPanel(doc, index, position, bindings) {
+	var cells = UPSTREAM_FIELDS.map(function(field) {
+		return upstreamFieldCell(doc, index, position, field, bindings);
+	});
+
+	return E('div', {
+		'id': 'oxidns-cfg-upstream-options-%d-%d'.format(index, position),
+		'style': 'display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .9em 1.25em; padding: .75em 0 .25em;'
+	}, [
+		E('div', { 'class': 'cbi-value-description', 'style': 'grid-column: 1 / -1;' },
+			_('Leave fields empty to use the protocol defaults.'))
+	].concat(cells));
+}
+
 function upstreamSection(doc, bindings, options) {
 	var rows = [];
 	var footers = [];
@@ -359,15 +482,39 @@ function upstreamSection(doc, bindings, options) {
 			addBinding(bindings, id,
 				[ 'plugins', index, 'args', 'upstreams', position, 'addr' ], 'delete');
 
+			var panel = upstreamAdvancedPanel(doc, index, position, bindings);
+			var expanded = upstreamAdvancedPresent(doc, index, position);
+
+			panel.style.display = expanded ? '' : 'none';
+
+			var toggle = E('button', {
+				'id': 'oxidns-cfg-upstream-options-toggle-%d-%d'.format(index, position),
+				'class': 'btn cbi-button cbi-button-neutral',
+				'click': function(ev) {
+					ev.preventDefault();
+					var show = panel.style.display === 'none';
+					panel.style.display = show ? '' : 'none';
+					toggle.textContent = show ? _('Hide options') : _('Options');
+					toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
+				}
+			}, expanded ? _('Hide options') : _('Options'));
+			toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
 			rows.push(row(_('Upstream address') + ' ' + (position + 1),
-				E('div', { 'style': 'display: flex; gap: .5em; align-items: center; justify-content: flex-start; width: 100%;' }, [
+				E('div', { 'style': 'display: flex; gap: .5em; align-items: center; justify-content: flex-start; width: 100%; flex-wrap: wrap;' }, [
 					E('div', { 'style': 'flex: 0 0 210px; width: 210px; min-width: 0;' }, [
 						upstreamSelect(id, address)
 					]),
+					toggle,
 					upstreamButton(_('Remove'), function() {
 						doc.deleteIn([ 'plugins', index, 'args', 'upstreams', position ]);
 					}, options)
 				])));
+
+			rows.push(E('div', { 'class': 'tr' }, [
+				E('div', { 'class': 'td left', 'style': 'width: 240px' }, ''),
+				E('div', { 'class': 'td left' }, panel)
+			]));
 		});
 
 		if (!upstreams.length)
@@ -394,8 +541,10 @@ function upstreamSection(doc, bindings, options) {
 	if (!found)
 		rows.push(noteRow(_('No forward plugins were found.')));
 
-	return section(_('Upstream DNS'), _('Queries are forwarded to these upstream servers.'), rows,
-		'table-layout: fixed;', footers.length ? E('div', {}, footers) : null);
+	return section(_('Upstream DNS'),
+		_('Queries are forwarded to these upstream servers.') + ' ' +
+		_('Use Options to set per-upstream connection details.'),
+		rows, 'table-layout: fixed;', footers.length ? E('div', {}, footers) : null);
 }
 
 function schemaDefinitions(options) {
