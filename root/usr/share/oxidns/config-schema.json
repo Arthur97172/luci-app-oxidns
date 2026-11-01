@@ -6,21 +6,21 @@
 			"title": "Forward",
 			"fields": [
 				{ "path": [ "concurrent" ], "label": "Concurrent upstreams", "type": "integer", "min": 1, "max": 32, "default": 1 },
-				{ "path": [ "response_selection" ], "label": "Response selection", "type": "enum", "values": [ "fastest", "balanced", "prefer_positive", "consensus" ] },
+				{ "path": [ "response_selection" ], "label": "Response selection", "type": "enum", "values": [ "fastest", "balanced", "prefer_positive", "consensus" ], "default": "balanced" },
 				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
 			]
 		},
 		"cache": {
 			"title": "Cache",
 			"fields": [
-				{ "path": [ "size" ], "label": "Cache size (entries)", "type": "integer", "min": 0 },
+				{ "path": [ "size" ], "label": "Cache size (entries)", "type": "integer", "min": 0, "default": 1024 },
 				{ "path": [ "lazy_cache_ttl" ], "label": "Override TTL (seconds)", "type": "integer", "min": 0 },
 				{ "path": [ "dump_file" ], "label": "Dump file", "type": "string" },
-				{ "path": [ "dump_interval" ], "label": "Dump interval (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "dump_interval" ], "label": "Dump interval (seconds)", "type": "integer", "min": 0, "default": 600 },
 				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" },
-				{ "path": [ "cache_negative" ], "label": "Cache negative responses", "type": "boolean" },
-				{ "path": [ "max_negative_ttl" ], "label": "Max negative TTL (seconds)", "type": "integer", "min": 0 },
-				{ "path": [ "negative_ttl_without_soa" ], "label": "Negative TTL without SOA (seconds)", "type": "integer", "min": 0 },
+				{ "path": [ "cache_negative" ], "label": "Cache negative responses", "type": "boolean", "default": true },
+				{ "path": [ "max_negative_ttl" ], "label": "Max negative TTL (seconds)", "type": "integer", "min": 0, "default": 300 },
+				{ "path": [ "negative_ttl_without_soa" ], "label": "Negative TTL without SOA (seconds)", "type": "integer", "min": 0, "default": 60 },
 				{ "path": [ "max_positive_ttl" ], "label": "Max positive TTL (seconds)", "type": "integer", "min": 0 },
 				{ "path": [ "min_positive_ttl" ], "label": "Min positive TTL (seconds)", "type": "integer", "min": 0 },
 				{ "path": [ "ecs_in_key" ], "label": "Include ECS in cache key", "type": "boolean" }
@@ -47,7 +47,7 @@
 			"fields": [
 				{ "path": [ "primary" ], "label": "Primary executor", "type": "string" },
 				{ "path": [ "secondary" ], "label": "Standby executor", "type": "string" },
-				{ "path": [ "threshold" ], "label": "Slow threshold (ms)", "type": "integer", "min": 0 },
+				{ "path": [ "threshold" ], "label": "Slow threshold (ms)", "type": "integer", "min": 0, "default": 0 },
 				{ "path": [ "always_standby" ], "label": "Always run standby", "type": "boolean" },
 				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
 			]
@@ -55,45 +55,48 @@
 		"ip_selector": {
 			"title": "IP Selector",
 			"fields": [
-				{ "path": [ "selection_mode" ], "label": "Selection mode", "type": "enum", "values": [ "first_success", "best_within_budget", "background" ] },
+				{ "path": [ "selection_mode" ], "label": "Selection mode", "type": "enum", "values": [ "first_success", "best_within_budget", "background" ], "default": "first_success" },
 				{ "path": [ "outbound" ], "label": "Outbound profile", "type": "string" },
 				{ "path": [ "socks5" ], "label": "SOCKS5 proxy", "type": "string" },
-				{ "path": [ "probe_methods" ], "label": "Probe methods", "type": "string-list", "placeholder": "tcp:443\ntcp:80" },
-				{ "path": [ "probe_stagger" ], "label": "Probe stagger (ms)", "type": "integer", "min": 0 },
-				{ "path": [ "probe_timeout" ], "label": "Probe timeout (ms)", "type": "integer", "min": 1 },
-				{ "path": [ "max_wait" ], "label": "Max wait (ms)", "type": "integer", "min": 1 },
-				{ "path": [ "top_n" ], "label": "Top N addresses", "type": "integer", "min": 1 },
-				{ "path": [ "reorder_only" ], "label": "Reorder only", "type": "boolean" },
-				{ "path": [ "dnssec_policy" ], "label": "DNSSEC policy", "type": "enum", "values": [ "reorder_only", "skip" ] },
-				{ "path": [ "max_parallel_probes" ], "label": "Max parallel probes", "type": "integer", "min": 1 }
+				{ "path": [ "probe_methods" ], "label": "Probe methods", "type": "string-list", "placeholder": "tcp:443\ntcp:80", "default": [ "tcp:443", "tcp:80" ] },
+				{ "path": [ "probe_stagger" ], "label": "Probe stagger (ms)", "type": "integer", "min": 0, "default": 200 },
+				{ "path": [ "probe_timeout" ], "label": "Probe timeout (ms)", "type": "integer", "min": 1, "default": 600 },
+				{ "path": [ "max_wait" ], "label": "Max wait (ms)", "type": "integer", "min": 1, "default": 1000 },
+				{ "path": [ "top_n" ], "label": "Top N addresses", "type": "integer", "min": 0, "default": 1 },
+				{ "path": [ "dnssec_policy" ], "label": "DNSSEC policy", "type": "enum", "values": [ "reorder_only", "skip" ], "default": "reorder_only" },
+				{ "path": [ "max_parallel_probes" ], "label": "Max parallel probes", "type": "integer", "min": 1, "default": 256 },
+				{ "path": [ "cache", "enabled" ], "label": "Enable probe cache", "type": "boolean", "default": true },
+				{ "path": [ "cache", "size" ], "label": "Probe cache size", "type": "integer", "min": 0, "default": 4096 },
+				{ "path": [ "cache", "ttl" ], "label": "Success TTL (seconds)", "type": "integer", "min": 0, "default": 3600 },
+				{ "path": [ "cache", "failure_ttl" ], "label": "Failure TTL (seconds)", "type": "integer", "min": 0, "default": 60 }
 			]
 		},
 		"learn_domain": {
 			"title": "Learn Domain",
 			"fields": [
 				{ "path": [ "provider" ], "label": "Target dynamic domain set", "type": "string" },
-				{ "path": [ "phase" ], "label": "Learning phase", "type": "enum", "values": [ "before", "after" ] },
-				{ "path": [ "questions" ], "label": "Questions", "type": "enum", "values": [ "first", "all" ] },
-				{ "path": [ "qtypes" ], "label": "Query types", "type": "string-list", "placeholder": "A\nAAAA" },
-				{ "path": [ "success_only" ], "label": "Require success (NOERROR)", "type": "boolean" },
-				{ "path": [ "answer_required" ], "label": "Require an answer", "type": "boolean" },
-				{ "path": [ "rule_kind" ], "label": "Rule kind", "type": "enum", "values": [ "full", "domain" ] },
-				{ "path": [ "async" ], "label": "Asynchronous", "type": "boolean" },
-				{ "path": [ "error_mode" ], "label": "Error handling", "type": "enum", "values": [ "continue", "stop", "fail" ] },
-				{ "path": [ "timeout" ], "label": "Timeout", "type": "string", "placeholder": "1s" }
+				{ "path": [ "phase" ], "label": "Learning phase", "type": "enum", "values": [ "before", "after" ], "default": "after" },
+				{ "path": [ "questions" ], "label": "Questions", "type": "enum", "values": [ "first", "all" ], "default": "first" },
+				{ "path": [ "qtypes" ], "label": "Query types", "type": "string-list", "placeholder": "A\nAAAA", "default": [ "A", "AAAA" ] },
+				{ "path": [ "success_only" ], "label": "Require success (NOERROR)", "type": "boolean", "default": true },
+				{ "path": [ "answer_required" ], "label": "Require an answer", "type": "boolean", "default": true },
+				{ "path": [ "rule_kind" ], "label": "Rule kind", "type": "enum", "values": [ "full", "domain" ], "default": "full" },
+				{ "path": [ "async" ], "label": "Asynchronous", "type": "boolean", "default": true },
+				{ "path": [ "error_mode" ], "label": "Error handling", "type": "enum", "values": [ "continue", "stop", "fail" ], "default": "continue" },
+				{ "path": [ "timeout" ], "label": "Timeout", "type": "string", "placeholder": "1s", "default": "1s" }
 			]
 		},
 		"query_recorder": {
 			"title": "Query Recorder",
 			"fields": [
 				{ "path": [ "path" ], "label": "Database path", "type": "string", "placeholder": "/tmp/oxidns/query.db" },
-				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1 },
-				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1 },
-				{ "path": [ "flush_interval_ms" ], "label": "Flush interval (ms)", "type": "integer", "min": 1 },
-				{ "path": [ "memory_tail" ], "label": "In-memory tail size", "type": "integer", "min": 0 },
-				{ "path": [ "retention_days" ], "label": "Retention days", "type": "integer", "min": 0 },
-				{ "path": [ "cleanup_interval_hours" ], "label": "Cleanup interval (hours)", "type": "integer", "min": 1 },
-				{ "path": [ "reader_concurrency" ], "label": "Reader concurrency", "type": "integer", "min": 1 }
+				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1, "default": 8192 },
+				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1, "default": 256 },
+				{ "path": [ "flush_interval_ms" ], "label": "Flush interval (ms)", "type": "integer", "min": 1, "default": 200 },
+				{ "path": [ "memory_tail" ], "label": "In-memory tail size", "type": "integer", "min": 0, "default": 1024 },
+				{ "path": [ "retention_days" ], "label": "Retention days", "type": "integer", "min": 1, "default": 7 },
+				{ "path": [ "cleanup_interval_hours" ], "label": "Cleanup interval (hours)", "type": "integer", "min": 1, "default": 1 },
+				{ "path": [ "reader_concurrency" ], "label": "Reader concurrency", "type": "integer", "min": 1, "default": 2 }
 			]
 		},
 		"download": {
@@ -103,7 +106,7 @@
 				{ "path": [ "insecure_skip_verify" ], "label": "Skip TLS verification", "type": "boolean", "help": "Disables certificate verification for these downloads." },
 				{ "path": [ "outbound" ], "label": "Outbound profile", "type": "string" },
 				{ "path": [ "socks5" ], "label": "SOCKS5 proxy", "type": "string" },
-				{ "path": [ "startup_if_missing" ], "label": "Download at startup when missing", "type": "boolean" }
+				{ "path": [ "startup_if_missing" ], "label": "Download at startup when missing", "type": "boolean", "default": true }
 			]
 		},
 		"domain_set": {
@@ -148,9 +151,9 @@
 			"fields": [
 				{ "path": [ "path" ], "label": "Rules file", "type": "string", "placeholder": "/tmp/oxidns/learned.txt" },
 				{ "path": [ "bootstrap_rules" ], "label": "Bootstrap rules", "type": "string-list" },
-				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1 },
-				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1 },
-				{ "path": [ "flush_interval_ms" ], "label": "Flush interval (ms)", "type": "integer", "min": 1 }
+				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1, "default": 1024 },
+				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1, "default": 256 },
+				{ "path": [ "flush_interval_ms" ], "label": "Flush interval (ms)", "type": "integer", "min": 1, "default": 200 }
 			]
 		},
 		"tcp_server": {
@@ -158,7 +161,7 @@
 			"fields": [
 				{ "path": [ "cert" ], "label": "TLS certificate", "type": "string", "placeholder": "/etc/oxidns/server.crt" },
 				{ "path": [ "key" ], "label": "TLS private key", "type": "string", "placeholder": "/etc/oxidns/server.key" },
-				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "string", "placeholder": "10s" }
+				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "integer", "min": 0, "default": 10 }
 			]
 		},
 		"http_server": {
@@ -168,8 +171,16 @@
 				{ "path": [ "src_ip_header" ], "label": "Client IP header", "type": "string", "placeholder": "X-Real-IP" },
 				{ "path": [ "cert" ], "label": "TLS certificate", "type": "string", "placeholder": "/etc/oxidns/server.crt" },
 				{ "path": [ "key" ], "label": "TLS private key", "type": "string", "placeholder": "/etc/oxidns/server.key" },
-				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "string", "placeholder": "30s" },
+				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "integer", "min": 0, "default": 30 },
 				{ "path": [ "enable_http3" ], "label": "Enable HTTP/3", "type": "boolean" }
+			]
+		},
+		"quic_server": {
+			"title": "QUIC Server",
+			"fields": [
+				{ "path": [ "cert" ], "label": "TLS certificate", "type": "string", "placeholder": "/etc/oxidns/server.crt" },
+				{ "path": [ "key" ], "label": "TLS private key", "type": "string", "placeholder": "/etc/oxidns/server.key" },
+				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "integer", "min": 0 }
 			]
 		}
 	}

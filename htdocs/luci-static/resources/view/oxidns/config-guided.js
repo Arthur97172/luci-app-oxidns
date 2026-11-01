@@ -3,7 +3,8 @@
 'require ui';
 
 var LOG_LEVELS = [ 'off', 'trace', 'debug', 'info', 'warn', 'error' ];
-var LISTEN_SERVER_TYPES = { udp_server: true, tcp_server: true };
+var LOG_ROTATIONS = [ 'never', 'minutely', 'hourly', 'daily', 'weekly' ];
+var LISTEN_SERVER_TYPES = { udp_server: true, tcp_server: true, quic_server: true };
 
 var UPSTREAM_CHOICES = null;
 
@@ -144,6 +145,20 @@ function levelSelect(id, value) {
 		}));
 }
 
+function rotationSelect(id, value) {
+	var rotations = LOG_ROTATIONS.slice();
+	if (value && rotations.indexOf(value) === -1)
+		rotations.push(value);
+
+	return E('select', { 'id': id, 'class': 'cbi-input-select' },
+		rotations.map(function(rotation) {
+			return E('option', {
+				'value': rotation,
+				'selected': rotation === value ? 'selected' : null
+			}, rotation);
+		}));
+}
+
 function addBinding(bindings, id, path, empty, kind, defaultValue) {
 	bindings.push({
 		'id': id,
@@ -172,11 +187,13 @@ function editedLines(input) {
 }
 
 function sameLines(current, lines) {
-	if (!Array.isArray(current) || current.length !== lines.length)
+	var currentLines = Array.isArray(current) ? current : (typeof current === 'string' ? [ current ] : null);
+
+	if (!currentLines || currentLines.length !== lines.length)
 		return false;
 
 	for (var i = 0; i < lines.length; i++) {
-		if (text(current[i]) !== lines[i])
+		if (text(currentLines[i]) !== lines[i])
 			return false;
 	}
 
@@ -215,8 +232,13 @@ function applyBindings(doc, bindings) {
 			if (kind === 'string-list') {
 				var lines = editedLines(input);
 
-				if (!present ? !lines.length : sameLines(current, lines))
+				if (!present) {
+					if (!lines.length || (Array.isArray(binding['default']) && sameLines(binding['default'], lines)))
+						continue;
+				}
+				else if (sameLines(current, lines)) {
 					continue;
+				}
 
 				if (!lines.length) {
 					if (present)
@@ -269,28 +291,58 @@ function applyBindings(doc, bindings) {
 function logSection(doc, bindings) {
 	var level = text(doc.getIn([ 'log', 'level' ])) || 'info';
 	var file = text(doc.getIn([ 'log', 'file' ]));
+	var rotation = text(doc.getIn([ 'log', 'rotation', 'type' ])) || 'never';
+	var maxFiles = text(doc.getIn([ 'log', 'rotation', 'max_files' ]));
 
-	addBinding(bindings, 'oxidns-cfg-log-level', [ 'log', 'level' ]);
+	addBinding(bindings, 'oxidns-cfg-log-level', [ 'log', 'level' ], 'delete', 'string', 'info');
 	addBinding(bindings, 'oxidns-cfg-log-file', [ 'log', 'file' ], 'delete');
+	addBinding(bindings, 'oxidns-cfg-log-rotation', [ 'log', 'rotation', 'type' ], 'delete', 'string', 'never');
+	addBinding(bindings, 'oxidns-cfg-log-rotation-max-files', [ 'log', 'rotation', 'max_files' ], 'delete', 'number');
 
 	return section(_('Log'), null, [
 		row(_('Log level'), levelSelect('oxidns-cfg-log-level', level)),
 		row(_('Log file'), textInput('oxidns-cfg-log-file', file, '/tmp/oxidns/oxidns.log'),
-			_('Leave empty to stop writing to a log file.'))
+			_('Leave empty to stop writing to a log file.')),
+		row(_('Rotation'), rotationSelect('oxidns-cfg-log-rotation', rotation)),
+		row(_('Maximum rotation files'), E('input', {
+			'id': 'oxidns-cfg-log-rotation-max-files',
+			'class': 'cbi-input-text',
+			'type': 'number',
+			'step': '1',
+			'min': '0',
+			'value': maxFiles
+		}), _('Set to 0 to keep all historical rotation files.'))
 	]);
 }
 
 function apiSection(doc, bindings) {
-	var listen = text(doc.getIn([ 'api', 'http', 'listen' ]));
-	var root = text(doc.getIn([ 'api', 'http', 'webui', 'root' ]));
+	var http = plainValue(doc, [ 'api', 'http' ]);
+	var shorthand = typeof http === 'string';
+	var listen = shorthand ? http : text(doc.getIn([ 'api', 'http', 'listen' ]));
 
-	addBinding(bindings, 'oxidns-cfg-api-listen', [ 'api', 'http', 'listen' ], 'delete');
-	addBinding(bindings, 'oxidns-cfg-api-root', [ 'api', 'http', 'webui', 'root' ], 'delete');
+	addBinding(bindings, 'oxidns-cfg-api-listen',
+		shorthand ? [ 'api', 'http' ] : [ 'api', 'http', 'listen' ], 'delete');
 
-	return section(_('API'), null, [
-		row(_('HTTP listen'), textInput('oxidns-cfg-api-listen', listen, '0.0.0.0:9199')),
-		row(_('WebUI root'), textInput('oxidns-cfg-api-root', root, '/usr/share/oxidns/webui'))
-	]);
+	var rows = [
+		row(_('HTTP listen'), textInput('oxidns-cfg-api-listen', listen, '0.0.0.0:9199'))
+	];
+
+	if (shorthand) {
+		rows.push(noteRow(_('The API uses the shorthand form (api.http: "ip:port"). This form only sets the listen address and cannot serve WebUI files. Use Advanced Mode to switch to the expanded form before configuring WebUI.')));
+	}
+	else {
+		addBinding(bindings, 'oxidns-cfg-api-root', [ 'api', 'http', 'webui', 'root' ], 'delete');
+		addBinding(bindings, 'oxidns-cfg-api-index', [ 'api', 'http', 'webui', 'index' ], 'delete', 'string', 'index.html');
+
+		rows.push(row(_('WebUI root'),
+			textInput('oxidns-cfg-api-root', text(doc.getIn([ 'api', 'http', 'webui', 'root' ])),
+				'/usr/share/oxidns/webui')));
+		rows.push(row(_('WebUI index'),
+			textInput('oxidns-cfg-api-index',
+				text(doc.getIn([ 'api', 'http', 'webui', 'index' ])) || 'index.html')));
+	}
+
+	return section(_('API'), null, rows);
 }
 
 function listenSection(doc, bindings) {
@@ -314,10 +366,10 @@ function listenSection(doc, bindings) {
 	});
 
 	if (!rows.length)
-		rows.push(noteRow(_('No UDP or TCP server plugins were found.')));
+		rows.push(noteRow(_('No UDP, TCP, or QUIC server plugins were found.')));
 
 	return section(_('Listen Addresses'),
-		_('Define which address and entry the UDP and TCP server plugins listen on.'), rows);
+		_('Define which address and entry the UDP, TCP, and QUIC server plugins listen on.'), rows);
 }
 
 function upstreamButton(label, onClick, options) {
@@ -344,9 +396,9 @@ var UPSTREAM_FIELDS = [
 	] },
 	{ 'key': 'socks5', 'type': 'text', 'label': _('SOCKS5 proxy'), 'placeholder': '127.0.0.1:1080' },
 	{ 'key': 'timeout', 'type': 'text', 'label': _('Query timeout'), 'placeholder': '5s' },
-	{ 'key': 'idle_timeout', 'type': 'text', 'label': _('Idle timeout'), 'placeholder': '10s' },
-	{ 'key': 'max_conns', 'type': 'number', 'label': _('Max connections'), 'min': 0, 'max': 4096 },
-	{ 'key': 'min_conns', 'type': 'number', 'label': _('Min connections'), 'min': 0, 'max': 4096 },
+	{ 'key': 'idle_timeout', 'type': 'number', 'label': _('Idle timeout'), 'min': 0, 'placeholder': '10' },
+	{ 'key': 'max_conns', 'type': 'number', 'label': _('Max connections'), 'min': 1, 'max': 4096, 'placeholder': '64' },
+	{ 'key': 'min_conns', 'type': 'number', 'label': _('Min connections'), 'min': 0, 'max': 4096, 'placeholder': '0' },
 	{ 'key': 'insecure_skip_verify', 'type': 'boolean', 'label': _('Skip TLS verification'),
 		'help': _('Disables certificate verification for this upstream.') },
 	{ 'key': 'enable_pipeline', 'type': 'boolean', 'label': _('Enable pipeline') },
@@ -392,7 +444,8 @@ function upstreamFieldControl(doc, index, position, field, bindings) {
 			'style': 'width: 210px; box-sizing: border-box;',
 			'min': field.min !== undefined ? field.min : null,
 			'max': field.max !== undefined ? field.max : null,
-			'value': absent ? '' : String(value)
+			'value': absent ? '' : String(value),
+			'placeholder': field.placeholder || null
 		});
 
 	case 'select':
@@ -826,9 +879,16 @@ function validateConfig(doc) {
 
 		upstreams.forEach(function(upstream, position) {
 			var addr = text(doc.getIn([ 'plugins', index, 'args', 'upstreams', position, 'addr' ]));
+			var maxPath = [ 'plugins', index, 'args', 'upstreams', position, 'max_conns' ];
+			var minPath = [ 'plugins', index, 'args', 'upstreams', position, 'min_conns' ];
+			var maxConns = hasNodePath(doc, maxPath) ? Number(plainValue(doc, maxPath)) : 64;
+			var minConns = hasNodePath(doc, minPath) ? Number(plainValue(doc, minPath)) : 0;
 
 			if (!addr)
 				problems.push(_('Upstream address %d of the forward plugin %s cannot be empty.').format(position + 1, tag));
+
+			if (isFinite(minConns) && isFinite(maxConns) && minConns > maxConns)
+				problems.push(_('Upstream %d of the forward plugin %s keeps more minimum connections than its maximum.').format(position + 1, tag));
 		});
 	});
 

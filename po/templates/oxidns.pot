@@ -89,7 +89,7 @@ msgstr ""
 msgid "Core repository"
 msgstr ""
 
-msgid "Define which address and entry the UDP and TCP server plugins listen on."
+msgid "Define which address and entry the UDP, TCP, and QUIC server plugins listen on."
 msgstr ""
 
 msgid "Delete configuration file"
@@ -116,6 +116,9 @@ msgstr ""
 msgid "Enable on boot"
 msgstr ""
 
+msgid "Enable probe cache"
+msgstr ""
+
 msgid "Error"
 msgstr ""
 
@@ -129,6 +132,9 @@ msgid "Failed to save the log path."
 msgstr ""
 
 msgid "Failed to save settings"
+msgstr ""
+
+msgid "Failure TTL (seconds)"
 msgstr ""
 
 msgid "Format: http://host:port, https://host:port, socks5://host:port, or socks5h://host:port. Use http://user:pass@host:port when authentication is required."
@@ -182,7 +188,13 @@ msgstr ""
 msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI downloads the latest official release and replaces the core binary together with the WebUI files."
 msgstr ""
 
+msgid "Maximum rotation files"
+msgstr ""
+
 msgid "No"
+msgstr ""
+
+msgid "No UDP, TCP, or QUIC server plugins were found."
 msgstr ""
 
 msgid "Not installed"
@@ -230,6 +242,12 @@ msgstr ""
 msgid "Prepare download"
 msgstr ""
 
+msgid "Probe cache size"
+msgstr ""
+
+msgid "QUIC Server"
+msgstr ""
+
 msgid "Reason"
 msgstr ""
 
@@ -266,6 +284,9 @@ msgstr ""
 msgid "Resume"
 msgstr ""
 
+msgid "Rotation"
+msgstr ""
+
 msgid "Running"
 msgstr ""
 
@@ -294,6 +315,9 @@ msgid "Service action failed"
 msgstr ""
 
 msgid "Service status"
+msgstr ""
+
+msgid "Set to 0 to keep all historical rotation files."
 msgstr ""
 
 msgid "Settings"
@@ -333,6 +357,12 @@ msgid "Stop"
 msgstr ""
 
 msgid "Stopped"
+msgstr ""
+
+msgid "Success TTL (seconds)"
+msgstr ""
+
+msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files. Use Advanced Mode to switch to the expanded form before configuring WebUI."
 msgstr ""
 
 msgid "The file must be named config.yaml."
@@ -375,9 +405,6 @@ msgid "No forward plugins were found."
 msgstr ""
 
 msgid "No plugins are configured."
-msgstr ""
-
-msgid "No UDP or TCP server plugins were found."
 msgstr ""
 
 msgid "No upstream servers configured."
@@ -443,6 +470,9 @@ msgstr ""
 msgid "Uploading configuration..."
 msgstr ""
 
+msgid "Upstream %d of the forward plugin %s keeps more minimum connections than its maximum."
+msgstr ""
+
 msgid "Validate"
 msgstr ""
 
@@ -474,6 +504,9 @@ msgid "Verify release digest"
 msgstr ""
 
 msgid "WebUI"
+msgstr ""
+
+msgid "WebUI index"
 msgstr ""
 
 msgid "WebUI listens on loopback only. Configure the HTTP listen address to a LAN-reachable address, or use an SSH tunnel."
@@ -1043,9 +1076,6 @@ msgstr ""
 msgid "Referenced IP sets"
 msgstr ""
 
-msgid "Reorder only"
-msgstr ""
-
 msgid "Require an answer"
 msgstr ""
 
@@ -1174,3 +1204,4 @@ msgstr ""
 
 msgid "Use Options to set per-upstream connection details."
 msgstr ""
+

@@ -91,8 +91,8 @@ msgstr "内核操作失败"
 msgid "Core repository"
 msgstr "内核仓库"
 
-msgid "Define which address and entry the UDP and TCP server plugins listen on."
-msgstr "设置 UDP/TCP 服务插件的监听地址和入口。"
+msgid "Define which address and entry the UDP, TCP, and QUIC server plugins listen on."
+msgstr "设置 UDP/TCP/QUIC 服务插件的监听地址和入口。"
 
 msgid "Delete configuration file"
 msgstr "删除配置文件"
@@ -118,6 +118,9 @@ msgstr "下载 release 元数据"
 msgid "Enable on boot"
 msgstr "设为开机自启"
 
+msgid "Enable probe cache"
+msgstr "启用探测缓存"
+
 msgid "Error"
 msgstr "错误"
 
@@ -132,6 +135,9 @@ msgstr "保存日志路径失败。"
 
 msgid "Failed to save settings"
 msgstr "保存设置失败"
+
+msgid "Failure TTL (seconds)"
+msgstr "失败 TTL（秒）"
 
 msgid "Format: http://host:port, https://host:port, socks5://host:port, or socks5h://host:port. Use http://user:pass@host:port when authentication is required."
 msgstr "格式：http://主机:端口、https://主机:端口、socks5://主机:端口 或 socks5h://主机:端口。需要认证时使用 http://用户:密码@主机:端口。"
@@ -184,8 +190,14 @@ msgstr "LuCI 后端"
 msgid "LuCI can install the latest OxiDNS release, update the installed core, or install an uploaded .tar.gz archive or single oxidns binary. Install WebUI downloads the latest official release and replaces the core binary together with the WebUI files."
 msgstr "LuCI 可以安装最新 OxiDNS release、更新已安装的内核，也可以安装上传的 .tar.gz archive 或单个 oxidns 二进制。“安装 WebUI”会下载官方最新 release，并同时替换内核二进制和 WebUI 文件。"
 
+msgid "Maximum rotation files"
+msgstr "最大轮转文件数"
+
 msgid "No"
 msgstr "否"
+
+msgid "No UDP, TCP, or QUIC server plugins were found."
+msgstr "未找到 UDP、TCP 或 QUIC 服务插件。"
 
 msgid "Not installed"
 msgstr "未安装"
@@ -232,6 +244,12 @@ msgstr "暂停"
 msgid "Prepare download"
 msgstr "准备下载"
 
+msgid "Probe cache size"
+msgstr "探测缓存大小"
+
+msgid "QUIC Server"
+msgstr "QUIC 服务"
+
 msgid "Reason"
 msgstr "原因"
 
@@ -268,6 +286,9 @@ msgstr "重启服务"
 msgid "Resume"
 msgstr "继续"
 
+msgid "Rotation"
+msgstr "轮转"
+
 msgid "Running"
 msgstr "运行中"
 
@@ -297,6 +318,9 @@ msgstr "服务控制"
 
 msgid "Service status"
 msgstr "服务状态"
+
+msgid "Set to 0 to keep all historical rotation files."
+msgstr "设为 0 时保留全部历史轮转文件。"
 
 msgid "Settings"
 msgstr "设置"
@@ -336,6 +360,12 @@ msgstr "停止"
 
 msgid "Stopped"
 msgstr "已停止"
+
+msgid "Success TTL (seconds)"
+msgstr "成功 TTL（秒）"
+
+msgid "The API uses the shorthand form (api.http: \"ip:port\"). This form only sets the listen address and cannot serve WebUI files. Use Advanced Mode to switch to the expanded form before configuring WebUI."
+msgstr "API 当前使用简写形式（api.http: \"ip:port\"）。该形式只设置监听地址，无法托管 WebUI 文件。请在高级模式中改为详写形式后再配置 WebUI。"
 
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
@@ -378,9 +408,6 @@ msgstr "未找到 forward 插件。"
 
 msgid "No plugins are configured."
 msgstr "未配置任何插件。"
-
-msgid "No UDP or TCP server plugins were found."
-msgstr "未找到 UDP 或 TCP 服务插件。"
 
 msgid "No upstream servers configured."
 msgstr "未配置上游服务器。"
@@ -445,6 +472,9 @@ msgstr "上传内核"
 msgid "Uploading configuration..."
 msgstr "正在上传配置..."
 
+msgid "Upstream %d of the forward plugin %s keeps more minimum connections than its maximum."
+msgstr "forward 插件 %s 的上游 %d 的最小连接数不能大于最大连接数。"
+
 msgid "Validate"
 msgstr "校验"
 
@@ -477,6 +507,9 @@ msgstr "校验 release 摘要"
 
 msgid "WebUI"
 msgstr "WebUI"
+
+msgid "WebUI index"
+msgstr "WebUI 首页文件"
 
 msgid "WebUI listens on loopback only. Configure the HTTP listen address to a LAN-reachable address, or use an SSH tunnel."
 msgstr "WebUI 仅监听 loopback。请把 HTTP 监听地址配置为局域网可访问地址，或使用 SSH 隧道。"
@@ -1045,9 +1078,6 @@ msgstr "引用的域名集合"
 msgid "Referenced IP sets"
 msgstr "引用的 IP 集合"
 
-msgid "Reorder only"
-msgstr "仅重排序"
-
 msgid "Require an answer"
 msgstr "要求包含应答"
 
@@ -1176,3 +1206,4 @@ msgstr "SO_MARK"
 
 msgid "Use Options to set per-upstream connection details."
 msgstr "通过“选项”设置各上游的连接参数。"
+
