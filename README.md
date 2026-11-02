@@ -6,7 +6,7 @@
 
 本仓库只包含 LuCI 管理界面和 rpcd 后端；OxiDNS 内核、WebUI 与通用 release 由 [svenshi/oxidns](https://github.com/svenshi/oxidns) 提供。
 
-**完整操作说明**：从零配置 DNS、普通模式/高级模式逐项参考、插件参数、常见任务、故障排查以及 OxiDNS WebUI 的使用方法，见 [info/README.md](info/README.md)。
+**完整操作说明**：从零配置 DNS、普通模式/高级模式逐项参考、插件参数、常见任务、故障排查以及 OxiDNS WebUI 的使用方法，见 [info/README.md](info/README.md)。其中在 `基本信息` 一键启用 dnsmasq 转发、手动配置以及回滚，见 [4.9 用 dnsmasq 转发（推荐）](info/README.md#49-用-dnsmasq-转发推荐)。
 
 ## 功能
 
@@ -58,21 +58,6 @@ make package/luci-app-oxidns/compile V=s
 ```
 
 产物在 `bin/packages/<架构>/` 下：24.10 构建树生成 `.ipk`，25.12 构建树生成 `.apk`。
-
-## 安装与升级 OxiDNS 内核
-
-从旧的 OpenWrt `oxidns` 包迁移时，先停止服务并移除旧包，避免它继续占用 `/usr/bin/oxidns` 或 `/etc/init.d/oxidns`：
-
-```sh
-/etc/init.d/oxidns stop
-opkg remove oxidns    # apk 环境使用：apk del oxidns
-```
-
-打开 `服务 -> OxiDNS -> 设置`，确认 `核心仓库` 为 `svenshi/oxidns`、`内核 bundle` 为 `full`，然后点击 `安装内核`。离线环境可以使用 `上传内核` 安装官方 `.tar.gz` 归档或单个 `oxidns` 二进制；LuCI 会按设备架构选择对应的 Linux musl release，并校验 release asset 的 SHA256 digest。已有配置文件不会被覆盖。
-
-`full` / `standard` 归档包含 WebUI，`minimal` 归档和单一二进制不包含。内核安装后，在 `基本信息` 点击 `启动`，并在 `设置` 的 `自启设置` 中开启开机自启。已安装内核时，`内核操作` 还提供 `更新内核`、`重新安装`、`安装 WebUI`、`上传内核` 和 `删除内核`；`删除内核` 默认保留 `/etc/oxidns/config.yaml` 和 `/var/lib/oxidns`。
-
-如何在 `基本信息` 中一键启用 dnsmasq 转发、手动配置以及回滚，见 [info/README.md](info/README.md#49-用-dnsmasq-转发推荐)。
 
 ## 默认路径
 

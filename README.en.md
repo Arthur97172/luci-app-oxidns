@@ -6,7 +6,7 @@ Language: [中文](./README.md) | English
 
 This repository contains only the LuCI management UI and the rpcd backend; the OxiDNS core, WebUI, and general releases come from [svenshi/oxidns](https://github.com/svenshi/oxidns).
 
-**Full guide**: configuring DNS from scratch, the Normal/Advanced mode field reference, plugin fields, common tasks, troubleshooting, and OxiDNS WebUI instructions are in [info/README.en.md](info/README.en.md).
+**Full guide**: configuring DNS from scratch, the Normal/Advanced mode field reference, plugin fields, common tasks, troubleshooting, and OxiDNS WebUI instructions are in [info/README.en.md](info/README.en.md). For enabling dnsmasq forwarding with one click on `Basic Information`, manual configuration, and rollback, see [4.9 Forward Through dnsmasq (Recommended)](info/README.en.md#49-forward-through-dnsmasq-recommended).
 
 ## Features
 
@@ -58,21 +58,6 @@ make package/luci-app-oxidns/compile V=s
 ```
 
 The artifacts appear under `bin/packages/<arch>/`: a 24.10 build tree produces `.ipk`, and a 25.12 build tree produces `.apk`.
-
-## Install And Upgrade The OxiDNS Core
-
-When migrating from the old OpenWrt `oxidns` package, stop the service and remove the old package first so it no longer owns `/usr/bin/oxidns` or `/etc/init.d/oxidns`:
-
-```sh
-/etc/init.d/oxidns stop
-opkg remove oxidns    # on apk systems: apk del oxidns
-```
-
-Open `Services -> OxiDNS -> Settings`, confirm `Core repository` is `svenshi/oxidns` and `Core bundle` is `full`, then click `Install Core`. For offline installs, `Upload Core` accepts an official `.tar.gz` archive or a single `oxidns` binary. LuCI selects the matching Linux musl release for the device architecture and verifies the release asset SHA256 digest. An existing configuration file is never overwritten.
-
-The `full` / `standard` archives include the WebUI; the `minimal` archive and a single binary do not. After installing the core, click `Start` on `Basic Information` and enable boot autostart under `Autostart` on `Settings`. When a core is already installed, `Core Actions` also offers `Update Core`, `Repair Reinstall`, `Install WebUI`, `Upload Core`, and `Remove Core`; `Remove Core` keeps `/etc/oxidns/config.yaml` and `/var/lib/oxidns` by default.
-
-For enabling dnsmasq forwarding with one click on `Basic Information`, manual configuration, and rollback, see [info/README.en.md](info/README.en.md#49-forward-through-dnsmasq-recommended).
 
 ## Default Paths
 
