@@ -362,6 +362,9 @@ msgstr ""
 msgid "Stop"
 msgstr ""
 
+msgid "Stop OxiDNS"
+msgstr ""
+
 msgid "Stopped"
 msgstr ""
 
@@ -1621,4 +1624,196 @@ msgid "IPv6 table family"
 msgstr ""
 
 msgid "IPv6 table name"
+msgstr ""
+
+msgid "%s (not listening)"
+msgstr ""
+
+msgid "Add forwarding server %s."
+msgstr ""
+
+msgid "Another system DNS integration operation is already running."
+msgstr ""
+
+msgid "Applying DNS integration..."
+msgstr ""
+
+msgid "Applying..."
+msgstr ""
+
+msgid "Cannot determine the OxiDNS DNS listen address."
+msgstr ""
+
+msgid "DNS integration"
+msgstr ""
+
+msgid "DNS integration action failed."
+msgstr ""
+
+msgid "DNS integration was disabled, but the saved state could not be cleared. Try disabling again."
+msgstr ""
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable integration"
+msgstr ""
+
+msgid "Disable system DNS integration"
+msgstr ""
+
+msgid "Domain-specific upstreams"
+msgstr ""
+
+msgid "Enable"
+msgstr ""
+
+msgid "Enable integration"
+msgstr ""
+
+msgid "Enable system DNS integration"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Failed to prepare the DNS integration lock directory."
+msgstr ""
+
+msgid "Failed to save the DNS integration state."
+msgstr ""
+
+msgid "Failed to update the dnsmasq configuration."
+msgstr ""
+
+msgid "Keep domain-specific upstream servers unchanged: %s."
+msgstr ""
+
+msgid "LAN DNS queries are forwarded to OxiDNS. Stopping OxiDNS will break DNS resolution for LAN clients."
+msgstr ""
+
+msgid "LAN DNS queries will use the restored upstream servers again."
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "Not enabled"
+msgstr ""
+
+msgid "Optionally forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time."
+msgstr ""
+
+msgid "OxiDNS DNS listener"
+msgstr ""
+
+msgid "OxiDNS UDP and TCP DNS listeners do not share a reachable IPv4 address."
+msgstr ""
+
+msgid "OxiDNS UDP and TCP DNS listeners must use the same port."
+msgstr ""
+
+msgid "OxiDNS has multiple TCP DNS listen addresses."
+msgstr ""
+
+msgid "OxiDNS has multiple UDP DNS listen addresses."
+msgstr ""
+
+msgid "OxiDNS is not listening on the configured DNS port. Restart OxiDNS and try again."
+msgstr ""
+
+msgid "OxiDNS must expose an IPv4 DNS listen address."
+msgstr ""
+
+msgid "OxiDNS must listen for both UDP and TCP DNS."
+msgstr ""
+
+msgid "Remove forwarding server %s."
+msgstr ""
+
+msgid "Remove generic upstream servers: %s."
+msgstr ""
+
+msgid "Restore previous upstream servers: %s."
+msgstr ""
+
+msgid "Restore the previous dnsmasq noresolv setting."
+msgstr ""
+
+msgid "Set dnsmasq noresolv to 1."
+msgstr ""
+
+msgid "Start OxiDNS before enabling system DNS integration."
+msgstr ""
+
+msgid "System DNS integration"
+msgstr ""
+
+msgid "System DNS integration disabled."
+msgstr ""
+
+msgid "System DNS integration enabled."
+msgstr ""
+
+msgid "System DNS integration is already enabled."
+msgstr ""
+
+msgid "System DNS integration is enabled. Stopping OxiDNS will make LAN DNS resolution fail until OxiDNS is started again or system DNS integration is disabled."
+msgstr ""
+
+msgid "System DNS integration is not enabled."
+msgstr ""
+
+msgid "The OxiDNS DNS listen address changed. Disable and enable system DNS integration again."
+msgstr ""
+
+msgid "The saved DNS integration state is invalid."
+msgstr ""
+
+msgid "The saved dnsmasq forwarding entry is missing."
+msgstr ""
+
+msgid "Unable to query system DNS integration status."
+msgstr ""
+
+msgid "When enabled, dnsmasq forwards generic DNS queries to OxiDNS. Domain-specific upstreams are kept."
+msgstr ""
+
+msgid "While OxiDNS is stopped, LAN DNS resolution will fail. Disable system DNS integration to restore the previous dnsmasq settings."
+msgstr ""
+
+msgid "dnsmasq"
+msgstr ""
+
+msgid "dnsmasq could not be reloaded. The settings will apply the next time dnsmasq starts."
+msgstr ""
+
+msgid "dnsmasq is not available"
+msgstr ""
+
+msgid "dnsmasq is not running."
+msgstr ""
+
+msgid "dnsmasq is not running. The settings will apply when dnsmasq starts."
+msgstr ""
+
+msgid "dnsmasq noresolv"
+msgstr ""
+
+msgid "dnsmasq noresolv is no longer set."
+msgstr ""
+
+msgid "dnsmasq upstream"
+msgstr ""
+
+msgid "dnsmasq will forward generic DNS queries to %s."
+msgstr ""
+
+msgid "dnsmasq will stop forwarding DNS queries to OxiDNS."
+msgstr ""
+
+msgid "dnsmasq is not available."
+msgstr ""
+
+msgid "OxiDNS is stopped. LAN DNS resolution is failing until OxiDNS is started or system DNS integration is disabled."
 msgstr ""

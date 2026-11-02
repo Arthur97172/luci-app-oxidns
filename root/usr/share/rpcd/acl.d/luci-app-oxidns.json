@@ -5,6 +5,7 @@
 			"ubus": {
 				"luci.oxidns": [
 					"status",
+					"dns_integration_status",
 					"core_progress",
 					"config_read",
 					"config_schema",
@@ -33,6 +34,8 @@
 					"service_restart",
 					"service_enable",
 					"service_disable",
+					"dns_integration_enable",
+					"dns_integration_disable",
 					"config_validate",
 					"config_save",
 					"settings_save",

@@ -364,6 +364,9 @@ msgstr "状态概览"
 msgid "Stop"
 msgstr "停止"
 
+msgid "Stop OxiDNS"
+msgstr "停止 OxiDNS"
+
 msgid "Stopped"
 msgstr "已停止"
 
@@ -1624,3 +1627,195 @@ msgstr "IPv6 表族"
 
 msgid "IPv6 table name"
 msgstr "IPv6 表名"
+
+msgid "%s (not listening)"
+msgstr "%s（未监听）"
+
+msgid "Add forwarding server %s."
+msgstr "添加转发服务器 %s。"
+
+msgid "Another system DNS integration operation is already running."
+msgstr "另一个系统 DNS 接入操作正在进行中。"
+
+msgid "Applying DNS integration..."
+msgstr "正在应用 DNS 接入..."
+
+msgid "Applying..."
+msgstr "正在应用..."
+
+msgid "Cannot determine the OxiDNS DNS listen address."
+msgstr "无法确定 OxiDNS 的 DNS 监听地址。"
+
+msgid "DNS integration"
+msgstr "DNS 接入"
+
+msgid "DNS integration action failed."
+msgstr "DNS 接入操作失败。"
+
+msgid "DNS integration was disabled, but the saved state could not be cleared. Try disabling again."
+msgstr "DNS 接入已取消，但无法清除保存的状态。请再次尝试取消接入。"
+
+msgid "Disable"
+msgstr "禁用"
+
+msgid "Disable integration"
+msgstr "取消接入"
+
+msgid "Disable system DNS integration"
+msgstr "取消系统 DNS 接入"
+
+msgid "Domain-specific upstreams"
+msgstr "特定域名上游"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Enable integration"
+msgstr "接入 dnsmasq"
+
+msgid "Enable system DNS integration"
+msgstr "启用系统 DNS 接入"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Failed to prepare the DNS integration lock directory."
+msgstr "无法准备 DNS 接入锁目录。"
+
+msgid "Failed to save the DNS integration state."
+msgstr "无法保存 DNS 接入状态。"
+
+msgid "Failed to update the dnsmasq configuration."
+msgstr "无法更新 dnsmasq 配置。"
+
+msgid "Keep domain-specific upstream servers unchanged: %s."
+msgstr "保留特定域名上游服务器不变：%s。"
+
+msgid "LAN DNS queries are forwarded to OxiDNS. Stopping OxiDNS will break DNS resolution for LAN clients."
+msgstr "局域网 DNS 查询已转发到 OxiDNS。停止 OxiDNS 将导致局域网客户端无法解析 DNS。"
+
+msgid "LAN DNS queries will use the restored upstream servers again."
+msgstr "局域网 DNS 查询将重新使用恢复后的上游服务器。"
+
+msgid "None"
+msgstr "无"
+
+msgid "Not enabled"
+msgstr "未启用"
+
+msgid "Optionally forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time."
+msgstr "可选地将局域网 DNS 查询通过 OxiDNS 转发。此功能默认关闭，可随时在此恢复。"
+
+msgid "OxiDNS DNS listener"
+msgstr "OxiDNS DNS 监听"
+
+msgid "OxiDNS UDP and TCP DNS listeners do not share a reachable IPv4 address."
+msgstr "OxiDNS 的 UDP 和 TCP DNS 监听没有共用的可访问 IPv4 地址。"
+
+msgid "OxiDNS UDP and TCP DNS listeners must use the same port."
+msgstr "OxiDNS 的 UDP 和 TCP DNS 监听必须使用同一端口。"
+
+msgid "OxiDNS has multiple TCP DNS listen addresses."
+msgstr "OxiDNS 配置了多个 TCP DNS 监听地址。"
+
+msgid "OxiDNS has multiple UDP DNS listen addresses."
+msgstr "OxiDNS 配置了多个 UDP DNS 监听地址。"
+
+msgid "OxiDNS is not listening on the configured DNS port. Restart OxiDNS and try again."
+msgstr "OxiDNS 未在配置的 DNS 端口上监听。请重启 OxiDNS 后重试。"
+
+msgid "OxiDNS must expose an IPv4 DNS listen address."
+msgstr "OxiDNS 必须提供 IPv4 DNS 监听地址。"
+
+msgid "OxiDNS must listen for both UDP and TCP DNS."
+msgstr "OxiDNS 必须同时监听 UDP 和 TCP DNS。"
+
+msgid "Remove forwarding server %s."
+msgstr "移除转发服务器 %s。"
+
+msgid "Remove generic upstream servers: %s."
+msgstr "移除通用上游服务器：%s。"
+
+msgid "Restore previous upstream servers: %s."
+msgstr "恢复之前的上游服务器：%s。"
+
+msgid "Restore the previous dnsmasq noresolv setting."
+msgstr "恢复之前的 dnsmasq noresolv 设置。"
+
+msgid "Set dnsmasq noresolv to 1."
+msgstr "将 dnsmasq noresolv 设置为 1。"
+
+msgid "Start OxiDNS before enabling system DNS integration."
+msgstr "请先启动 OxiDNS，再启用系统 DNS 接入。"
+
+msgid "System DNS integration"
+msgstr "系统 DNS 接入"
+
+msgid "System DNS integration disabled."
+msgstr "系统 DNS 接入已取消。"
+
+msgid "System DNS integration enabled."
+msgstr "系统 DNS 接入已启用。"
+
+msgid "System DNS integration is already enabled."
+msgstr "系统 DNS 接入已启用。"
+
+msgid "System DNS integration is enabled. Stopping OxiDNS will make LAN DNS resolution fail until OxiDNS is started again or system DNS integration is disabled."
+msgstr "系统 DNS 接入已启用。停止 OxiDNS 后，局域网 DNS 解析将失败，直到重新启动 OxiDNS 或取消系统 DNS 接入。"
+
+msgid "System DNS integration is not enabled."
+msgstr "系统 DNS 接入未启用。"
+
+msgid "The OxiDNS DNS listen address changed. Disable and enable system DNS integration again."
+msgstr "OxiDNS 的 DNS 监听地址已更改。请取消并重新启用系统 DNS 接入。"
+
+msgid "The saved DNS integration state is invalid."
+msgstr "保存的 DNS 接入状态无效。"
+
+msgid "The saved dnsmasq forwarding entry is missing."
+msgstr "保存的 dnsmasq 转发条目已丢失。"
+
+msgid "Unable to query system DNS integration status."
+msgstr "无法查询系统 DNS 接入状态。"
+
+msgid "When enabled, dnsmasq forwards generic DNS queries to OxiDNS. Domain-specific upstreams are kept."
+msgstr "启用后，dnsmasq 会将通用 DNS 查询转发到 OxiDNS。特定域名上游将保留。"
+
+msgid "While OxiDNS is stopped, LAN DNS resolution will fail. Disable system DNS integration to restore the previous dnsmasq settings."
+msgstr "OxiDNS 停止时，局域网 DNS 解析将失败。取消系统 DNS 接入可恢复之前的 dnsmasq 设置。"
+
+msgid "dnsmasq"
+msgstr "dnsmasq"
+
+msgid "dnsmasq could not be reloaded. The settings will apply the next time dnsmasq starts."
+msgstr "无法重新加载 dnsmasq。设置将在 dnsmasq 下次启动时生效。"
+
+msgid "dnsmasq is not available"
+msgstr "dnsmasq 不可用"
+
+msgid "dnsmasq is not running."
+msgstr "dnsmasq 未运行。"
+
+msgid "dnsmasq is not running. The settings will apply when dnsmasq starts."
+msgstr "dnsmasq 未运行。设置将在 dnsmasq 启动时生效。"
+
+msgid "dnsmasq noresolv"
+msgstr "dnsmasq noresolv"
+
+msgid "dnsmasq noresolv is no longer set."
+msgstr "dnsmasq 的 noresolv 已不再设置。"
+
+msgid "dnsmasq upstream"
+msgstr "dnsmasq 上游"
+
+msgid "dnsmasq will forward generic DNS queries to %s."
+msgstr "dnsmasq 将把通用 DNS 查询转发到 %s。"
+
+msgid "dnsmasq will stop forwarding DNS queries to OxiDNS."
+msgstr "dnsmasq 将停止向 OxiDNS 转发 DNS 查询。"
+
+msgid "dnsmasq is not available."
+msgstr "dnsmasq 不可用。"
+
+msgid "OxiDNS is stopped. LAN DNS resolution is failing until OxiDNS is started or system DNS integration is disabled."
+msgstr "OxiDNS 已停止。在启动 OxiDNS 或取消系统 DNS 接入之前，局域网 DNS 解析将失败。"

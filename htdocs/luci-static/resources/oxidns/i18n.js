@@ -78,7 +78,31 @@ function build() {
 		'uploaded config.yaml cannot be adapted for OpenWrt defaults': _('The uploaded config.yaml cannot be adapted for OpenWrt defaults.'),
 		'uploaded core does not contain WebUI files': _('The uploaded core does not contain WebUI files.'),
 		'failed to install uploaded core files; the existing installation was left unchanged': _('Failed to install the uploaded core files; the existing installation was left unchanged.'),
-		'failed to unpack uploaded OxiDNS archive': _('Failed to unpack the uploaded OxiDNS archive.')
+		'failed to unpack uploaded OxiDNS archive': _('Failed to unpack the uploaded OxiDNS archive.'),
+		'dnsmasq is not available': _('dnsmasq is not available.'),
+		'start OxiDNS before enabling system DNS integration': _('Start OxiDNS before enabling system DNS integration.'),
+		'Cannot determine the OxiDNS DNS listen address.': _('Cannot determine the OxiDNS DNS listen address.'),
+		'OxiDNS must expose an IPv4 DNS listen address.': _('OxiDNS must expose an IPv4 DNS listen address.'),
+		'OxiDNS has multiple UDP DNS listen addresses.': _('OxiDNS has multiple UDP DNS listen addresses.'),
+		'OxiDNS has multiple TCP DNS listen addresses.': _('OxiDNS has multiple TCP DNS listen addresses.'),
+		'OxiDNS must listen for both UDP and TCP DNS.': _('OxiDNS must listen for both UDP and TCP DNS.'),
+		'OxiDNS UDP and TCP DNS listeners must use the same port.': _('OxiDNS UDP and TCP DNS listeners must use the same port.'),
+		'OxiDNS UDP and TCP DNS listeners do not share a reachable IPv4 address.': _('OxiDNS UDP and TCP DNS listeners do not share a reachable IPv4 address.'),
+		'OxiDNS is not listening on the configured DNS port. Restart OxiDNS and try again.': _('OxiDNS is not listening on the configured DNS port. Restart OxiDNS and try again.'),
+		'the saved dnsmasq forwarding entry is missing': _('The saved dnsmasq forwarding entry is missing.'),
+		'the OxiDNS DNS listen address changed; disable and enable system DNS integration again': _('The OxiDNS DNS listen address changed. Disable and enable system DNS integration again.'),
+		'dnsmasq noresolv is no longer set': _('dnsmasq noresolv is no longer set.'),
+		'dnsmasq is not running': _('dnsmasq is not running.'),
+		'system DNS integration is already enabled': _('System DNS integration is already enabled.'),
+		'system DNS integration is not enabled': _('System DNS integration is not enabled.'),
+		'failed to save DNS integration state': _('Failed to save the DNS integration state.'),
+		'failed to update dnsmasq configuration': _('Failed to update the dnsmasq configuration.'),
+		'the saved DNS integration state is invalid': _('The saved DNS integration state is invalid.'),
+		'another system DNS integration operation is already running': _('Another system DNS integration operation is already running.'),
+		'failed to prepare the DNS integration lock directory': _('Failed to prepare the DNS integration lock directory.'),
+		'DNS integration was disabled, but the saved state could not be cleared. Try disabling again.': _('DNS integration was disabled, but the saved state could not be cleared. Try disabling again.'),
+		'dnsmasq could not be reloaded; the settings will apply the next time dnsmasq starts': _('dnsmasq could not be reloaded. The settings will apply the next time dnsmasq starts.'),
+		'dnsmasq is not running; the settings will apply when dnsmasq starts': _('dnsmasq is not running. The settings will apply when dnsmasq starts.')
 	};
 
 	details = {

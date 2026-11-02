@@ -17,8 +17,22 @@ var serviceCalls = {
 	restart: rpc.declare({ object: 'luci.oxidns', method: 'service_restart', expect: {} })
 };
 
+var callDnsIntegrationStatus = rpc.declare({
+	object: 'luci.oxidns',
+	method: 'dns_integration_status',
+	expect: {}
+});
+
+var dnsIntegrationCalls = {
+	enable: rpc.declare({ object: 'luci.oxidns', method: 'dns_integration_enable', expect: {} }),
+	disable: rpc.declare({ object: 'luci.oxidns', method: 'dns_integration_disable', expect: {} })
+};
+
 var statusState = {};
 var serviceActionsKey = null;
+var dnsIntegrationState = {};
+var dnsIntegrationBusy = false;
+var dnsIntegrationKey = null;
 
 function valueOrDash(value) {
 	if (value === null || value === undefined || value === '')
@@ -187,17 +201,36 @@ function blockedServiceActionMessage(action, status) {
 	return null;
 }
 
-function handleServiceAction(action) {
-	var call = serviceCalls[action];
-	if (!call)
-		return Promise.resolve();
+function confirmStopWithDnsIntegration() {
+	return new Promise(function(resolve) {
+		ui.showModal(_('Stop OxiDNS'), [
+			E('p', {}, _('System DNS integration is enabled. Stopping OxiDNS will make LAN DNS resolution fail until OxiDNS is started again or system DNS integration is disabled.')),
+			E('div', { 'class': 'right' }, [
+				E('button', {
+					'class': 'btn cbi-button cbi-button-neutral',
+					'type': 'button',
+					'click': function(ev) {
+						ev.preventDefault();
+						ui.hideModal();
+						resolve(false);
+					}
+				}, _('Cancel')),
+				' ',
+				E('button', {
+					'class': 'btn cbi-button cbi-button-negative',
+					'type': 'button',
+					'click': function(ev) {
+						ev.preventDefault();
+						ui.hideModal();
+						resolve(true);
+					}
+				}, _('Stop OxiDNS'))
+			])
+		]);
+	});
+}
 
-	var blocked = blockedServiceActionMessage(action, statusState);
-	if (blocked) {
-		ui.addNotification(null, E('p', {}, blocked), 'info');
-		return refreshStatus();
-	}
-
+function performServiceAction(call, action) {
 	ui.showModal(_('OxiDNS'), [
 		E('p', {}, _('Applying service action...'))
 	]);
@@ -213,6 +246,27 @@ function handleServiceAction(action) {
 		ui.hideModal();
 		ui.addNotification(null, E('p', {}, (err && err.message) || String(err)), 'danger');
 	});
+}
+
+function handleServiceAction(action) {
+	var call = serviceCalls[action];
+	if (!call)
+		return Promise.resolve();
+
+	var blocked = blockedServiceActionMessage(action, statusState);
+	if (blocked) {
+		ui.addNotification(null, E('p', {}, blocked), 'info');
+		return refreshStatus();
+	}
+
+	if (action === 'stop' && dnsIntegrationState.managed) {
+		return confirmStopWithDnsIntegration().then(function(confirmed) {
+			if (confirmed)
+				return performServiceAction(call, action);
+		});
+	}
+
+	return performServiceAction(call, action);
 }
 
 function actionButton(label, action, style, id) {
@@ -298,9 +352,267 @@ function updateServiceActions(status) {
 	replaceContent(node, serviceActionButtons(status));
 }
 
+function dnsServerListText(values) {
+	if (!Array.isArray(values) || !values.length)
+		return _('None');
+	return values.join(', ');
+}
+
+function dnsIntegrationBadge(state) {
+	if (!state || state.ok === false || !state.supported)
+		return statusBadge(_('Unavailable'), false);
+	if (state.managed)
+		return statusBadge(_('Enabled'), true);
+	return E('span', { 'class': 'label' }, _('Not enabled'));
+}
+
+function dnsmasqStatusBadge(state) {
+	if (!state || state.ok === false || !state.supported)
+		return statusBadge(_('Unavailable'), false);
+	return state.dnsmasq_running ? statusBadge(_('Running'), true) : statusBadge(_('Stopped'), false);
+}
+
+function dnsIntegrationTargetText(state) {
+	if (!state || !state.target)
+		return '-';
+	if (state.listener_active)
+		return state.target;
+	return _('%s (not listening)').format(state.target);
+}
+
+function dnsIntegrationUpstreamText(state) {
+	if (!state || !state.supported)
+		return '-';
+	if (state.managed)
+		return dnsServerListText(state.previous_servers);
+	return dnsServerListText(state.generic_servers);
+}
+
+function dnsIntegrationDomainText(state) {
+	if (!state || !state.supported)
+		return '-';
+	return dnsServerListText(state.domain_servers);
+}
+
+function dnsIntegrationNote(state) {
+	if (!state || state.ok === false)
+		return _('Unable to query system DNS integration status.');
+	if (!state.supported)
+		return i18n.translate(state.message) || _('dnsmasq is not available');
+	if (state.managed && !state.service_running)
+		return _('OxiDNS is stopped. LAN DNS resolution is failing until OxiDNS is started or system DNS integration is disabled.');
+	if (state.warning)
+		return i18n.translate(state.warning);
+	if (state.managed)
+		return _('LAN DNS queries are forwarded to OxiDNS. Stopping OxiDNS will break DNS resolution for LAN clients.');
+	if (state.message)
+		return i18n.translate(state.message);
+	return _('When enabled, dnsmasq forwards generic DNS queries to OxiDNS. Domain-specific upstreams are kept.');
+}
+
+function dnsIntegrationRows(state) {
+	return [
+		renderRow(_('dnsmasq'), dnsmasqStatusBadge(state), 'oxidns-dnsmasq-status'),
+		renderRow(_('DNS integration'), dnsIntegrationBadge(state), 'oxidns-dns-integration-badge'),
+		renderRow(_('OxiDNS DNS listener'), dnsIntegrationTargetText(state), 'oxidns-dns-integration-target'),
+		renderRow(_('dnsmasq upstream'), dnsIntegrationUpstreamText(state), 'oxidns-dns-integration-upstream'),
+		renderRow(_('Domain-specific upstreams'), dnsIntegrationDomainText(state), 'oxidns-dns-integration-domain'),
+		renderRow(_('dnsmasq noresolv'),
+			state && state.noresolv_set ? state.noresolv : '-',
+			'oxidns-dns-integration-noresolv')
+	];
+}
+
+function dnsIntegrationButtons(state) {
+	var hint = dnsIntegrationNote(state);
+	var actions = [];
+
+	if (!state || state.ok === false || !state.supported) {
+		actions.push(disabledActionButton(_('Enable integration'), hint, 'oxidns-dns-integration-enable'));
+	}
+	else if (dnsIntegrationBusy) {
+		actions.push(disabledActionButton(_('Applying...'), hint, 'oxidns-dns-integration-busy'));
+	}
+	else if (state.managed) {
+		actions.push(E('button', {
+			'id': 'oxidns-dns-integration-disable',
+			'class': 'btn cbi-button cbi-button-negative',
+			'type': 'button',
+			'click': function(ev) {
+				ev.preventDefault();
+				return handleDnsIntegrationAction('disable');
+			}
+		}, _('Disable integration')));
+	}
+	else {
+		var button = E('button', {
+			'id': 'oxidns-dns-integration-enable',
+			'class': 'btn cbi-button cbi-button-positive',
+			'type': 'button',
+			'click': function(ev) {
+				ev.preventDefault();
+				return handleDnsIntegrationAction('enable');
+			}
+		}, _('Enable integration'));
+
+		if (!state.can_enable) {
+			button.disabled = true;
+			button.setAttribute('aria-disabled', 'true');
+			button.title = hint;
+		}
+		actions.push(button);
+	}
+
+	actions.push(E('span', {
+		'class': 'cbi-value-description',
+		'style': 'align-self: center;'
+	}, hint));
+
+	return actions;
+}
+
+function dnsIntegrationBody(state) {
+	return [
+		E('div', { 'class': 'table cbi-section-table' }, dnsIntegrationRows(state)),
+		E('div', {
+			'id': 'oxidns-dns-integration-actions',
+			'class': 'cbi-button-row',
+			'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); padding-top: .5em;'
+		}, dnsIntegrationButtons(state))
+	];
+}
+
+function dnsIntegrationStateKey(state) {
+	try {
+		return JSON.stringify(state || {}) + '|' + (dnsIntegrationBusy ? 'busy' : 'idle');
+	}
+	catch (e) {
+		return String(Date.now());
+	}
+}
+
+function updateDnsIntegration() {
+	var node = document.getElementById('oxidns-dns-integration-body');
+	if (!node)
+		return;
+
+	var nextKey = dnsIntegrationStateKey(dnsIntegrationState);
+	if (nextKey === dnsIntegrationKey)
+		return;
+
+	dnsIntegrationKey = nextKey;
+	replaceContent(node, dnsIntegrationBody(dnsIntegrationState));
+}
+
+function confirmDnsIntegration(action) {
+	var state = dnsIntegrationState || {};
+	var title = action === 'enable'
+		? _('Enable system DNS integration')
+		: _('Disable system DNS integration');
+	var items;
+
+	if (action === 'enable') {
+		items = [
+			E('li', {}, _('Remove generic upstream servers: %s.').format(dnsServerListText(state.generic_servers))),
+			E('li', {}, _('Add forwarding server %s.').format(state.target)),
+			E('li', {}, _('Set dnsmasq noresolv to 1.')),
+			E('li', {}, _('Keep domain-specific upstream servers unchanged: %s.').format(dnsServerListText(state.domain_servers)))
+		];
+	}
+	else {
+		items = [
+			E('li', {}, _('Remove forwarding server %s.').format(state.forward || '-')),
+			E('li', {}, _('Restore previous upstream servers: %s.').format(dnsServerListText(state.previous_servers))),
+			E('li', {}, _('Restore the previous dnsmasq noresolv setting.'))
+		];
+	}
+
+	return new Promise(function(resolve) {
+		ui.showModal(title, [
+			action === 'enable'
+				? E('p', {}, _('dnsmasq will forward generic DNS queries to %s.').format(state.target))
+				: E('p', {}, _('dnsmasq will stop forwarding DNS queries to OxiDNS.')),
+			E('ul', { 'style': 'margin: .5em 0 .5em 1.25em;' }, items),
+			E('p', { 'class': 'alert-message warning' },
+				action === 'enable'
+					? _('While OxiDNS is stopped, LAN DNS resolution will fail. Disable system DNS integration to restore the previous dnsmasq settings.')
+					: _('LAN DNS queries will use the restored upstream servers again.')),
+			E('div', { 'class': 'right' }, [
+				E('button', {
+					'class': 'btn cbi-button cbi-button-neutral',
+					'type': 'button',
+					'click': function(ev) {
+						ev.preventDefault();
+						ui.hideModal();
+						resolve(false);
+					}
+				}, _('Cancel')),
+				' ',
+				E('button', {
+					'class': 'btn cbi-button cbi-button-%s'.format(action === 'enable' ? 'positive' : 'negative'),
+					'type': 'button',
+					'click': function(ev) {
+						ev.preventDefault();
+						ui.hideModal();
+						resolve(true);
+					}
+				}, action === 'enable' ? _('Enable') : _('Disable'))
+			])
+		]);
+	});
+}
+
+function handleDnsIntegrationAction(action) {
+	var call = dnsIntegrationCalls[action];
+
+	if (!call || dnsIntegrationBusy)
+		return Promise.resolve();
+
+	return confirmDnsIntegration(action).then(function(confirmed) {
+		if (!confirmed)
+			return;
+
+		dnsIntegrationBusy = true;
+		updateDnsIntegration();
+		ui.showModal(_('System DNS integration'), [
+			E('p', {}, _('Applying DNS integration...'))
+		]);
+
+		return L.resolveDefault(call(), null).then(function(result) {
+			ui.hideModal();
+			dnsIntegrationBusy = false;
+
+			if (!result || result.ok === false) {
+				ui.addNotification(null, E('p', {},
+					i18n.message(result) || _('DNS integration action failed.')), 'danger');
+			}
+			else if (result.warning) {
+				ui.addNotification(null, E('p', {}, i18n.translate(result.warning)), 'warning');
+			}
+			else {
+				ui.addNotification(null, E('p', {}, action === 'enable'
+					? _('System DNS integration enabled.')
+					: _('System DNS integration disabled.')), 'info');
+			}
+
+			return refreshStatus();
+		}).catch(function(err) {
+			ui.hideModal();
+			dnsIntegrationBusy = false;
+			ui.addNotification(null, E('p', {},
+				(err && err.message) || String(err)), 'danger');
+			return refreshStatus();
+		});
+	});
+}
+
 function refreshStatus() {
-	return L.resolveDefault(callStatus(), {}).then(function(status) {
-		statusState = status || {};
+	return Promise.all([
+		L.resolveDefault(callStatus(), {}),
+		L.resolveDefault(callDnsIntegrationStatus(), {})
+	]).then(function(results) {
+		statusState = results[0] || {};
+		dnsIntegrationState = results[1] || {};
 
 		var fields = {
 			'oxidns-backend-status': backendStatusBadge(statusState),
@@ -320,19 +632,34 @@ function refreshStatus() {
 		});
 
 		updateServiceActions(statusState);
+		updateDnsIntegration();
 	});
 }
 
 return view.extend({
 	load: function() {
-		return L.resolveDefault(callStatus(), {
-			ok: false,
-			error: _('Unable to query OxiDNS status')
+		return Promise.all([
+			L.resolveDefault(callStatus(), {
+				ok: false,
+				error: _('Unable to query OxiDNS status')
+			}),
+			L.resolveDefault(callDnsIntegrationStatus(), {
+				ok: false,
+				message: _('Unable to query system DNS integration status.')
+			})
+		]).then(function(results) {
+			return {
+				status: results[0],
+				dns: results[1]
+			};
 		});
 	},
 
-	render: function(status) {
-		statusState = status || {};
+	render: function(data) {
+		var status = (data && data.status) || {};
+		var dns = (data && data.dns) || {};
+		statusState = status;
+		dnsIntegrationState = dns;
 
 		var rows = [
 			renderRow(_('LuCI backend'), backendStatusBadge(status), 'oxidns-backend-status'),
@@ -349,6 +676,7 @@ return view.extend({
 			rows.push(renderRow(_('Error'), i18n.translate(status.error)));
 
 		serviceActionsKey = serviceActionStateKey(statusState);
+		dnsIntegrationKey = dnsIntegrationStateKey(dnsIntegrationState);
 		poll.add(refreshStatus, 5);
 
 		return E('div', { 'class': 'cbi-map' }, [
@@ -365,6 +693,12 @@ return view.extend({
 					'class': 'cbi-button-row',
 					'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); padding-bottom: var(--field-gap, 1em);'
 				}, serviceActionButtons(statusState))
+			]),
+			E('div', { 'class': 'cbi-section' }, [
+				E('h3', {}, _('System DNS integration')),
+				E('div', { 'class': 'cbi-section-descr' },
+					_('Optionally forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time.')),
+				E('div', { 'id': 'oxidns-dns-integration-body' }, dnsIntegrationBody(dnsIntegrationState))
 			])
 		]);
 	},

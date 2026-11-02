@@ -390,6 +390,741 @@ is_wildcard_host() {
 	return 1
 }
 
+DNS_LOCK_DIR="$CORE_PROGRESS_DIR/dns-integration.lock"
+DNS_LOCK_HELD=0
+DNS_TARGET=""
+DNS_TARGET_HOST=""
+DNS_TARGET_PORT=""
+DNS_TARGET_REASON=""
+
+dns_state_get() {
+	uci -q get "oxidns.dns_integration.$1" 2>/dev/null || true
+}
+
+dns_state_list() {
+	uci -q get "oxidns.dns_integration.$1" 2>/dev/null | tr ' ' '\n' | sed '/^$/d' || true
+}
+
+dns_integration_managed() {
+	[ "$(dns_state_get managed)" = "1" ]
+}
+
+dnsmasq_available() {
+	command -v uci >/dev/null 2>&1 || return 1
+	uci -q get 'dhcp.@dnsmasq[0]' >/dev/null 2>&1
+}
+
+dnsmasq_running() {
+	if [ -x /etc/init.d/dnsmasq ] && /etc/init.d/dnsmasq status >/dev/null 2>&1; then
+		return 0
+	fi
+	if command -v pgrep >/dev/null 2>&1 && pgrep -x dnsmasq >/dev/null 2>&1; then
+		return 0
+	fi
+	return 1
+}
+
+dnsmasq_server_list() {
+	command -v uci >/dev/null 2>&1 || return 0
+	uci -q get 'dhcp.@dnsmasq[0].server' 2>/dev/null | tr ' ' '\n' | sed '/^$/d' || true
+}
+
+dnsmasq_has_server() {
+	dnsmasq_server_list | grep -Fqx "$1"
+}
+
+dnsmasq_generic_servers() {
+	dnsmasq_server_list | grep -v '^/' || true
+}
+
+dnsmasq_domain_servers() {
+	dnsmasq_server_list | grep '^/' || true
+}
+
+dnsmasq_noresolv_read() {
+	DNSM_NO_RESOLV_SET=0
+	DNSM_NO_RESOLV=""
+	if command -v uci >/dev/null 2>&1; then
+		if DNSM_VALUE="$(uci -q get 'dhcp.@dnsmasq[0].noresolv' 2>/dev/null)"; then
+			DNSM_NO_RESOLV_SET=1
+			DNSM_NO_RESOLV="$DNSM_VALUE"
+		fi
+	fi
+}
+
+dnsmasq_reload() {
+	[ -x /etc/init.d/dnsmasq ] || return 1
+	/etc/init.d/dnsmasq reload >/dev/null 2>&1 && return 0
+	/etc/init.d/dnsmasq restart >/dev/null 2>&1 && return 0
+	return 1
+}
+
+dns_host_kind() {
+	DNS_HOST_VALUE="$1"
+	case "$DNS_HOST_VALUE" in
+		''|'0.0.0.0')
+			printf 'wildcard'
+			return 0
+			;;
+		localhost)
+			printf 'loopback'
+			return 0
+			;;
+		'::'|'[::]')
+			printf 'ipv6_wildcard'
+			return 0
+			;;
+		'::1'|'[::1]')
+			printf 'ipv6_loopback'
+			return 0
+			;;
+	esac
+	if valid_ipv4 "$DNS_HOST_VALUE"; then
+		case "$DNS_HOST_VALUE" in
+			127.0.0.1) printf 'loopback' ;;
+			*) printf 'ipv4' ;;
+		esac
+		return 0
+	fi
+	return 1
+}
+
+dns_parse_listen() {
+	DNS_LISTEN_VALUE="$1"
+	case "$DNS_LISTEN_VALUE" in
+		\[*\]:*)
+			DNS_PARSE_HOST="${DNS_LISTEN_VALUE#[}"
+			DNS_PARSE_HOST="${DNS_PARSE_HOST%%]:*}"
+			DNS_PARSE_PORT="${DNS_LISTEN_VALUE##*]:}"
+			;;
+		*:*)
+			DNS_PARSE_HOST="${DNS_LISTEN_VALUE%:*}"
+			DNS_PARSE_PORT="${DNS_LISTEN_VALUE##*:}"
+			;;
+		*)
+			case "$DNS_LISTEN_VALUE" in
+				''|*[!0-9]*) return 1 ;;
+			esac
+			DNS_PARSE_HOST=""
+			DNS_PARSE_PORT="$DNS_LISTEN_VALUE"
+			;;
+	esac
+	case "$DNS_PARSE_PORT" in
+		''|*[!0-9]*) return 1 ;;
+	esac
+	DNS_PARSE_PORT="$(awk -v p="$DNS_PARSE_PORT" 'BEGIN { print p + 0 }')"
+	[ "$DNS_PARSE_PORT" -ge 1 ] && [ "$DNS_PARSE_PORT" -le 65535 ] || return 1
+	return 0
+}
+
+dns_host_accepts() {
+	DNS_ACCEPT_KIND="$1"
+	DNS_ACCEPT_HOST="$2"
+	DNS_ACCEPT_TARGET="$3"
+	case "$DNS_ACCEPT_KIND" in
+		wildcard)
+			return 0
+			;;
+		loopback)
+			[ "$DNS_ACCEPT_TARGET" = "127.0.0.1" ]
+			;;
+		ipv4)
+			[ "$DNS_ACCEPT_TARGET" = "$DNS_ACCEPT_HOST" ]
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+config_dns_listeners() {
+	[ -r "$CONFIG_PATH" ] || return 1
+	awk '
+		function clean(value,    v) {
+			v = value;
+			sub(/^[[:space:]]*/, "", v);
+			sub(/[[:space:]]*$/, "", v);
+			sub(/^"/, "", v);
+			sub(/"$/, "", v);
+			sub(/^'\''/, "", v);
+			sub(/'\''$/, "", v);
+			return v;
+		}
+		BEGIN {
+			top = "";
+			type = "";
+			in_plugins = 0;
+		}
+		/^[^[:space:]#][^:]*:/ {
+			line = $0;
+			sub(/:.*/, "", line);
+			gsub(/^["'\'']|["'\'']$/, "", line);
+			top = line;
+			in_plugins = (top == "plugins");
+			type = "";
+			next;
+		}
+		!in_plugins {
+			next;
+		}
+		{
+			line = $0;
+			if (line ~ /^[[:space:]]*-[[:space:]]*/) {
+				item = line;
+				sub(/^[[:space:]]*-[[:space:]]*/, "", item);
+				key = item;
+				sub(/:.*/, "", key);
+				gsub(/[[:space:]]+$/, "", key);
+				if (key == "type") {
+					value = item;
+					sub(/^type:[[:space:]]*/, "", value);
+					type = clean(value);
+				} else {
+					type = "";
+				}
+			}
+			if (line ~ /^[[:space:]]+type:[[:space:]]*/) {
+				value = line;
+				sub(/^[[:space:]]+type:[[:space:]]*/, "", value);
+				type = clean(value);
+				next;
+			}
+			if (line ~ /^[[:space:]]+listen:[[:space:]]*/ &&
+				(type == "udp_server" || type == "tcp_server")) {
+				value = line;
+				sub(/^[[:space:]]+listen:[[:space:]]*/, "", value);
+				value = clean(value);
+				if (value != "")
+					print type "|" value;
+				next;
+			}
+			if (line ~ /^[[:space:]]+args:[[:space:]]*\{/ &&
+				(type == "udp_server" || type == "tcp_server")) {
+				value = line;
+				sub(/^.*args:[[:space:]]*\{[[:space:]]*listen:[[:space:]]*/, "", value);
+				sub(/[[:space:]]*[,}].*$/, "", value);
+				value = clean(value);
+				if (value != "")
+					print type "|" value;
+			}
+		}
+	' "$CONFIG_PATH"
+}
+
+dns_forward_target() {
+	DNS_TARGET=""
+	DNS_TARGET_HOST=""
+	DNS_TARGET_PORT=""
+	DNS_TARGET_REASON=""
+	DNS_LISTENERS="$(config_dns_listeners 2>/dev/null || true)"
+	if [ -z "$DNS_LISTENERS" ]; then
+		DNS_TARGET_REASON="Cannot determine the OxiDNS DNS listen address."
+		return 1
+	fi
+
+	DNS_UDP_HOST=""
+	DNS_UDP_KIND=""
+	DNS_UDP_PORT=""
+	DNS_TCP_HOST=""
+	DNS_TCP_KIND=""
+	DNS_TCP_PORT=""
+	DNS_BAD=0
+
+	while IFS='|' read -r DNS_TYPE DNS_VALUE; do
+		[ -n "$DNS_TYPE" ] || continue
+		if ! dns_parse_listen "$DNS_VALUE"; then
+			DNS_BAD=1
+			DNS_TARGET_REASON="Cannot determine the OxiDNS DNS listen address."
+			continue
+		fi
+		DNS_KIND="$(dns_host_kind "$DNS_PARSE_HOST" || true)"
+		case "$DNS_KIND" in
+			wildcard|loopback|ipv4) ;;
+			*)
+				DNS_BAD=1
+				DNS_TARGET_REASON="OxiDNS must expose an IPv4 DNS listen address."
+				continue
+				;;
+		esac
+		case "$DNS_TYPE" in
+			udp_server)
+				if [ -n "$DNS_UDP_PORT" ] && [ "$DNS_UDP_PORT" != "$DNS_PARSE_PORT" ]; then
+					DNS_BAD=1
+					DNS_TARGET_REASON="OxiDNS has multiple UDP DNS listen addresses."
+					continue
+				fi
+				DNS_UDP_HOST="$DNS_PARSE_HOST"
+				DNS_UDP_KIND="$DNS_KIND"
+				DNS_UDP_PORT="$DNS_PARSE_PORT"
+				;;
+			tcp_server)
+				if [ -n "$DNS_TCP_PORT" ] && [ "$DNS_TCP_PORT" != "$DNS_PARSE_PORT" ]; then
+					DNS_BAD=1
+					DNS_TARGET_REASON="OxiDNS has multiple TCP DNS listen addresses."
+					continue
+				fi
+				DNS_TCP_HOST="$DNS_PARSE_HOST"
+				DNS_TCP_KIND="$DNS_KIND"
+				DNS_TCP_PORT="$DNS_PARSE_PORT"
+				;;
+		esac
+	done <<EOF
+$DNS_LISTENERS
+EOF
+
+	if [ "$DNS_BAD" = "1" ]; then
+		return 1
+	fi
+	if [ -z "$DNS_UDP_PORT" ] || [ -z "$DNS_TCP_PORT" ]; then
+		DNS_TARGET_REASON="OxiDNS must listen for both UDP and TCP DNS."
+		return 1
+	fi
+	if [ "$DNS_UDP_PORT" != "$DNS_TCP_PORT" ]; then
+		DNS_TARGET_REASON="OxiDNS UDP and TCP DNS listeners must use the same port."
+		return 1
+	fi
+
+	if dns_host_accepts "$DNS_UDP_KIND" "$DNS_UDP_HOST" "127.0.0.1" &&
+		dns_host_accepts "$DNS_TCP_KIND" "$DNS_TCP_HOST" "127.0.0.1"; then
+		DNS_TARGET_HOST="127.0.0.1"
+	elif dns_host_accepts "$DNS_UDP_KIND" "$DNS_UDP_HOST" "$DNS_UDP_HOST" &&
+		dns_host_accepts "$DNS_TCP_KIND" "$DNS_TCP_HOST" "$DNS_UDP_HOST"; then
+		DNS_TARGET_HOST="$DNS_UDP_HOST"
+	elif dns_host_accepts "$DNS_UDP_KIND" "$DNS_UDP_HOST" "$DNS_TCP_HOST" &&
+		dns_host_accepts "$DNS_TCP_KIND" "$DNS_TCP_HOST" "$DNS_TCP_HOST"; then
+		DNS_TARGET_HOST="$DNS_TCP_HOST"
+	else
+		DNS_TARGET_REASON="OxiDNS UDP and TCP DNS listeners do not share a reachable IPv4 address."
+		return 1
+	fi
+	if [ -z "$DNS_TARGET_HOST" ]; then
+		DNS_TARGET_REASON="Cannot determine the OxiDNS DNS listen address."
+		return 1
+	fi
+
+	DNS_TARGET_PORT="$DNS_UDP_PORT"
+	DNS_TARGET="$DNS_TARGET_HOST#$DNS_TARGET_PORT"
+	return 0
+}
+
+dns_ipv4_hex() {
+	printf '%s' "$1" | awk -F. '
+		NF == 4 { printf "%02X%02X%02X%02X", $4 + 0, $3 + 0, $2 + 0, $1 + 0 }
+	'
+}
+
+dns_port_listening_udp() {
+	DNS_CHECK_HOST="$1"
+	DNS_CHECK_PORT="$2"
+	[ -r /proc/net/udp ] || return 0
+	DNS_PORT_HEX="$(awk -v p="$DNS_CHECK_PORT" 'BEGIN { printf "%04X", p }')"
+	DNS_HOST_HEX="$(dns_ipv4_hex "$DNS_CHECK_HOST")"
+	[ -n "$DNS_PORT_HEX" ] && [ -n "$DNS_HOST_HEX" ] || return 0
+	awk -v exact="$DNS_HOST_HEX:$DNS_PORT_HEX" -v wildcard="00000000:$DNS_PORT_HEX" '
+		NR > 1 {
+			addr = toupper($2);
+			if (addr == exact || addr == wildcard) {
+				found = 1;
+				exit;
+			}
+		}
+		END { exit found ? 0 : 1 }
+	' /proc/net/udp
+}
+
+valid_dns_forward() {
+	DNS_FORWARD_VALUE="$1"
+	case "$DNS_FORWARD_VALUE" in
+		*'#'*) ;;
+		*) return 1 ;;
+	esac
+	DNS_FORWARD_HOST="${DNS_FORWARD_VALUE%#*}"
+	DNS_FORWARD_PORT="${DNS_FORWARD_VALUE##*#}"
+	case "$DNS_FORWARD_PORT" in
+		''|*[!0-9]*) return 1 ;;
+	esac
+	DNS_FORWARD_PORT="$(awk -v p="$DNS_FORWARD_PORT" 'BEGIN { print p + 0 }')"
+	[ "$DNS_FORWARD_PORT" -ge 1 ] && [ "$DNS_FORWARD_PORT" -le 65535 ] || return 1
+	valid_ipv4 "$DNS_FORWARD_HOST"
+}
+
+json_string_array_from_text() {
+	DNS_ARRAY_TEXT="$1"
+	DNS_ARRAY_FIRST=1
+	printf '['
+	while IFS= read -r DNS_ARRAY_ENTRY; do
+		[ -n "$DNS_ARRAY_ENTRY" ] || continue
+		if [ "$DNS_ARRAY_FIRST" = "1" ]; then
+			DNS_ARRAY_FIRST=0
+		else
+			printf ','
+		fi
+		json_string "$DNS_ARRAY_ENTRY"
+	done <<EOF
+$DNS_ARRAY_TEXT
+EOF
+	printf ']'
+}
+
+dns_integration_clear_state() {
+	uci -q delete oxidns.dns_integration >/dev/null 2>&1 || true
+	uci -q commit oxidns >/dev/null 2>&1 || true
+}
+
+clear_stale_dns_lock() {
+	[ -d "$DNS_LOCK_DIR" ] && [ ! -L "$DNS_LOCK_DIR" ] || return 1
+	DNS_LOCK_PID="$(sed -n '1p' "$DNS_LOCK_DIR/pid" 2>/dev/null || true)"
+	pid_is_running "$DNS_LOCK_PID" && return 1
+	rm -f "$DNS_LOCK_DIR/pid" 2>/dev/null || return 1
+	rmdir "$DNS_LOCK_DIR" 2>/dev/null || return 1
+}
+
+acquire_dns_lock() {
+	prepare_core_progress_dir || {
+		json_error "dns_integration_lock_failed" "failed to prepare the DNS integration lock directory"
+		return 1
+	}
+	if mkdir "$DNS_LOCK_DIR" 2>/dev/null ||
+		{ clear_stale_dns_lock && mkdir "$DNS_LOCK_DIR" 2>/dev/null; }; then
+		DNS_LOCK_HELD=1
+		printf '%s\n' "$$" > "$DNS_LOCK_DIR/pid" 2>/dev/null || true
+		chmod 700 "$DNS_LOCK_DIR" 2>/dev/null || true
+		return 0
+	fi
+	json_error "dns_integration_busy" "another system DNS integration operation is already running"
+	return 1
+}
+
+release_dns_lock() {
+	if [ "${DNS_LOCK_HELD:-0}" = "1" ]; then
+		rm -f "$DNS_LOCK_DIR/pid" 2>/dev/null || true
+		rmdir "$DNS_LOCK_DIR" 2>/dev/null || true
+		DNS_LOCK_HELD=0
+	fi
+}
+
+run_with_dns_lock() {
+	acquire_dns_lock || return 1
+	trap 'release_dns_lock' EXIT
+	trap 'release_dns_lock; exit 1' HUP INT TERM
+	"$@"
+	DNS_ACTION_RC="$?"
+	release_dns_lock
+	trap - EXIT HUP INT TERM
+	return "$DNS_ACTION_RC"
+}
+
+emit_dns_integration_status() {
+	load_settings
+	DNS_STATUS_SUPPORTED=0
+	DNS_STATUS_DNSMASQ_RUNNING=0
+	DNS_STATUS_SERVICE_RUNNING=0
+	DNS_STATUS_MANAGED=0
+	DNS_STATUS_FORWARD_PRESENT=0
+	DNS_STATUS_CAN_ENABLE=0
+	DNS_STATUS_CAN_DISABLE=0
+	DNS_STATUS_TARGET_READY=0
+	DNS_STATUS_LISTENER_ACTIVE=0
+	DNS_STATUS_MESSAGE=""
+	DNS_STATUS_WARNING=""
+	DNS_STATUS_MANAGED_FORWARD=""
+	DNS_STATUS_GENERIC=""
+	DNS_STATUS_DOMAIN=""
+	DNS_STATUS_PREVIOUS=""
+	DNS_STATUS_NO_RESOLV=""
+	DNS_STATUS_NO_RESOLV_SET=0
+	DNS_STATUS_TARGET=""
+	DNS_STATUS_PORT=""
+
+	if dnsmasq_available; then DNS_STATUS_SUPPORTED=1; fi
+	if service_running; then DNS_STATUS_SERVICE_RUNNING=1; fi
+	if dnsmasq_running; then DNS_STATUS_DNSMASQ_RUNNING=1; fi
+	if dns_integration_managed; then DNS_STATUS_MANAGED=1; fi
+	if [ "$DNS_STATUS_SUPPORTED" = "1" ]; then
+		DNS_STATUS_GENERIC="$(dnsmasq_generic_servers || true)"
+		DNS_STATUS_DOMAIN="$(dnsmasq_domain_servers || true)"
+		dnsmasq_noresolv_read
+		DNS_STATUS_NO_RESOLV_SET="$DNSM_NO_RESOLV_SET"
+		DNS_STATUS_NO_RESOLV="$DNSM_NO_RESOLV"
+		if [ "$DNS_STATUS_MANAGED" = "1" ]; then
+			DNS_STATUS_MANAGED_FORWARD="$(dns_state_get forward)"
+			DNS_STATUS_PREVIOUS="$(dns_state_list server_prev || true)"
+			if [ -n "$DNS_STATUS_MANAGED_FORWARD" ] &&
+				dnsmasq_has_server "$DNS_STATUS_MANAGED_FORWARD"; then
+				DNS_STATUS_FORWARD_PRESENT=1
+			fi
+		fi
+	fi
+	if dns_forward_target 2>/dev/null; then
+		DNS_STATUS_TARGET="$DNS_TARGET"
+		DNS_STATUS_PORT="$DNS_TARGET_PORT"
+		if [ "$DNS_STATUS_SERVICE_RUNNING" = "1" ] &&
+			dns_port_listening_udp "$DNS_TARGET_HOST" "$DNS_TARGET_PORT"; then
+			DNS_STATUS_LISTENER_ACTIVE=1
+			DNS_STATUS_TARGET_READY=1
+		fi
+	fi
+	if [ "$DNS_STATUS_SUPPORTED" != "1" ]; then
+		DNS_STATUS_MESSAGE="dnsmasq is not available"
+	elif [ "$DNS_STATUS_MANAGED" = "1" ]; then
+		DNS_STATUS_CAN_DISABLE=1
+		if [ "$DNS_STATUS_FORWARD_PRESENT" != "1" ]; then
+			DNS_STATUS_WARNING="the saved dnsmasq forwarding entry is missing"
+		elif [ -n "$DNS_STATUS_TARGET" ] &&
+			[ "$DNS_STATUS_TARGET" != "$DNS_STATUS_MANAGED_FORWARD" ]; then
+			DNS_STATUS_WARNING="the OxiDNS DNS listen address changed; disable and enable system DNS integration again"
+		elif [ "$DNS_STATUS_NO_RESOLV" != "1" ]; then
+			DNS_STATUS_WARNING="dnsmasq noresolv is no longer set"
+		elif [ "$DNS_STATUS_DNSMASQ_RUNNING" != "1" ]; then
+			DNS_STATUS_WARNING="dnsmasq is not running"
+		fi
+	elif [ "$DNS_STATUS_SERVICE_RUNNING" != "1" ]; then
+		DNS_STATUS_MESSAGE="start OxiDNS before enabling system DNS integration"
+	elif [ -z "$DNS_STATUS_TARGET" ]; then
+		DNS_STATUS_MESSAGE="$DNS_TARGET_REASON"
+	elif [ "$DNS_STATUS_LISTENER_ACTIVE" != "1" ]; then
+		DNS_STATUS_MESSAGE="OxiDNS is not listening on the configured DNS port. Restart OxiDNS and try again."
+	fi
+	if [ "$DNS_STATUS_MANAGED" != "1" ] &&
+		[ "$DNS_STATUS_SUPPORTED" = "1" ] &&
+		[ "$DNS_STATUS_TARGET_READY" = "1" ]; then
+		DNS_STATUS_CAN_ENABLE=1
+	fi
+
+	printf '{'
+	printf '"ok":true,"supported":'
+	json_bool "$DNS_STATUS_SUPPORTED"
+	printf ',"dnsmasq_running":'
+	json_bool "$DNS_STATUS_DNSMASQ_RUNNING"
+	printf ',"service_running":'
+	json_bool "$DNS_STATUS_SERVICE_RUNNING"
+	printf ',"managed":'
+	json_bool "$DNS_STATUS_MANAGED"
+	printf ',"can_enable":'
+	json_bool "$DNS_STATUS_CAN_ENABLE"
+	printf ',"can_disable":'
+	json_bool "$DNS_STATUS_CAN_DISABLE"
+	printf ',"forward":'
+	if [ "$DNS_STATUS_MANAGED" = "1" ]; then
+		json_string "$DNS_STATUS_MANAGED_FORWARD"
+	else
+		json_string "$DNS_STATUS_TARGET"
+	fi
+	printf ',"target":'
+	json_string "$DNS_STATUS_TARGET"
+	printf ',"port":'
+	json_string "$DNS_STATUS_PORT"
+	printf ',"listener_active":'
+	json_bool "$DNS_STATUS_LISTENER_ACTIVE"
+	printf ',"forward_present":'
+	json_bool "$DNS_STATUS_FORWARD_PRESENT"
+	printf ',"noresolv":'
+	json_string "$DNS_STATUS_NO_RESOLV"
+	printf ',"noresolv_set":'
+	json_bool "$DNS_STATUS_NO_RESOLV_SET"
+	printf ',"generic_servers":'
+	json_string_array_from_text "$DNS_STATUS_GENERIC"
+	printf ',"domain_servers":'
+	json_string_array_from_text "$DNS_STATUS_DOMAIN"
+	printf ',"previous_servers":'
+	json_string_array_from_text "$DNS_STATUS_PREVIOUS"
+	printf ',"message":'
+	json_string "$DNS_STATUS_MESSAGE"
+	printf ',"warning":'
+	json_string "$DNS_STATUS_WARNING"
+	printf '}\n'
+}
+
+emit_dns_integration_enable_locked() {
+	load_settings
+	if ! dnsmasq_available; then
+		json_error "dns_integration_unsupported" "dnsmasq is not available"
+		return 1
+	fi
+	if dns_integration_managed; then
+		json_error "dns_integration_already_enabled" "system DNS integration is already enabled"
+		return 1
+	fi
+	if ! service_running; then
+		json_error "dns_integration_service_stopped" "start OxiDNS before enabling system DNS integration"
+		return 1
+	fi
+	if ! dns_forward_target; then
+		json_error "dns_integration_listener_unknown" "$DNS_TARGET_REASON"
+		return 1
+	fi
+	if ! dns_port_listening_udp "$DNS_TARGET_HOST" "$DNS_TARGET_PORT"; then
+		json_error "dns_integration_listener_inactive" "OxiDNS is not listening on the configured DNS port. Restart OxiDNS and try again."
+		return 1
+	fi
+
+	DNS_GENERIC="$(dnsmasq_generic_servers || true)"
+	dnsmasq_noresolv_read
+
+	uci -q delete oxidns.dns_integration >/dev/null 2>&1 || true
+	if ! uci -q set oxidns.dns_integration=state ||
+		! uci -q set oxidns.dns_integration.managed=1 ||
+		! uci -q set "oxidns.dns_integration.forward=$DNS_TARGET" ||
+		! uci -q set "oxidns.dns_integration.noresolv_set=$DNSM_NO_RESOLV_SET" ||
+		! uci -q set "oxidns.dns_integration.noresolv_value=$DNSM_NO_RESOLV"; then
+		dns_integration_clear_state
+		json_error "dns_integration_save_failed" "failed to save DNS integration state"
+		return 1
+	fi
+	if [ -n "$DNS_GENERIC" ]; then
+		if ! printf '%s\n' "$DNS_GENERIC" | while IFS= read -r DNS_ENTRY; do
+			[ -n "$DNS_ENTRY" ] || continue
+			uci -q add_list "oxidns.dns_integration.server_prev=$DNS_ENTRY" || exit 1
+		done; then
+			dns_integration_clear_state
+			json_error "dns_integration_save_failed" "failed to save DNS integration state"
+			return 1
+		fi
+	fi
+	if ! uci -q commit oxidns; then
+		dns_integration_clear_state
+		json_error "dns_integration_save_failed" "failed to save DNS integration state"
+		return 1
+	fi
+
+	if [ -n "$DNS_GENERIC" ]; then
+		printf '%s\n' "$DNS_GENERIC" | while IFS= read -r DNS_ENTRY; do
+			[ -n "$DNS_ENTRY" ] || continue
+			uci -q del_list "dhcp.@dnsmasq[0].server=$DNS_ENTRY" >/dev/null 2>&1 || true
+		done
+	fi
+	if ! uci -q add_list "dhcp.@dnsmasq[0].server=$DNS_TARGET" ||
+		! uci -q set dhcp.@dnsmasq[0].noresolv=1 ||
+		! uci -q commit dhcp; then
+		uci -q revert dhcp >/dev/null 2>&1 || true
+		dns_integration_clear_state
+		json_error "dns_integration_apply_failed" "failed to update dnsmasq configuration"
+		return 1
+	fi
+
+	DNS_DNSMASQ_RUNNING=0
+	DNS_DNSMASQ_RELOADED=0
+	DNS_WARNING=""
+	if dnsmasq_running; then
+		DNS_DNSMASQ_RUNNING=1
+		if dnsmasq_reload; then
+			DNS_DNSMASQ_RELOADED=1
+		else
+			DNS_WARNING="dnsmasq could not be reloaded; the settings will apply the next time dnsmasq starts"
+		fi
+	else
+		DNS_WARNING="dnsmasq is not running; the settings will apply when dnsmasq starts"
+	fi
+
+	printf '{"ok":true,"managed":true,"forward":'
+	json_string "$DNS_TARGET"
+	printf ',"removed":'
+	json_string_array_from_text "$DNS_GENERIC"
+	printf ',"previous_servers":'
+	json_string_array_from_text "$DNS_GENERIC"
+	printf ',"dnsmasq_running":'
+	json_bool "$DNS_DNSMASQ_RUNNING"
+	printf ',"reloaded":'
+	json_bool "$DNS_DNSMASQ_RELOADED"
+	if [ -n "$DNS_WARNING" ]; then
+		printf ',"warning":'
+		json_string "$DNS_WARNING"
+	fi
+	printf '}\n'
+}
+
+emit_dns_integration_enable() {
+	run_with_dns_lock emit_dns_integration_enable_locked
+}
+
+emit_dns_integration_disable_locked() {
+	load_settings
+	if ! dnsmasq_available; then
+		json_error "dns_integration_unsupported" "dnsmasq is not available"
+		return 1
+	fi
+	if ! dns_integration_managed; then
+		json_error "dns_integration_not_enabled" "system DNS integration is not enabled"
+		return 1
+	fi
+	DNS_MANAGED_FORWARD="$(dns_state_get forward)"
+	if ! valid_dns_forward "$DNS_MANAGED_FORWARD"; then
+		json_error "dns_integration_state_invalid" "the saved DNS integration state is invalid"
+		return 1
+	fi
+	DNS_PREVIOUS="$(dns_state_list server_prev || true)"
+	DNS_NO_RESOLV_SET="$(dns_state_get noresolv_set)"
+	DNS_NO_RESOLV_VALUE="$(dns_state_get noresolv_value)"
+
+	uci -q del_list "dhcp.@dnsmasq[0].server=$DNS_MANAGED_FORWARD" >/dev/null 2>&1 || true
+	if [ -n "$DNS_PREVIOUS" ]; then
+		if ! printf '%s\n' "$DNS_PREVIOUS" | while IFS= read -r DNS_ENTRY; do
+			[ -n "$DNS_ENTRY" ] || continue
+			if ! dnsmasq_has_server "$DNS_ENTRY"; then
+				uci -q add_list "dhcp.@dnsmasq[0].server=$DNS_ENTRY" || exit 1
+			fi
+		done; then
+			uci -q revert dhcp >/dev/null 2>&1 || true
+			json_error "dns_integration_apply_failed" "failed to update dnsmasq configuration"
+			return 1
+		fi
+	fi
+	if [ "$DNS_NO_RESOLV_SET" = "1" ]; then
+		if ! uci -q set "dhcp.@dnsmasq[0].noresolv=$DNS_NO_RESOLV_VALUE"; then
+			uci -q revert dhcp >/dev/null 2>&1 || true
+			json_error "dns_integration_apply_failed" "failed to update dnsmasq configuration"
+			return 1
+		fi
+	else
+		uci -q delete dhcp.@dnsmasq[0].noresolv >/dev/null 2>&1 || true
+	fi
+	if ! uci -q commit dhcp; then
+		uci -q revert dhcp >/dev/null 2>&1 || true
+		json_error "dns_integration_apply_failed" "failed to update dnsmasq configuration"
+		return 1
+	fi
+
+	DNS_DNSMASQ_RUNNING=0
+	DNS_DNSMASQ_RELOADED=0
+	DNS_WARNING=""
+	if dnsmasq_running; then
+		DNS_DNSMASQ_RUNNING=1
+		if dnsmasq_reload; then
+			DNS_DNSMASQ_RELOADED=1
+		else
+			DNS_WARNING="dnsmasq could not be reloaded; the settings will apply the next time dnsmasq starts"
+		fi
+	fi
+
+	DNS_STATE_CLEANUP_FAILED=0
+	uci -q delete oxidns.dns_integration >/dev/null 2>&1 || true
+	if ! uci -q commit oxidns; then
+		DNS_STATE_CLEANUP_FAILED=1
+	fi
+	if [ "$DNS_STATE_CLEANUP_FAILED" = "1" ]; then
+		json_error "dns_integration_state_cleanup_failed" "DNS integration was disabled, but the saved state could not be cleared. Try disabling again."
+		return 1
+	fi
+
+	printf '{"ok":true,"managed":false,"forward":'
+	json_string "$DNS_MANAGED_FORWARD"
+	printf ',"restored":'
+	json_string_array_from_text "$DNS_PREVIOUS"
+	printf ',"dnsmasq_running":'
+	json_bool "$DNS_DNSMASQ_RUNNING"
+	printf ',"reloaded":'
+	json_bool "$DNS_DNSMASQ_RELOADED"
+	if [ -n "$DNS_WARNING" ]; then
+		printf ',"warning":'
+		json_string "$DNS_WARNING"
+	fi
+	printf '}\n'
+}
+
+emit_dns_integration_disable() {
+	run_with_dns_lock emit_dns_integration_disable_locked
+}
+
 build_info_json() {
 	if [ -x "$OXIDNS_BIN" ]; then
 		"$OXIDNS_BIN" build-info 2>/dev/null || true
@@ -2682,6 +3417,9 @@ case "${1:-}" in
 		printf '"service_restart":{},'
 		printf '"service_enable":{},'
 		printf '"service_disable":{},'
+		printf '"dns_integration_status":{},'
+		printf '"dns_integration_enable":{},'
+		printf '"dns_integration_disable":{},'
 		printf '"config_read":{},'
 		printf '"config_schema":{},'
 		printf '"config_plugin_types":{},'
@@ -2734,6 +3472,15 @@ case "${1:-}" in
 				;;
 			service_disable)
 				run_service disable
+				;;
+			dns_integration_status)
+				emit_dns_integration_status
+				;;
+			dns_integration_enable)
+				emit_dns_integration_enable
+				;;
+			dns_integration_disable)
+				emit_dns_integration_disable
 				;;
 			config_read)
 				emit_config_read
