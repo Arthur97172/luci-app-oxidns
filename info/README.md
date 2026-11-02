@@ -2,7 +2,7 @@
 
 语言：中文 | [English](./README.en.md)
 
-本文面向已经安装 `luci-app-oxidns` 和 OxiDNS 内核的用户，说明如何通过 LuCI 的 `DNS配置` 页面配置 DNS，以及如何通过 `基本信息` 页面进入 OxiDNS WebUI 完成同样的工作。
+本文面向已经安装 `luci-app-oxidns` 和 OxiDNS 内核的用户，说明如何通过 LuCI 的 `DNS配置` 页面配置 DNS，如何通过 `基本信息` 页面一键启用 dnsmasq 转发，以及如何进入 OxiDNS WebUI 完成同样的工作。
 
 文中以 OpenWrt 默认安装路径为准：
 
@@ -657,6 +657,68 @@ nas.lan 192.168.1.10
 
 OxiDNS 的 `udp_server` / `tcp_server` 插件默认监听 `:5335`，而 OpenWrt 的 53 端口由 dnsmasq 占用，DHCP 也由它提供。推荐保留 dnsmasq，让它把查询转发给 OxiDNS：局域网 DHCP、`xxx.lan` 主机名和租约名解析都不受影响，客户端也无需改动。
 
+LuCI 在 `服务 -> OxiDNS -> 基本信息` 提供了 `系统 DNS 接入` 卡片，可以在检查通过后一键完成下面「手动配置」中的 dnsmasq 改动，并支持一键停用和恢复。它只修改 `/etc/config/dhcp`（dnsmasq 的上游和 `noresolv`），**不会改动** `/etc/oxidns/config.yaml`。
+
+#### 一键启用
+
+启用前需要满足：
+
+- OxiDNS 已安装并正在运行；
+- OxiDNS 的 UDP 与 TCP 监听使用**同一个端口**，并共享一个可达的 IPv4 地址，例如两者都是 `127.0.0.1:5335`；
+- 监听为 `:端口`、`0.0.0.0:端口` 或 `127.0.0.1:端口` 时，转发目标为 `127.0.0.1`。如果 UDP/TCP 端口不一致、没有共同可达的 IPv4 地址，或只监听 IPv6（`[::]:端口`、`[::1]:端口`），无法确定可靠的转发目标，`启用 dnsmasq 转发` 按钮不可用。
+- 监听配置为 `:端口` 时，OxiDNS 在内核上可能实际绑定 IPv6 通配（`:::端口`）；只要 `bindv6only=0`（OpenWrt 默认），通过 `127.0.0.1` 访问仍然有效，LuCI 也能正确识别该监听。
+
+操作步骤：
+
+1. 打开 `服务 -> OxiDNS -> 基本信息`，找到 `系统 DNS 接入` 卡片。卡片会显示 dnsmasq 运行状态、接入状态、OxiDNS 监听目标、dnsmasq 的通用上游（未接入时为当前值，接入后为记录的启用前值）、特定域名上游和 `noresolv` 当前值；列表为空时显示 `无`，OxiDNS 未监听时目标后会标注 `(未监听)`。
+2. 点击 `启用 dnsmasq 转发`。确认对话框会列出将要执行的改动：
+   - 移除 dnsmasq 现有的通用上游，并记录其原始值；
+   - 添加指向 OxiDNS 的转发条目，例如 `127.0.0.1#5335`；
+   - 设置 `noresolv=1`，并记录原始值；
+   - 保留 `/domain/...` 形式的特定域名上游。
+   这些原始值会写入 `/etc/config/oxidns` 的 `dns_integration` 段，用于日后停用时恢复。如果之前已经手工添加过相同的转发条目，它会被当作原有通用上游记录，停用时会恢复原样。
+3. 确认后后端先保存启用前的状态，再写入 `/etc/config/dhcp` 并重载 dnsmasq。卡片随后显示已启用、转发目标，以及记录的启用前上游。
+
+验证：
+
+```sh
+nslookup -po=5335 www.baidu.com 127.0.0.1   # 直连 OxiDNS
+nslookup www.baidu.com 192.168.1.1          # 经 dnsmasq，地址换成路由器 LAN 地址
+```
+
+也可以在局域网客户端上直接查询路由器地址，结果应与直连 OxiDNS 一致。
+
+#### 状态与异常提示
+
+卡片会持续读取实际配置并与记录比对，在以下情况给出提示：
+
+- 转发条目被手工删除；
+- OxiDNS 监听地址或端口发生变化，与记录的转发目标不再匹配；
+- `noresolv` 被其他程序修改；
+- dnsmasq 或 OxiDNS 已停止运行。
+
+出现这类偏差时，按提示重新启用或直接停用即可回到已知状态。
+
+#### 停用与恢复
+
+点击 `停用 dnsmasq 转发` 并确认后，后端会：
+
+1. 只删除 `dns_integration` 记录的、由本功能添加的转发条目；
+2. 恢复启用前的通用上游（已存在的不重复添加）；
+3. 把 `noresolv` 恢复为启用前的值；如果启用前未设置，则删除该项；
+4. 提交 UCI、重载 dnsmasq，并清除 `dns_integration` 记录。
+
+停用后 dnsmasq 回到启用前的上游配置，OxiDNS 继续按 `config.yaml` 运行，不受影响。
+
+#### 失败行为与注意事项
+
+- **fail-closed**：启用期间停止 OxiDNS，经 dnsmasq 的局域网查询会超时或失败，不会自动绕过 OxiDNS。需要重新启动 OxiDNS，或先停用转发。启用状态下点击 `停止` 时，LuCI 会先弹出警告确认。
+- **不接管 53 端口**：dnsmasq 继续监听 53，DHCP、本地域名和租约解析保持正常。需要 OxiDNS 直接监听 53 时见本节末尾的另一种部署方式。
+- 若曾手工修改 dnsmasq 的通用上游，停用后恢复的是启用那一刻的快照；之后的手工改动不会被合并。
+- 不要把 dnsmasq 的 53 端口或 OxiDNS 的 5335 端口暴露到 WAN。
+
+#### 手动配置（不使用一键功能）
+
 1. 在 `服务 -> OxiDNS -> DNS配置` 的 `普通模式` 中，把两个 DNS 服务改为只监听本机，然后点击 `保存并应用`：
 
 ```yaml
@@ -703,6 +765,8 @@ uci -q delete dhcp.@dnsmasq[0].server
 uci commit dhcp
 /etc/init.d/dnsmasq restart
 ```
+
+注意：`delete dhcp.@dnsmasq[0].server` 会删除全部 `server` 条目，包括 `/domain/...` 形式的特定域名上游；如果存在这类上游，请先用 `uci show dhcp.@dnsmasq[0]` 记录，回滚后重新添加。`系统 DNS 接入` 的一键停用只删除它自己添加的条目，并自动恢复启用前的上游，不会影响特定域名上游。
 
 如果 OxiDNS 需要按客户端源地址做策略，也可以让它直接监听 53 端口：先执行 `uci set dhcp.@dnsmasq[0].port='0'` 关闭 dnsmasq 的 DNS 功能（DHCP 不受影响），并确认 DHCP 仍下发本机地址作为 DNS，再把上面两个 `listen` 改为 `":53"`。代价是 `xxx.lan` 主机名、DHCP 租约名和 dnsmasq 的 rebind 保护不再生效；IPv6 客户端还需要 OxiDNS 同时监听 IPv6，例如 `"[::]:53"`。
 

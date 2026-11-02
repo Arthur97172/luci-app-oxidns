@@ -2,7 +2,7 @@
 
 Language: [中文](./README.md) | English
 
-This guide is for users who have installed `luci-app-oxidns` and the OxiDNS core. It explains how to configure DNS on the LuCI `DNS Configuration` page and how to do the same work through the OxiDNS WebUI opened from `Basic Information`.
+This guide is for users who have installed `luci-app-oxidns` and the OxiDNS core. It explains how to configure DNS on the LuCI `DNS Configuration` page, how to enable dnsmasq forwarding with one click on `Basic Information`, and how to do the same work through the OxiDNS WebUI.
 
 Default OpenWrt paths used throughout:
 
@@ -656,6 +656,68 @@ Normal Mode can edit fields of existing `black_hole`, `domain_set`, and `adguard
 
 OxiDNS's `udp_server` / `tcp_server` plugins listen on `:5335` by default, while port 53 on OpenWrt belongs to dnsmasq, which also serves DHCP. The recommended setup keeps dnsmasq and lets it forward queries to OxiDNS, so LAN DHCP, `xxx.lan` hostnames and lease names keep working and clients need no changes.
 
+LuCI provides a `System DNS integration` card on `Services -> OxiDNS -> Basic Information`. Once its checks pass, it performs the dnsmasq changes described under "Manual Configuration" in one click and can be disabled and rolled back the same way. It modifies only `/etc/config/dhcp` (dnsmasq upstreams and `noresolv`) and **never touches** `/etc/oxidns/config.yaml`.
+
+#### Enable In One Click
+
+Prerequisites:
+
+- OxiDNS is installed and running;
+- OxiDNS's UDP and TCP listeners use **the same port** and share a reachable IPv4 address, for example both on `127.0.0.1:5335`;
+- When OxiDNS listens on `:port`, `0.0.0.0:port`, or `127.0.0.1:port`, the forwarding target is `127.0.0.1`. If UDP and TCP use different ports, share no reachable IPv4 address, or listen on IPv6 only (`[::]:port`, `[::1]:port`), no reliable target can be determined and the `Enable dnsmasq forwarding` button stays unavailable.
+- With a `:port` listen entry, OxiDNS may actually bind the IPv6 wildcard (`:::port`) in the kernel. As long as `bindv6only=0` (the OpenWrt default), `127.0.0.1` still works and LuCI detects the listener correctly.
+
+Steps:
+
+1. Open `Services -> OxiDNS -> Basic Information` and find the `System DNS integration` card. It shows the dnsmasq status, integration status, OxiDNS listen target, dnsmasq generic upstreams (the current value before enabling, the saved pre-enable value afterwards), domain-specific upstreams, and the current `noresolv` value. Empty lists show `None`, and a target that is not listening is marked `(not listening)`.
+2. Click `Enable dnsmasq forwarding`. The confirmation dialog lists the changes:
+   - remove the current generic upstreams, recording their original values;
+   - add a forwarding entry pointing at OxiDNS, for example `127.0.0.1#5335`;
+   - set `noresolv=1`, recording the original value;
+   - keep `/domain/...` domain-specific upstreams.
+   These original values are stored in the `dns_integration` section of `/etc/config/oxidns` so they can be restored later. If an identical forwarding entry was already added manually, it is recorded as a previous generic upstream and is restored as it was on disable.
+3. After you confirm, the backend saves the pre-enable state, writes `/etc/config/dhcp`, and reloads dnsmasq. The card then shows the integration as enabled, the forwarding target, and the recorded pre-enable upstreams.
+
+Verify:
+
+```sh
+nslookup -po=5335 www.baidu.com 127.0.0.1   # OxiDNS directly
+nslookup www.baidu.com 192.168.1.1          # through dnsmasq; use the router LAN address
+```
+
+You can also query the router address directly from a LAN client; the answer should match a direct query to OxiDNS.
+
+#### Status And Warnings
+
+The card keeps reading the live configuration and compares it with the saved state, and reports these cases:
+
+- the forwarding entry was removed manually;
+- the OxiDNS listen address or port changed and no longer matches the recorded target;
+- `noresolv` was changed by something else;
+- dnsmasq or OxiDNS has stopped.
+
+If any of these drift, follow the hint to re-enable or simply disable the integration to return to a known state.
+
+#### Disable And Restore
+
+After you click `Disable dnsmasq forwarding` and confirm, the backend:
+
+1. removes only the forwarding entry that `dns_integration` recorded for this feature;
+2. restores the pre-enable generic upstreams, without adding duplicates;
+3. restores `noresolv` to its pre-enable value, or removes the option if it was unset before;
+4. commits UCI, reloads dnsmasq, and clears the `dns_integration` record.
+
+After disabling, dnsmasq is back to its pre-enable upstream configuration, and OxiDNS keeps running from `config.yaml` as before.
+
+#### Failure Behavior And Caveats
+
+- **Fail-closed**: while the integration is enabled, stopping OxiDNS makes LAN queries through dnsmasq time out or fail instead of bypassing OxiDNS. Start OxiDNS again, or disable the integration first. LuCI shows a warning confirmation when you click `Stop` while it is enabled.
+- **No port 53 takeover**: dnsmasq keeps listening on 53, so DHCP, local names, and lease resolution keep working. To have OxiDNS bind port 53 directly, see the alternative deployment at the end of this section.
+- If you edited dnsmasq's generic upstreams manually, disabling restores the snapshot taken when the integration was enabled; later manual edits are not merged.
+- Never expose dnsmasq's port 53 or OxiDNS's port 5335 to the WAN.
+
+#### Manual Configuration (Without The One-Click Feature)
+
 1. Open `Services -> OxiDNS -> DNS Configuration`, change both DNS servers under `Listen Addresses` in Normal mode to the loopback address, then click `Save and Apply`:
 
 ```yaml
@@ -702,6 +764,8 @@ uci -q delete dhcp.@dnsmasq[0].server
 uci commit dhcp
 /etc/init.d/dnsmasq restart
 ```
+
+Note: `delete dhcp.@dnsmasq[0].server` removes every `server` entry, including `/domain/...` domain-specific upstreams. If you have any, record them with `uci show dhcp.@dnsmasq[0]` first and add them back after rolling back. The one-click `System DNS integration` disable removes only its own entry and restores the pre-enable upstreams automatically, leaving domain-specific upstreams untouched.
 
 If OxiDNS needs to apply per-client policies based on the source address, it can listen on port 53 instead: run `uci set dhcp.@dnsmasq[0].port='0'` to turn off dnsmasq's DNS function (DHCP keeps working), make sure DHCP still advertises the router as DNS, then change both `listen` values above to `":53"`. The trade-offs are that `xxx.lan` hostnames, DHCP lease names and dnsmasq's rebind protection no longer apply, and IPv6 clients require OxiDNS to listen on IPv6 as well, for example `"[::]:53"`.
 

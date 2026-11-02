@@ -2,7 +2,7 @@
 
 Language: [中文](./README.md) | English
 
-`luci-app-oxidns` is the LuCI management app for OxiDNS on OpenWrt. After installation, LuCI adds `Services -> OxiDNS` pages for installing the OxiDNS core, managing the OpenWrt service, editing configuration, and viewing logs.
+`luci-app-oxidns` is the LuCI management app for OxiDNS on OpenWrt. After installation, LuCI adds `Services -> OxiDNS` pages for installing the OxiDNS core, managing the OpenWrt service, editing configuration, viewing logs, and optionally forwarding LAN DNS through dnsmasq to OxiDNS.
 
 This repository contains only the LuCI management UI and the rpcd backend; the OxiDNS core, WebUI, and general releases come from [svenshi/oxidns](https://github.com/svenshi/oxidns).
 
@@ -11,6 +11,7 @@ This repository contains only the LuCI management UI and the rpcd backend; the O
 ## Features
 
 - `Basic Information`: `Status Overview` shows the backend, core, build, service status, boot autostart, and WebUI entry, with start, stop, and restart controls below.
+- `System DNS integration`: on the `Basic Information` page, enable or disable dnsmasq forwarding in one click. When enabled, dnsmasq forwards generic DNS queries to OxiDNS's listen address while keeping domain-specific upstreams; it is disabled by default, and disabling restores the previous generic upstreams and `noresolv` setting.
 - `DNS Configuration`: Normal mode forms and Advanced mode full YAML; both support validation, config download/upload, save, save and apply, and a change preview.
 - `Settings`: install, update, upload, repair, or remove the core and WebUI; configure core repository, bundle, paths, system log output, and download credentials.
 - `Logs`: view OxiDNS runtime logs.
@@ -71,7 +72,7 @@ Open `Services -> OxiDNS -> Settings`, confirm `Core repository` is `svenshi/oxi
 
 The `full` / `standard` archives include the WebUI; the `minimal` archive and a single binary do not. After installing the core, click `Start` on `Basic Information` and enable boot autostart under `Autostart` on `Settings`. When a core is already installed, `Core Actions` also offers `Update Core`, `Repair Reinstall`, `Install WebUI`, `Upload Core`, and `Remove Core`; `Remove Core` keeps `/etc/oxidns/config.yaml` and `/var/lib/oxidns` by default.
 
-For making OxiDNS the system DNS, forwarding through dnsmasq, and rolling back, see [info/README.en.md](info/README.en.md#49-forward-through-dnsmasq-recommended).
+For enabling dnsmasq forwarding with one click on `Basic Information`, manual configuration, and rollback, see [info/README.en.md](info/README.en.md#49-forward-through-dnsmasq-recommended).
 
 ## Default Paths
 
@@ -92,6 +93,9 @@ For making OxiDNS the system DNS, forwarding through dnsmasq, and rolling back, 
 - Normal mode only edits plugin instances that already exist. Adding or removing plugins and changing sequence rules require Advanced mode or the OxiDNS WebUI; with YAML anchors, aliases, or merge keys, Normal mode becomes read-only.
 - Saving from Normal mode re-serializes the YAML: comments, field order, and fields the form does not manage are preserved, and only edited fields are written. Normal mode, Advanced mode, and the OxiDNS WebUI edit the same file, so use only one entry point at a time.
 - The WebUI entry on `Basic Information` requires installed WebUI files, a running service, and a reachable HTTP listen address; with `127.0.0.1` / `::1`, use local access or an SSH tunnel.
+- `System DNS integration` requires OxiDNS to be running, with UDP and TCP listeners on the same port that share a reachable IPv4 address; the `Enable dnsmasq forwarding` button stays unavailable with IPv6-only listeners, mismatched ports, or no shared reachable IPv4 address.
+- Once `System DNS integration` is enabled, stopping OxiDNS makes LAN DNS resolution fail (fail-closed) instead of bypassing OxiDNS automatically; start OxiDNS again or disable the integration.
+- `System DNS integration` does not take over port 53; dnsmasq keeps listening on 53 and continues to provide DHCP, local names, and lease resolution. Having OxiDNS bind port 53 directly is a different deployment, and the detailed guide covers its trade-offs and steps.
 
 ## Private Repositories And Downloads
 
