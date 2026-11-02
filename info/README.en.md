@@ -286,7 +286,7 @@ Each `forward` instance gets a section titled with its tag. Each upstream has:
 - `Upstream address N`: a preset combobox for common public DNS servers, or a custom address.
 - `Options` / `Hide options`: expand or collapse per-upstream connection options.
 - `Remove`: remove this upstream.
-- `Add upstream DNS`: append an empty upstream to fill in.
+- `Add upstream DNS`: the add control is the combobox itself. Picking a preset or entering a custom address appends a new upstream carrying that address, and the combobox returns to "Select or input an upstream DNS server" for the next one. An upstream still showing that placeholder has no address and is not saved to the configuration file.
 
 Common presets include Alibaba, Tencent, 114, Baidu, Cloudflare, Google, and Quad9 over UDP, DoT, DoH, and DoQ, for example:
 
@@ -560,7 +560,7 @@ This section never modifies the configuration. Use Advanced Mode or the WebUI pl
 1. Open `DNS Configuration -> Normal Mode`.
 2. Find the target `forward` plugin under `Upstream DNS`.
 3. Pick a preset or type a custom address.
-4. Click `Add upstream DNS` to add more upstreams.
+4. To add more upstreams, pick or enter another address in the `Add upstream DNS` combobox; each selection appends one upstream. Upstreams left at "Select or input an upstream DNS server" are not saved.
 5. Click `Validate`, then `Save and Apply`.
 
 ### 4.2 Use DoH / DoT / DoQ Upstreams

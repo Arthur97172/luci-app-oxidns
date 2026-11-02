@@ -762,6 +762,62 @@ function upstreamAdvancedRows(doc, index, position, bindings) {
 	return rows;
 }
 
+/*
+ * Upstreams still showing the "Select or input an upstream DNS server"
+ * placeholder are not configured and must not end up in the saved file.
+ */
+function pruneEmptyUpstreams(doc, index) {
+	var path = [ 'plugins', index, 'args', 'upstreams' ];
+	var upstreams = arrayItems(doc, path);
+
+	for (var position = upstreams.length - 1; position >= 0; position--) {
+		var upstream = upstreams[position];
+
+		if (!upstream || typeof upstream.get !== 'function' || text(upstream.get('addr')))
+			continue;
+
+		doc.deleteIn(path.concat([ position ]));
+	}
+
+	return arrayItems(doc, path);
+}
+
+/*
+ * The add control is the placeholder combobox itself: picking a preset or
+ * entering a custom address appends an upstream and leaves the combobox back
+ * at its placeholder for the next one.
+ */
+function upstreamAdder(doc, index, options) {
+	var node = upstreamSelect('oxidns-cfg-upstream-add-%d'.format(index), '');
+	var handled = false;
+
+	node.addEventListener('cbi-dropdown-change', function() {
+		if (handled)
+			return;
+
+		var value = text(node.value).trim();
+
+		if (!value)
+			return;
+
+		handled = true;
+
+		// The dropdown dispatches a second change event while closing; defer
+		// the rerender so it runs after the widget has finished with the node.
+		window.setTimeout(function() {
+			options.beforeChange();
+
+			var path = [ 'plugins', index, 'args', 'upstreams' ];
+			if (!hasNodePath(doc, path))
+				doc.setIn(path, doc.createNode([]));
+			doc.addIn(path, doc.createNode({ 'addr': value }));
+			options.rerender();
+		}, 0);
+	});
+
+	return node;
+}
+
 function upstreamSection(doc, bindings, options) {
 	var rows = [];
 	var found = false;
@@ -773,8 +829,7 @@ function upstreamSection(doc, bindings, options) {
 		found = true;
 
 		var tag = pluginTag(item, index);
-		var seq = doc.getIn([ 'plugins', index, 'args', 'upstreams' ], true);
-		var upstreams = seq && seq.items ? seq.items : [];
+		var upstreams = pruneEmptyUpstreams(doc, index);
 
 		rows.push(E('div', { 'class': 'tr' }, [
 			E('div', { 'class': 'td left', 'style': 'width: 240px' }, E('strong', {}, _('Plugin') + ': ' + tag)),
@@ -811,10 +866,28 @@ function upstreamSection(doc, bindings, options) {
 			}, _('Options'));
 			toggle.setAttribute('aria-expanded', 'false');
 
+			var selectNode = upstreamSelect(id, address);
+			var selectHandled = false;
+
+			// Clearing an existing upstream back to the placeholder removes it
+			// rather than saving an entry with no address.
+			selectNode.addEventListener('cbi-dropdown-change', function() {
+				if (selectHandled || text(selectNode.value).trim())
+					return;
+
+				selectHandled = true;
+
+				window.setTimeout(function() {
+					options.beforeChange();
+					pruneEmptyUpstreams(doc, index);
+					options.rerender();
+				}, 0);
+			});
+
 			rows.push(row(_('Upstream address') + ' ' + (position + 1),
 				E('div', { 'style': 'display: flex; gap: .5em; align-items: center; justify-content: flex-start; width: 100%; flex-wrap: wrap;' }, [
 					E('div', { 'style': 'flex: 0 0 210px; width: 210px; min-width: 0;' }, [
-						upstreamSelect(id, address)
+						selectNode
 					]),
 					toggle,
 					upstreamButton(_('Remove'), function() {
@@ -830,25 +903,9 @@ function upstreamSection(doc, bindings, options) {
 		if (!upstreams.length)
 			rows.push(noteRow(_('No upstream servers configured.')));
 
-		rows.push(E('div', { 'class': 'tr' }, [
-			E('div', { 'class': 'td left', 'style': 'width: 240px' }, ''),
-			E('div', { 'class': 'td left' }, E('div', {
-				'style': 'display: flex; justify-content: flex-start; padding-top: .75em; padding-bottom: .5em;'
-			}, [
-				E('button', {
-					'class': 'btn cbi-button cbi-button-action',
-					'click': function(ev) {
-						ev.preventDefault();
-						options.beforeChange();
-						var path = [ 'plugins', index, 'args', 'upstreams' ];
-						if (!hasNodePath(doc, path))
-							doc.setIn(path, doc.createNode([]));
-						doc.addIn(path, doc.createNode({ 'addr': '' }));
-						options.rerender();
-					}
-				}, _('Add upstream DNS'))
-			]))
-		]));
+		rows.push(row(_('Add upstream DNS'), E('div', {
+			'style': 'flex: 0 0 210px; width: 210px; min-width: 0;'
+		}, [ upstreamAdder(doc, index, options) ])));
 	});
 
 	if (!found)
