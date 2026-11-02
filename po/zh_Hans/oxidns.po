@@ -1703,8 +1703,8 @@ msgstr "无"
 msgid "Not enabled"
 msgstr "未启用"
 
-msgid "Optionally forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time."
-msgstr "可选地将局域网 DNS 查询通过 OxiDNS 转发。此功能默认关闭，可随时在此恢复。"
+msgid "Optional feature: forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time."
+msgstr "可选功能：将局域网 DNS 查询通过 OxiDNS 转发。此功能默认关闭，可随时在此恢复。"
 
 msgid "OxiDNS DNS listener"
 msgstr "OxiDNS DNS 监听"

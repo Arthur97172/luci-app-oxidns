@@ -407,7 +407,8 @@ function dnsIntegrationNote(state) {
 		return _('LAN DNS queries are forwarded to OxiDNS. Stopping OxiDNS will break DNS resolution for LAN clients.');
 	if (state.message)
 		return i18n.translate(state.message);
-	return _('When enabled, dnsmasq forwards generic DNS queries to OxiDNS. Domain-specific upstreams are kept.');
+	return _('Optional feature: forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time.') + ' ' +
+		_('When enabled, dnsmasq forwards generic DNS queries to OxiDNS. Domain-specific upstreams are kept.');
 }
 
 function dnsIntegrationRows(state) {
@@ -463,11 +464,6 @@ function dnsIntegrationButtons(state) {
 		actions.push(button);
 	}
 
-	actions.push(E('span', {
-		'class': 'cbi-value-description',
-		'style': 'align-self: center;'
-	}, hint));
-
 	return actions;
 }
 
@@ -501,6 +497,9 @@ function updateDnsIntegration() {
 		return;
 
 	dnsIntegrationKey = nextKey;
+	var note = document.getElementById('oxidns-dns-integration-note');
+	if (note)
+		note.textContent = dnsIntegrationNote(dnsIntegrationState);
 	replaceContent(node, dnsIntegrationBody(dnsIntegrationState));
 }
 
@@ -696,8 +695,10 @@ return view.extend({
 			]),
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('System DNS integration')),
-				E('div', { 'class': 'cbi-section-descr' },
-					_('Optionally forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time.')),
+				E('div', {
+					'class': 'cbi-section-descr',
+					'id': 'oxidns-dns-integration-note'
+				}, dnsIntegrationNote(dnsIntegrationState)),
 				E('div', { 'id': 'oxidns-dns-integration-body' }, dnsIntegrationBody(dnsIntegrationState))
 			])
 		]);

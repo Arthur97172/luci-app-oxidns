@@ -1701,7 +1701,7 @@ msgstr ""
 msgid "Not enabled"
 msgstr ""
 
-msgid "Optionally forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time."
+msgid "Optional feature: forward LAN DNS queries through OxiDNS. This is disabled by default and can be reverted here at any time."
 msgstr ""
 
 msgid "OxiDNS DNS listener"

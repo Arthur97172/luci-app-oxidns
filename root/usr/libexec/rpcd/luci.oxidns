@@ -720,7 +720,7 @@ dns_port_listening_udp() {
 	DNS_PORT_HEX="$(awk -v p="$DNS_CHECK_PORT" 'BEGIN { printf "%04X", p }')"
 	DNS_HOST_HEX="$(dns_ipv4_hex "$DNS_CHECK_HOST")"
 	[ -n "$DNS_PORT_HEX" ] && [ -n "$DNS_HOST_HEX" ] || return 0
-	awk -v exact="$DNS_HOST_HEX:$DNS_PORT_HEX" -v wildcard="00000000:$DNS_PORT_HEX" '
+	if awk -v exact="$DNS_HOST_HEX:$DNS_PORT_HEX" -v wildcard="00000000:$DNS_PORT_HEX" '
 		NR > 1 {
 			addr = toupper($2);
 			if (addr == exact || addr == wildcard) {
@@ -729,7 +729,24 @@ dns_port_listening_udp() {
 			}
 		}
 		END { exit found ? 0 : 1 }
-	' /proc/net/udp
+	' /proc/net/udp; then
+		return 0
+	fi
+
+	# OxiDNS may bind the IPv6 wildcard (:::PORT) for a ":PORT" listen
+	# address. With bindv6only=0 that socket also accepts IPv4 traffic.
+	[ "$(cat /proc/sys/net/ipv6/bindv6only 2>/dev/null || echo 0)" = "0" ] || return 1
+	[ -r /proc/net/udp6 ] || return 1
+	awk -v wildcard="00000000000000000000000000000000:$DNS_PORT_HEX" '
+		NR > 1 {
+			addr = toupper($2);
+			if (addr == wildcard) {
+				found = 1;
+				exit;
+			}
+		}
+		END { exit found ? 0 : 1 }
+	' /proc/net/udp6
 }
 
 valid_dns_forward() {
