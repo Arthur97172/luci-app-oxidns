@@ -429,7 +429,7 @@ function dnsIntegrationButtons(state) {
 	var actions = [];
 
 	if (!state || state.ok === false || !state.supported) {
-		actions.push(disabledActionButton(_('Enable integration'), hint, 'oxidns-dns-integration-enable'));
+		actions.push(disabledActionButton(_('Enable dnsmasq forwarding'), hint, 'oxidns-dns-integration-enable'));
 	}
 	else if (dnsIntegrationBusy) {
 		actions.push(disabledActionButton(_('Applying...'), hint, 'oxidns-dns-integration-busy'));
@@ -443,7 +443,7 @@ function dnsIntegrationButtons(state) {
 				ev.preventDefault();
 				return handleDnsIntegrationAction('disable');
 			}
-		}, _('Disable integration')));
+		}, _('Disable dnsmasq forwarding')));
 	}
 	else {
 		var button = E('button', {
@@ -454,7 +454,7 @@ function dnsIntegrationButtons(state) {
 				ev.preventDefault();
 				return handleDnsIntegrationAction('enable');
 			}
-		}, _('Enable integration'));
+		}, _('Enable dnsmasq forwarding'));
 
 		if (!state.can_enable) {
 			button.disabled = true;

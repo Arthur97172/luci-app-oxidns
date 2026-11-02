@@ -1656,7 +1656,7 @@ msgstr ""
 msgid "Disable"
 msgstr ""
 
-msgid "Disable integration"
+msgid "Disable dnsmasq forwarding"
 msgstr ""
 
 msgid "Disable system DNS integration"
@@ -1668,7 +1668,7 @@ msgstr ""
 msgid "Enable"
 msgstr ""
 
-msgid "Enable integration"
+msgid "Enable dnsmasq forwarding"
 msgstr ""
 
 msgid "Enable system DNS integration"

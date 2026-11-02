@@ -1658,8 +1658,8 @@ msgstr "DNS 接入已取消，但无法清除保存的状态。请再次尝试�
 msgid "Disable"
 msgstr "禁用"
 
-msgid "Disable integration"
-msgstr "取消接入"
+msgid "Disable dnsmasq forwarding"
+msgstr "停用 dnsmasq 转发"
 
 msgid "Disable system DNS integration"
 msgstr "取消系统 DNS 接入"
@@ -1670,8 +1670,8 @@ msgstr "特定域名上游"
 msgid "Enable"
 msgstr "启用"
 
-msgid "Enable integration"
-msgstr "接入 dnsmasq"
+msgid "Enable dnsmasq forwarding"
+msgstr "启用 dnsmasq 转发"
 
 msgid "Enable system DNS integration"
 msgstr "启用系统 DNS 接入"
