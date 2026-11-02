@@ -302,8 +302,14 @@ service_enabled() {
 
 service_running() {
 	INIT="$(init_script)"
-	if [ -x "$INIT" ] && "$INIT" status >/dev/null 2>&1; then
-		return 0
+	if [ -x "$INIT" ]; then
+		# procd reports "active with no instances" with exit status 0 when the
+		# service is registered but not actually running, so inspect the state
+		# text instead of trusting the exit status alone.
+		SERVICE_STATE="$("$INIT" status 2>/dev/null || true)"
+		case "$SERVICE_STATE" in
+			running|running\ *) return 0 ;;
+		esac
 	fi
 	if command -v pgrep >/dev/null 2>&1 && pgrep -x oxidns >/dev/null 2>&1; then
 		return 0
@@ -1237,8 +1243,13 @@ emit_status() {
 	if [ -d "$WEBUI_DIR" ]; then WEBUI_INSTALLED=1; fi
 	if is_loopback_host "$WEBUI_HOST"; then WEBUI_LOCAL_ONLY=1; fi
 	if is_wildcard_host "$WEBUI_HOST"; then WEBUI_WILDCARD=1; fi
-	if service_enabled; then ENABLED=1; fi
-	if service_running; then RUNNING=1; fi
+	# Service state is only meaningful once the core is installed. Without the
+	# binary, an enabled init script cannot start at boot and must not be
+	# reported as running.
+	if [ "$CORE_INSTALLED" = "1" ]; then
+		if service_enabled; then ENABLED=1; fi
+		if service_running; then RUNNING=1; fi
+	fi
 
 	printf '{'
 	printf '"ok":true,'

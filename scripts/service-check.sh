@@ -296,3 +296,95 @@ run_service_case stop
 assert_result 'v.ok === true'
 test "$(cat "$SERVICE_TEST_DIR/events")" = "$(printf 'stop\nquery\nwait\nquery\nwait\nquery')"
 printf 'Service restart checks passed\n'
+
+# procd reports "active with no instances" with exit status 0 when a service is
+# registered but has no running instance. Only an actual running state may be
+# treated as running, and a missing core must never report running or autostart.
+cat > "$SERVICE_TEST_DIR/status-init" <<'EOF'
+#!/bin/sh
+set -eu
+case "$1" in
+	status)
+		[ -z "${STATUS_OUTPUT:-}" ] || printf '%s\n' "$STATUS_OUTPUT"
+		exit "${STATUS_RC:-0}"
+		;;
+	enabled) exit "${ENABLED_RC:-0}" ;;
+esac
+exit 1
+EOF
+cat > "$SERVICE_TEST_DIR/bin/pgrep" <<'EOF'
+#!/bin/sh
+exit 1
+EOF
+cat > "$SERVICE_TEST_DIR/status-drive.sh" <<'EOF'
+#!/bin/sh
+set -eu
+set -- list
+. "$REPO_DIR/root/usr/libexec/rpcd/luci.oxidns" >/dev/null
+init_script() { printf '%s\n' "$SERVICE_TEST_DIR/status-init"; }
+load_settings() {
+	OXIDNS_BIN="$STATUS_TEST_BIN"
+	CONFIG_PATH="$SERVICE_TEST_DIR/status-config.yaml"
+	WORKING_DIR="$SERVICE_TEST_DIR/status-work"
+	SERVICE_NAME=oxidns
+}
+build_info_json() { :; }
+webui_url_from_config() { :; }
+config_api_listen() { :; }
+listen_host_from_config() { :; }
+lan_ipv4() { :; }
+detect_rust_target() { printf 'unknown'; }
+case "$STATUS_TEST_MODE" in
+	emit) emit_status ;;
+	running) service_running ;;
+	*) exit 2 ;;
+esac
+EOF
+printf '#!/bin/sh\nexit 0\n' > "$SERVICE_TEST_DIR/status-core"
+chmod 755 "$SERVICE_TEST_DIR/status-init" "$SERVICE_TEST_DIR/bin/pgrep" "$SERVICE_TEST_DIR/status-drive.sh" "$SERVICE_TEST_DIR/status-core"
+
+run_status_case() {
+	STATUS_TEST_MODE="$1" STATUS_TEST_BIN="$2" STATUS_OUTPUT="$3" \
+	STATUS_RC="$4" ENABLED_RC="$5" \
+		/bin/sh "$SERVICE_TEST_DIR/status-drive.sh" > "$SERVICE_TEST_DIR/status-result"
+}
+
+assert_status_json() {
+	node -e "const v=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')); if (!($1)) process.exit(1);" \
+		"$SERVICE_TEST_DIR/status-result"
+}
+
+# Direct running detection: procd states that are not actually running.
+for state in 'active with no instances:0' 'not running:5' 'inactive:3'; do
+	status_text="${state%:*}"
+	status_code="${state##*:}"
+	if run_status_case running "$SERVICE_TEST_DIR/status-core" "$status_text" "$status_code" 0; then
+		printf 'unexpected running state: %s\n' "$status_text" >&2
+		exit 1
+	fi
+done
+for state in 'running:0' 'running (1/2):0'; do
+	status_text="${state%:*}"
+	status_code="${state##*:}"
+	run_status_case running "$SERVICE_TEST_DIR/status-core" "$status_text" "$status_code" 0
+done
+
+# A missing core must report both running and autostart as off, even if the
+# init script is enabled and procd claims an active service entry.
+run_status_case emit "$SERVICE_TEST_DIR/status-core-missing" 'active with no instances' 0 0
+assert_status_json 'v.ok === true && v.core.installed === false && v.service_status.running === false && v.service_status.enabled === false'
+
+run_status_case emit "$SERVICE_TEST_DIR/status-core-missing" 'running' 0 0
+assert_status_json 'v.ok === true && v.core.installed === false && v.service_status.running === false && v.service_status.enabled === false'
+
+# With a core installed, the real init state is reported.
+run_status_case emit "$SERVICE_TEST_DIR/status-core" 'running' 0 0
+assert_status_json 'v.ok === true && v.core.installed === true && v.service_status.running === true && v.service_status.enabled === true'
+
+run_status_case emit "$SERVICE_TEST_DIR/status-core" 'running (1/2)' 0 0
+assert_status_json 'v.ok === true && v.core.installed === true && v.service_status.running === true && v.service_status.enabled === true'
+
+run_status_case emit "$SERVICE_TEST_DIR/status-core" 'not running' 5 1
+assert_status_json 'v.ok === true && v.core.installed === true && v.service_status.running === false && v.service_status.enabled === false'
+
+printf 'Service status checks passed\n'
