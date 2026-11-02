@@ -477,7 +477,7 @@ function dnsIntegrationBody(state) {
 		E('div', {
 			'id': 'oxidns-dns-integration-actions',
 			'class': 'cbi-button-row',
-			'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); padding-top: .5em;'
+			'style': 'display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5em; padding-inline: var(--section-inset, 0); padding-top: .5em; padding-bottom: var(--field-gap, 1em);'
 		}, dnsIntegrationButtons(state))
 	];
 }
