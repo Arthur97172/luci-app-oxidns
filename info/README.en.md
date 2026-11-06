@@ -102,7 +102,7 @@ The preview is read-only and never writes the file. Clear the checkbox to hide i
 
 ## 3. Normal Mode Field Reference
 
-Normal Mode is generated from the backend configuration schema plus fixed front-end sections. **It only shows plugin instances that already exist in the configuration** and never creates plugins. Use Advanced Mode or the WebUI to add or remove plugins or change sequence rules.
+Normal Mode is generated from the backend configuration schema plus fixed front-end sections. **It only shows plugin instances that already exist in the configuration** and never creates plugins; the one exception is the `Ad filtering` card, which can create, edit, or remove a fixed-tag `download` / `adguard_rule` / `black_hole` group (see [3.8 Ad Filtering](#38-ad-filtering)). Use Advanced Mode or the WebUI to add or remove other plugins or change sequence rules.
 
 ### 3.1 Log
 
@@ -337,7 +337,41 @@ The front end checks before saving:
 
 The backend still runs `oxidns check`, and the core's result is authoritative.
 
-### 3.8 Common Plugin Fields
+### 3.8 Ad Filtering
+
+The `Ad filtering` card bundles the common ad-blocking setup. After you click `Add ad filtering`, Normal Mode creates three fixed-tag plugins and inserts the blocking rule at the front of every server entry sequence:
+
+| Tag | Type | Purpose |
+| --- | --- | --- |
+| `oxidns_ads_download` | `download` | Downloads rule files from subscription URLs. |
+| `oxidns_ads_rules` | `adguard_rule` | Reads inline rules, local rule files, and downloaded subscription files. |
+| `oxidns_ads_block` | `black_hole` | Answers matching queries locally. |
+
+The inserted sequence rule is fixed:
+
+```yaml
+- matches: "qname $oxidns_ads_rules"
+  exec: $oxidns_ads_block
+```
+
+It sits at the front of each entry sequence, so ad domains are blocked before `forward` runs.
+
+Before configuration the card only shows `Add ad filtering`. Once configured it offers:
+
+| Field | Description |
+| --- | --- |
+| `Subscription URLs` | One `http://` or `https://` URL per line, mapped to `download.downloads`. Subscription files are downloaded only when missing at startup; existing files are not refreshed at startup, so delete the file and restart, or trigger a download through the OxiDNS API/WebUI. A failed startup download fails startup. |
+| `Inline rules` | One AdGuard rule per line, mapped to `adguard_rule.rules`. |
+| `Local rule files` | One absolute path per line, mapped to `adguard_rule.files`. |
+| `Blocking mode` | Maps to `black_hole.mode`; defaults to `nxdomain`. |
+| `Blocking addresses` | IPv4 / IPv6 addresses returned in `custom` mode. |
+| `Rules directory` | Directory for downloaded subscription files, default `/etc/oxidns/rules`; generated rule files start with `oxidns-ads-`. |
+
+`Remove subscription downloads` deletes only the `download` plugin and the rule-file paths it generated, keeping inline rules, local rule files, and the blocking plugin. `Remove ad filtering` removes the whole group and the sequence rule.
+
+These tags are fixed. If the configuration already uses one of them with a different type, the card reports a collision and does not overwrite it; rename the existing plugin in Advanced Mode first. The generic plugin field sections also stop showing these managed plugins.
+
+### 3.9 Common Plugin Fields
 
 Normal Mode renders fields from the schema for each plugin type already present. Labels are English; the defaults below come from the current schema.
 
@@ -417,7 +451,28 @@ Normal Mode renders fields from the schema for each plugin type already present.
 | `Cache preferred state` | Cache the preferred state, enabled by default. |
 | `Preferred state TTL (seconds)` | Preferred state cache duration, default 3600. |
 
-`prefer_ipv4` and `prefer_ipv6` take the same fields; only the preferred address family differs.
+`prefer_ipv4` and `prefer_ipv6` take the same fields; only the preferred address family differs. They are `with_next` executors and must appear in the entry sequence **before** `forward`; any other placement, including after `forward`, does nothing. Advanced Mode example:
+
+```yaml
+plugins:
+  - tag: prefer_ipv4_main
+    type: prefer_ipv4
+    args: {}
+
+  - tag: forward_main
+    type: forward
+    args:
+      upstreams:
+        - addr: "223.5.5.5"
+
+  - tag: main_sequence
+    type: sequence
+    args:
+      - exec: $prefer_ipv4_main
+      - exec: $forward_main
+```
+
+`probe_executor` is optional. When omitted, the probe query reuses the downstream continuation; when set, it must point to an executor that can answer queries, such as another `forward`.
 
 #### learn_domain
 
@@ -533,7 +588,7 @@ List fields (`entries`, `files`, `selectors`, `rules`, and similar) take **one i
 
 Object-list fields (`Downloads`, `DoH entries`) can add and remove entries individually. Required fields, numeric ranges, and enum values of each entry are validated before saving; a DoH entry's `Request path` must start with `/`. Missing required plugin fields (such as the primary and standby executors for `fallback`, the database path for `query_recorder`, the data files for `geosite` / `geoip`, the rules file for `dynamic_domain_set`, and the certificate and key for `quic_server`) are reported directly as well.
 
-### 3.9 Plugin Overview
+### 3.10 Plugin Overview
 
 The read-only `Plugins` section at the bottom shows:
 
@@ -613,7 +668,19 @@ nas.lan 192.168.1.10
 
 ### 4.6 Block Ads or Specific Domains
 
-A common pattern combines `domain_set` / `geosite` / `adguard_rule` with `black_hole`:
+#### Use the Normal Mode ad filtering card (recommended)
+
+1. Open `DNS Configuration -> Normal Mode` and find the `Ad filtering` area.
+2. Click `Add ad filtering`. The page creates the `oxidns_ads_download`, `oxidns_ads_rules`, and `oxidns_ads_block` plugins and inserts the blocking rule at the front of every server entry sequence.
+3. Enter one ad-rule subscription URL per line under `Subscription URLs`, such as `https://example.com/adblock.txt`; alternatively enter `||ads.example.com^` under `Inline rules` or an existing rule file path under `Local rule files`.
+4. Choose a `Blocking mode` when needed; `custom` mode also needs `Blocking addresses`.
+5. Click `Validate`, then `Save and Apply`.
+
+Subscription files are downloaded only when missing at startup, and a failed download fails startup. Make sure the router can reach the subscription URLs before enabling it. Existing files are not refreshed automatically; trigger a download manually or restart after deleting them.
+
+#### Compose the plugins manually in Advanced Mode
+
+A common pattern combines `domain_set` / `geosite` / `adguard_rule` with `black_hole`. `black_hole` must set `short_circuit: true`; otherwise the following `forward` overwrites the blocked response:
 
 ```yaml
 - tag: ads
@@ -626,6 +693,7 @@ A common pattern combines `domain_set` / `geosite` / `adguard_rule` with `black_
   type: black_hole
   args:
     mode: nxdomain
+    short_circuit: true
 
 - tag: main_sequence
   type: sequence
@@ -636,7 +704,7 @@ A common pattern combines `domain_set` / `geosite` / `adguard_rule` with `black_
     - exec: accept
 ```
 
-Normal Mode can edit fields of existing `black_hole`, `domain_set`, and `adguard_rule` instances, but sequence rules belong in Advanced Mode or the WebUI.
+Without the ad filtering card, Normal Mode can still edit fields of existing `black_hole`, `domain_set`, and `adguard_rule` instances, but sequence rules belong in Advanced Mode or the WebUI.
 
 ### 4.7 Change Logging
 
@@ -892,6 +960,7 @@ api:
     type: black_hole
     args:
       mode: nxdomain
+      short_circuit: true
 
   - tag: main_sequence
     type: sequence

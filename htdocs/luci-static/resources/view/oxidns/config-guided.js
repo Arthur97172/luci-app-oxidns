@@ -1,6 +1,7 @@
 'use strict';
 'require baseclass';
 'require ui';
+'require oxidns.adfilter as adfilter';
 
 var LOG_LEVELS = [ 'off', 'trace', 'debug', 'info', 'warn', 'error' ];
 var LOG_ROTATIONS = [ 'never', 'minutely', 'hourly', 'daily', 'weekly' ];
@@ -134,7 +135,7 @@ function row(label, control, description) {
 
 function noteRow(message) {
 	return E('div', { 'class': 'tr' }, [
-		E('div', { 'class': 'td left', 'style': 'padding: .5em 0; color: inherit; opacity: .8;' }, message)
+		E('div', { 'class': 'td left', 'style': 'padding: .5em var(--section-inset, 0); color: inherit; opacity: .8;' }, message)
 	]);
 }
 
@@ -245,12 +246,29 @@ function applyBindings(doc, bindings) {
 
 	for (var i = 0; i < bindings.length; i++) {
 		var binding = bindings[i];
+		var kind = binding.kind || 'string';
+
+		/*
+		 * Custom bindings operate on the whole form (for example the managed
+		 * ad filtering group) and do not map to a single input element.
+		 */
+		if (kind === 'custom') {
+			if (typeof binding.apply === 'function') {
+				try {
+					binding.apply();
+				}
+				catch (err) {
+					/* Leave the node untouched; oxidns check reports the real problem. */
+				}
+			}
+
+			continue;
+		}
+
 		var input = document.getElementById(binding.id);
 
 		if (!input)
 			continue;
-
-		var kind = binding.kind || 'string';
 
 		try {
 			var present = hasNodePath(doc, binding.path);
@@ -917,6 +935,168 @@ function upstreamSection(doc, bindings, options) {
 		rows, 'table-layout: fixed;');
 }
 
+function adFilterTextarea(id, value, placeholder) {
+	return E('textarea', {
+		'id': id,
+		'class': 'cbi-input-text oxidns-control',
+		'rows': '3',
+		'style': 'width: 100%; max-width: 520px; font-family: monospace; box-sizing: border-box;',
+		'placeholder': placeholder || null,
+		'spellcheck': 'false'
+	}, value || '');
+}
+
+function adFilterModeSelect(id, value) {
+	var modes = adfilter.modes.slice();
+	if (value && modes.indexOf(value) === -1)
+		modes.push(value);
+
+	return E('select', { 'id': id, 'class': 'cbi-input-select oxidns-control' },
+		modes.map(function(mode) {
+			return E('option', {
+				'value': mode,
+				'selected': mode === value ? 'selected' : null
+			}, mode);
+		}));
+}
+
+/*
+ * Guided ad filtering manages a fixed plugin group (download, adguard_rule,
+ * black_hole) and the sequence rule that wires it in. The group is edited
+ * through a single custom binding so the plugins are updated together.
+ */
+function adFilterSection(doc, options) {
+	var state = adfilter.inspect(doc);
+	var values = state.values;
+	var rows = [];
+	var binding = null;
+
+	if (state.problems.length) {
+		state.problems.forEach(function(problem) {
+			rows.push(noteRow(problem));
+		});
+
+		return {
+			'node': section(_('Ad filtering'), null, rows),
+			'binding': null
+		};
+	}
+
+	if (!state.configured) {
+		var canEnable = state.targets.length > 0;
+
+		rows.push(noteRow(_('Ad filtering is not configured.')));
+		rows.push(row(_('Ad filtering'), E('button', {
+			'class': 'btn cbi-button cbi-button-positive',
+			'disabled': canEnable ? null : 'disabled',
+			'click': function(ev) {
+				ev.preventDefault();
+				options.beforeChange();
+
+				var result = adfilter.enable(doc);
+
+				if (!result.ok) {
+					ui.addNotification(null, E('p', {}, result.problems.join(' ')), 'danger');
+					return;
+				}
+
+				options.rerender();
+			}
+		}, _('Add ad filtering')),
+		canEnable
+			? _('Adds subscription downloads, AdGuard rules, and blocking plugins, then inserts the blocking rule at the start of the entry sequence.')
+			: _('No entry sequence was found. Configure a server entry in Advanced Mode first.')));
+
+		return {
+			'node': section(_('Ad filtering'),
+				_('Ad filtering downloads subscription rules at startup, matches them with AdGuard rules, and answers matching queries locally.'),
+				rows),
+			'binding': null
+		};
+	}
+
+	rows.push(row(_('Subscription URLs'),
+		adFilterTextarea('oxidns-cfg-ad-urls', values.urlsText, 'https://example.com/adblock.txt'),
+		_('One http:// or https:// URL per line. Missing files are downloaded when OxiDNS starts; a failed download prevents startup.')));
+
+	rows.push(row(_('Inline rules'),
+		adFilterTextarea('oxidns-cfg-ad-rules', values.rulesText, '||ads.example.com^'),
+		_('One AdGuard rule per line.')));
+
+	rows.push(row(_('Local rule files'),
+		adFilterTextarea('oxidns-cfg-ad-files', values.filesText, '/etc/oxidns/rules/local.txt'),
+		_('One absolute path per line. Files are read directly by OxiDNS.')));
+
+	rows.push(row(_('Blocking mode'), adFilterModeSelect('oxidns-cfg-ad-mode', values.mode)));
+
+	rows.push(row(_('Blocking addresses'),
+		textInput('oxidns-cfg-ad-ips', values.ipsText, '0.0.0.0 ::'),
+		_('Used by custom mode. Separate IPv4 and IPv6 addresses with commas or spaces.')));
+
+	rows.push(row(_('Rules directory'),
+		textInput('oxidns-cfg-ad-dir', values.dir, '/etc/oxidns/rules'),
+		_('Downloaded subscription files are stored in this directory.')));
+
+	binding = {
+		'kind': 'custom',
+		'apply': function() {
+			var urls = document.getElementById('oxidns-cfg-ad-urls');
+			var rules = document.getElementById('oxidns-cfg-ad-rules');
+			var files = document.getElementById('oxidns-cfg-ad-files');
+			var mode = document.getElementById('oxidns-cfg-ad-mode');
+			var ips = document.getElementById('oxidns-cfg-ad-ips');
+			var dir = document.getElementById('oxidns-cfg-ad-dir');
+
+			if (!urls || !rules || !files || !mode || !ips || !dir)
+				return;
+
+			adfilter.sync(doc, {
+				'urlsText': urls.value,
+				'rulesText': rules.value,
+				'filesText': files.value,
+				'mode': mode.value,
+				'ipsText': ips.value,
+				'dir': dir.value
+			});
+		}
+	};
+
+	var footer = E('div', {
+		'class': 'cbi-button-row',
+		'style': 'display: flex; flex-wrap: wrap; gap: .5em; margin-top: .75em; padding-inline: var(--section-inset, 0);'
+	}, [
+		E('button', {
+			'class': 'btn cbi-button cbi-button-neutral',
+			'click': function(ev) {
+				ev.preventDefault();
+				options.beforeChange();
+				adfilter.removeDownload(doc);
+				options.rerender();
+			}
+		}, _('Remove subscription downloads')),
+		E('button', {
+			'class': 'btn cbi-button cbi-button-negative',
+			'click': function(ev) {
+				ev.preventDefault();
+
+				if (!window.confirm(_('Remove the ad filtering configuration?')))
+					return;
+
+				options.beforeChange();
+				adfilter.disable(doc);
+				options.rerender();
+			}
+		}, _('Remove ad filtering'))
+	]);
+
+	return {
+		'node': section(_('Ad filtering'),
+			_('Ad filtering downloads subscription rules at startup, matches them with AdGuard rules, and answers matching queries locally.'),
+			rows, null, footer),
+		'binding': binding
+	};
+}
+
 function schemaDefinitions(options) {
 	var schema = options && options.schema;
 	var plugins = schema && schema.plugins;
@@ -1119,6 +1299,12 @@ function schemaSections(doc, bindings, options) {
 
 	pluginItems(doc).forEach(function(item, index) {
 		var type = pluginType(item);
+		var tag = pluginTag(item, index);
+
+		// The guided ad filtering group has its own section.
+		if (adfilter.manages(tag, type))
+			return;
+
 		var definition = definitions[type];
 
 		if (!definition || !Array.isArray(definition.fields))
@@ -1463,6 +1649,11 @@ function validateConfig(doc, options) {
 		}
 	}
 
+	// Managed ad filtering is validated as a group.
+	adfilter.validate(doc).forEach(function(problem) {
+		problems.push(problem);
+	});
+
 	return problems;
 }
 
@@ -1506,6 +1697,7 @@ return baseclass.extend({
 		var bindings = [];
 		var handlers = options || {};
 		var bootstrap = isBootstrapTheme();
+		var adFilter = adFilterSection(doc, handlers);
 
 		var sections = [
 			E('style', {}, UPSTREAM_SELECT_STYLE),
@@ -1516,8 +1708,16 @@ return baseclass.extend({
 			outboundSection(doc, bindings),
 			apiSection(doc, bindings, handlers),
 			listenSection(doc, bindings),
-			upstreamSection(doc, bindings, handlers)
+			upstreamSection(doc, bindings, handlers),
+			adFilter.node
 		].concat(schemaSections(doc, bindings, handlers));
+
+		/*
+		 * Run the group binding last so it sees the server entries and
+		 * sequence changes applied by the other bindings.
+		 */
+		if (adFilter.binding)
+			bindings.push(adFilter.binding);
 
 		sections.push(pluginSection(doc, handlers));
 

@@ -102,7 +102,7 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 
 ## 三、普通模式逐项说明
 
-普通模式由后端下发的配置 schema 和前端固定区域共同生成。**它只显示当前配置中已经存在的插件实例**，不会凭空创建插件。新增插件、删除插件或修改 sequence 规则请使用高级模式或 WebUI。
+普通模式由后端下发的配置 schema 和前端固定区域共同生成。**它只显示当前配置中已经存在的插件实例**，不会凭空创建插件；唯一例外是 `广告过滤` 卡片，它可以一键创建、修改或移除一组固定 tag 的 `download` / `adguard_rule` / `black_hole` 插件，详见 [3.8 广告过滤](#38-广告过滤ad-filtering)。其他插件的新增、删除或 sequence 规则修改请使用高级模式或 WebUI。
 
 下文表格里的字段名沿用 schema 中的英文名称；中文 LuCI 界面会显示对应的中文译文，尚未翻译的字段仍显示英文。
 
@@ -339,7 +339,41 @@ api:
 
 后端最终仍会执行 `oxidns check`，以核心的校验结果为准。
 
-### 3.8 常用插件参数
+### 3.8 广告过滤（Ad Filtering）
+
+`广告过滤` 卡片把常见的广告拦截配置组合成一个整体。点击 `添加广告过滤` 后，普通模式会创建三个固定 tag 的插件，并把拦截规则插入每个 server 插件入口 sequence 的最前面：
+
+| Tag | 类型 | 作用 |
+| --- | --- | --- |
+| `oxidns_ads_download` | `download` | 从订阅地址下载规则文件。 |
+| `oxidns_ads_rules` | `adguard_rule` | 读取内联规则、本地规则文件和下载的订阅文件。 |
+| `oxidns_ads_block` | `black_hole` | 本地应答命中规则的查询。 |
+
+插入的 sequence 规则固定为：
+
+```yaml
+- matches: "qname $oxidns_ads_rules"
+  exec: $oxidns_ads_block
+```
+
+它位于入口 sequence 的最前面，因此广告域名会在 `forward` 之前被拦截。
+
+未配置时卡片只显示 `添加广告过滤`；配置后可以编辑：
+
+| 字段 | 说明 |
+| --- | --- |
+| `订阅地址`（`Subscription URLs`） | 每行一个 `http://` 或 `https://` 地址，对应 `download.downloads`。订阅文件只在 OxiDNS 启动时缺失才会下载；文件已存在时启动阶段不会自动更新，需要删除文件后重启，或通过 OxiDNS API/WebUI 手动触发下载。启动时下载失败会导致启动失败。 |
+| `内联规则`（`Inline rules`） | 每行一条 AdGuard 规则，对应 `adguard_rule.rules`。 |
+| `本地规则文件`（`Local rule files`） | 每行一个绝对路径，对应 `adguard_rule.files`。 |
+| `拦截模式`（`Blocking mode`） | 对应 `black_hole.mode`，默认 `nxdomain`。 |
+| `拦截地址`（`Blocking addresses`） | `custom` 模式返回的 IPv4 / IPv6 地址。 |
+| `规则目录`（`Rules directory`） | 订阅文件的保存目录，默认 `/etc/oxidns/rules`；生成的规则文件以 `oxidns-ads-` 开头。 |
+
+`移除订阅下载` 只删除 `download` 插件及它生成的规则文件路径，保留内联规则、本地规则文件和拦截插件；`移除广告过滤` 删除整组插件和 sequence 中的拦截规则。
+
+这些 tag 是固定的。如果配置中已有同名 tag 但类型不同，卡片会提示冲突且不会覆盖，需要先在高级模式中重命名。普通模式的通用插件字段区域也不会再显示这三个受管理的插件。
+
+### 3.9 常用插件参数
 
 普通模式会按插件类型显示 schema 中定义的字段。下面是常见插件的字段和各字段默认值。
 
@@ -419,7 +453,28 @@ api:
 | `Cache preferred state` | 是否缓存优选状态，默认开启。 |
 | `Preferred state TTL (seconds)` | 优选状态缓存时间，默认 3600。 |
 
-`prefer_ipv4` 与 `prefer_ipv6` 参数相同，只是偏好方向相反。
+`prefer_ipv4` 与 `prefer_ipv6` 参数相同，只是偏好方向相反。它们是带 `with_next` 的 executor，必须放在入口 sequence 中 `forward` **之前**；放置位置不对或放在 `forward` 之后不会生效。高级模式示例：
+
+```yaml
+plugins:
+  - tag: prefer_ipv4_main
+    type: prefer_ipv4
+    args: {}
+
+  - tag: forward_main
+    type: forward
+    args:
+      upstreams:
+        - addr: "223.5.5.5"
+
+  - tag: main_sequence
+    type: sequence
+    args:
+      - exec: $prefer_ipv4_main
+      - exec: $forward_main
+```
+
+`probe_executor` 可选。省略时，探测查询复用下游 continuation；显式填写时要指向一个能完成查询的 executor（例如另一个 `forward`）。
 
 #### learn_domain
 
@@ -535,7 +590,7 @@ api:
 
 对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的必填项、数值范围和枚举取值都会参与保存前校验；DoH 入口的 `Request path` 必须以 `/` 开头。插件自身要求的必填字段（例如 `fallback` 的主备执行器、`query_recorder` 的数据库路径、`geosite` / `geoip` 的数据文件、`dynamic_domain_set` 的规则文件、`quic_server` 的证书和私钥）缺失时也会直接提示。
 
-### 3.9 插件概览
+### 3.10 插件概览
 
 页面最下方的 `Plugins` 区域只读显示：
 
@@ -614,7 +669,19 @@ nas.lan 192.168.1.10
 
 ### 4.6 拦截广告或指定域名
 
-常见做法是组合 `domain_set` / `geosite` / `adguard_rule` 与 `black_hole`：
+#### 使用普通模式的广告过滤卡片（推荐）
+
+1. 进入 `DNS配置 -> 普通模式`，找到 `广告过滤` 区域。
+2. 点击 `添加广告过滤`。页面会创建 `oxidns_ads_download`、`oxidns_ads_rules`、`oxidns_ads_block` 三个插件，并在每个 server 入口 sequence 的最前面插入拦截规则。
+3. 在 `订阅地址` 中每行填写一个广告规则订阅 URL，例如 `https://example.com/adblock.txt`；也可以直接在 `内联规则` 中填写 `||ads.example.com^`，或在 `本地规则文件` 中填写已有规则文件的绝对路径。
+4. 需要时选择 `拦截模式`；`custom` 模式还要填写 `拦截地址`。
+5. 点击 `校验`，通过后点击 `保存并应用`。
+
+订阅文件只在 OxiDNS 启动时缺失才会下载，下载失败会导致启动失败。首次启用前请确认路由器可以访问订阅地址；文件已存在时不会自动更新，需要手动触发下载或重启服务。
+
+#### 在高级模式中手动组合
+
+常见做法是组合 `domain_set` / `geosite` / `adguard_rule` 与 `black_hole`。`black_hole` 必须设置 `short_circuit: true`，否则后续的 `forward` 会覆盖拦截结果：
 
 ```yaml
 - tag: ads
@@ -627,6 +694,7 @@ nas.lan 192.168.1.10
   type: black_hole
   args:
     mode: nxdomain
+    short_circuit: true
 
 - tag: main_sequence
   type: sequence
@@ -637,7 +705,7 @@ nas.lan 192.168.1.10
     - exec: accept
 ```
 
-普通模式可以编辑已经存在的 `black_hole`、`domain_set`、`adguard_rule` 字段，但 sequence 规则需要在高级模式或 WebUI 中调整。
+如果不使用广告过滤卡片，普通模式仍可以编辑已经存在的 `black_hole`、`domain_set`、`adguard_rule` 字段，但 sequence 规则需要在高级模式或 WebUI 中调整。
 
 ### 4.7 修改日志级别和日志文件
 
@@ -893,6 +961,7 @@ api:
     type: black_hole
     args:
       mode: nxdomain
+      short_circuit: true
 
   - tag: main_sequence
     type: sequence

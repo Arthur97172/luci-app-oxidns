@@ -1817,3 +1817,93 @@ msgstr ""
 
 msgid "OxiDNS is stopped. LAN DNS resolution is failing until OxiDNS is started or system DNS integration is disabled."
 msgstr ""
+
+msgid "Add ad filtering"
+msgstr ""
+
+msgid "Adds subscription downloads, AdGuard rules, and blocking plugins, then inserts the blocking rule at the start of the entry sequence."
+msgstr ""
+
+msgid "Ad filtering"
+msgstr ""
+
+msgid "Ad filtering downloads subscription rules at startup, matches them with AdGuard rules, and answers matching queries locally."
+msgstr ""
+
+msgid "Ad filtering is not configured."
+msgstr ""
+
+msgid "Ad filtering needs at least one subscription URL, inline rule, or local rule file."
+msgstr ""
+
+msgid "Blocking addresses"
+msgstr ""
+
+msgid "Custom blocking mode requires at least one valid IPv4 or IPv6 address."
+msgstr ""
+
+msgid "Downloaded subscription files are stored in this directory."
+msgstr ""
+
+msgid "Inline rules"
+msgstr ""
+
+msgid "Local rule files"
+msgstr ""
+
+msgid "No entry sequence was found. Configure a server entry in Advanced Mode first."
+msgstr ""
+
+msgid "One absolute path per line. Files are read directly by OxiDNS."
+msgstr ""
+
+msgid "One AdGuard rule per line."
+msgstr ""
+
+msgid "One http:// or https:// URL per line. Missing files are downloaded when OxiDNS starts; a failed download prevents startup."
+msgstr ""
+
+msgid "Remove ad filtering"
+msgstr ""
+
+msgid "Remove subscription downloads"
+msgstr ""
+
+msgid "Remove the ad filtering configuration?"
+msgstr ""
+
+msgid "Rules directory"
+msgstr ""
+
+msgid "Subscription URLs"
+msgstr ""
+
+msgid "The ad filtering blocking mode is invalid."
+msgstr ""
+
+msgid "The ad filtering download plugin needs at least one subscription URL. Add one, or use Remove subscription downloads."
+msgstr ""
+
+msgid "The ad filtering rule could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
+msgstr ""
+
+msgid "The local rule file %s must be an absolute path."
+msgstr ""
+
+msgid "The rules directory must be an absolute path."
+msgstr ""
+
+msgid "The subscription URL %s is duplicated."
+msgstr ""
+
+msgid "The subscription URL %s is invalid. Use an http:// or https:// URL."
+msgstr ""
+
+msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before using ad filtering."
+msgstr ""
+
+msgid "unknown"
+msgstr ""
+
+msgid "Used by custom mode. Separate IPv4 and IPv6 addresses with commas or spaces."
+msgstr ""
