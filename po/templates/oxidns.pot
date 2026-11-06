@@ -182,7 +182,7 @@ msgstr ""
 msgid "Log path is required."
 msgstr ""
 
-msgid "Logs"
+msgid "Runtime Logs"
 msgstr ""
 
 msgid "LuCI backend"
@@ -323,7 +323,7 @@ msgstr ""
 msgid "Leave empty or set to 0 to keep all historical rotation files."
 msgstr ""
 
-msgid "Settings"
+msgid "Installation and Deployment"
 msgstr ""
 
 msgid "Settings saved, but the log path could not be checked."
@@ -545,13 +545,13 @@ msgstr ""
 msgid "DNS Configuration"
 msgstr ""
 
-msgid "Install it from Services → OxiDNS → Settings, then return to this page."
+msgid "Install it from Services → OxiDNS → Installation and Deployment, then return to this page."
 msgstr ""
 
-msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Settings page to replace it with a bundle that includes WebUI."
+msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Installation and Deployment page to replace it with a bundle that includes WebUI."
 msgstr ""
 
-msgid "WebUI files are not installed. Install them from the Settings page using Install WebUI."
+msgid "WebUI files are not installed. Install them from the Installation and Deployment page using Install WebUI."
 msgstr ""
 
 msgid "A download proxy is configured, but curl is not installed. Install curl or clear the download proxy."

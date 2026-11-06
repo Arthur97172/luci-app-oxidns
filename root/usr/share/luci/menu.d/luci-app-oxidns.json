@@ -32,7 +32,7 @@
 		}
 	},
 	"admin/services/oxidns/logs": {
-		"title": "Logs",
+		"title": "Runtime Logs",
 		"order": 50,
 		"action": {
 			"type": "view",
@@ -43,7 +43,7 @@
 		}
 	},
 	"admin/services/oxidns/settings": {
-		"title": "Settings",
+		"title": "Installation and Deployment",
 		"order": 20,
 		"action": {
 			"type": "view",

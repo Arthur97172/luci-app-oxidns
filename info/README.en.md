@@ -47,7 +47,7 @@ The LuCI `DNS Configuration` page and the OxiDNS WebUI edit the **same** `/etc/o
 4. Decide on the listen address: `127.0.0.1:5335` for local use or dnsmasq; the router's LAN address or `0.0.0.0:5335` for direct LAN access.
 5. Never expose ports 53, 5335, or 9199 to the WAN.
 
-If the core is missing, use `Install Core` under `Core Actions` on the `Settings` page, or `Upload Core` for an offline install.
+If the core is missing, use `Install Core` under `Core Actions` on the `Installation and Deployment` page, or `Upload Core` for an offline install.
 
 ---
 
@@ -118,7 +118,7 @@ Configuration path: `log`.
 Notes:
 
 - Log files are plain UTF-8 text without terminal color codes.
-- `/tmp` is cleared on reboot. For persistent logs, point `Log file` at a persistent directory such as `/var/log/oxidns/oxidns.log`, or change the log directory under `Settings -> Log path` and click `Save and Apply`.
+- `/tmp` is cleared on reboot. For persistent logs, point `Log file` at a persistent directory such as `/var/log/oxidns/oxidns.log`, or change the log directory under `Installation and Deployment -> Log path` and click `Save and Apply`.
 - A new log level affects only subsequent output. After changing the log file or rotation settings, use `Save and Apply` to restart the service.
 
 ### 3.2 Runtime
@@ -1037,8 +1037,8 @@ When unavailable, the page explains why:
 | Message | Fix |
 | --- | --- |
 | Install the OxiDNS core before using WebUI. | Install the core first. |
-| The installed minimal core bundle does not include WebUI files... | Click `Install WebUI` on `Settings` to download a bundle with WebUI. |
-| WebUI files are not installed. | Click `Install WebUI` on `Settings`. |
+| The installed minimal core bundle does not include WebUI files... | Click `Install WebUI` on `Installation and Deployment` to download a bundle with WebUI. |
+| WebUI files are not installed. | Click `Install WebUI` on `Installation and Deployment`. |
 | Start the OxiDNS service before opening WebUI. | Click `Start` on `Basic Information`. |
 | WebUI listens on loopback only... | Change `api.http.listen` to the LAN address or `0.0.0.0:9199`, or use an SSH tunnel. |
 
@@ -1210,7 +1210,7 @@ The `Topology` view shows dependencies, matcher conditions, executor targets, an
 - time format (`YYYY`, `MM`, `DD`, `HH`, `mm`, `ss`, `SSS`);
 - elapsed time since process start.
 
-The log file itself is set by `log.file`; this page reads the backend stream and does not replace the LuCI `Logs` page.
+The log file itself is set by `log.file`; this page reads the backend stream and does not replace the LuCI `Runtime Logs` page.
 
 ### 6.8 System Settings
 
@@ -1269,7 +1269,7 @@ The log file itself is set by `log.file`; this page reads the backend stream and
 - `Upgrade now`, `Force upgrade`;
 - upgrade settings: GitHub repository, bundle (auto/full/standard/minimal), outbound profile, SOCKS5, GitHub token, allow prereleases, clear cache and back up, automatic check;
 - shows the equivalent CLI command; the token is shown as a placeholder only;
-- if the core lacks the upgrade plugin, online upgrade is unavailable; use `Update Core` on `Settings` or the CLI.
+- if the core lacks the upgrade plugin, online upgrade is unavailable; use `Update Core` on `Installation and Deployment` or the CLI.
 
 ### 6.9 Configuration Editor
 
@@ -1323,7 +1323,7 @@ Token guidance:
 - Avoid persisting on shared computers or browser accounts, when remoting, or over plain HTTP across networks;
 - The token is sent to the backend for checks and upgrades whether or not it is saved; prefer a fine-grained token with read-only access to the target repository.
 
-If the core lacks the upgrade plugin, use `Update Core` / `Upload Core` on the LuCI `Settings` page, or the CLI command shown on the page.
+If the core lacks the upgrade plugin, use `Update Core` / `Upload Core` on the LuCI `Installation and Deployment` page, or the CLI command shown on the page.
 
 ### 6.12 LuCI and WebUI Equivalents
 
@@ -1336,9 +1336,9 @@ If the core lacks the upgrade plugin, use `Update Core` / `Upload Core` on the L
 | Change sequences | `DNS Configuration -> Advanced Mode` | `Plugin Center -> sequence -> Sequence editing` |
 | Enable WebUI/auth/TLS | `DNS Configuration -> Advanced Mode` | `System Settings -> Management API` |
 | Edit the full YAML | `DNS Configuration -> Advanced Mode` | `Config Editor` |
-| View runtime logs | `Logs` | `Runtime Logs` |
+| View runtime logs | `Runtime Logs` (LuCI) | `Runtime Logs` (WebUI) |
 | View query records/cache | Not available | Details of the matching plugin in the Plugin Center |
-| Upgrade the core | `Settings -> Update Core` | `Software Upgrade` |
+| Upgrade the core | `Installation and Deployment -> Update Core` | `Software Upgrade` |
 
 ---
 
@@ -1356,11 +1356,11 @@ If the core lacks the upgrade plugin, use `Update Core` / `Upload Core` on the L
 | WebUI login fails | Wrong credentials, or auth changed without a restart | Check `api.http.auth` and restart OxiDNS after changes. |
 | WebUI cannot connect | `Service address` is not `/api`; nginx strips `/api`; backend down | Restore `/api`; check the proxy; confirm OxiDNS is running. |
 | Deep links 404 after refresh | Static server lacks an `index.html` fallback | Serve with OxiDNS or add `try_files $uri $uri/ /index.html;` in nginx. |
-| Logs page is empty | No `log.file`, unwritable path, or service stopped | Check `log.file` and directory permissions; fall back to stdout and `logread`. |
+| Runtime Logs page is empty | No `log.file`, unwritable path, or service stopped | Check `log.file` and directory permissions; fall back to stdout and `logread`. |
 | DNS queries time out | Wrong listen address/port, unreachable upstream, firewall | Test directly with `nslookup`; check Listen Addresses and Upstream DNS. |
 | Port already in use | dnsmasq or another DNS service owns 53/5335 | Use another port or stop the conflicting service. |
 
-More backend errors appear on the `Logs` page. LuCI also writes service-control audit records tagged `luci-app-oxidns` to the system log.
+More backend errors appear on the `Runtime Logs` page. LuCI also writes service-control audit records tagged `luci-app-oxidns` to the system log.
 
 ---
 

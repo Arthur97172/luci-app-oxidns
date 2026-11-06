@@ -840,7 +840,7 @@ return view.extend({
 					E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
 						_('Install the OxiDNS core before editing the configuration.')),
 					E('p', { 'class': 'cbi-section-descr' },
-						_('Install it from Services → OxiDNS → Settings, then return to this page.'))
+						_('Install it from Services → OxiDNS → Installation and Deployment, then return to this page.'))
 				])
 			]);
 		}

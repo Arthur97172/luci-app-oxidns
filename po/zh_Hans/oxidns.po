@@ -184,8 +184,8 @@ msgstr "日志路径"
 msgid "Log path is required."
 msgstr "日志路径不能为空。"
 
-msgid "Logs"
-msgstr "日志"
+msgid "Runtime Logs"
+msgstr "运行日志"
 
 msgid "LuCI backend"
 msgstr "LuCI 后端"
@@ -325,8 +325,8 @@ msgstr "服务状态"
 msgid "Leave empty or set to 0 to keep all historical rotation files."
 msgstr "留空或设为 0 时保留全部历史轮转文件。"
 
-msgid "Settings"
-msgstr "设置"
+msgid "Installation and Deployment"
+msgstr "安装部署"
 
 msgid "Settings saved, but the log path could not be checked."
 msgstr "设置已保存，但无法检查日志路径。"
@@ -547,14 +547,14 @@ msgstr "内核操作"
 msgid "DNS Configuration"
 msgstr "DNS配置"
 
-msgid "Install it from Services → OxiDNS → Settings, then return to this page."
-msgstr "请先在「服务 → OxiDNS → 设置」页面安装，然后返回本页。"
+msgid "Install it from Services → OxiDNS → Installation and Deployment, then return to this page."
+msgstr "请先在「服务 → OxiDNS → 安装部署」页面安装，然后返回本页。"
 
-msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Settings page to replace it with a bundle that includes WebUI."
-msgstr "已安装的 minimal 内核 bundle 不包含 WebUI 文件。请在“设置”页面点击“安装 WebUI”，将内核替换为包含 WebUI 的 bundle。"
+msgid "The installed minimal core bundle does not include WebUI files. Install WebUI on the Installation and Deployment page to replace it with a bundle that includes WebUI."
+msgstr "已安装的 minimal 内核 bundle 不包含 WebUI 文件。请在“安装部署”页面点击“安装 WebUI”，将内核替换为包含 WebUI 的 bundle。"
 
-msgid "WebUI files are not installed. Install them from the Settings page using Install WebUI."
-msgstr "WebUI 文件尚未安装。请在“设置”页面使用“安装 WebUI”进行安装。"
+msgid "WebUI files are not installed. Install them from the Installation and Deployment page using Install WebUI."
+msgstr "WebUI 文件尚未安装。请在“安装部署”页面使用“安装 WebUI”进行安装。"
 
 msgid "A download proxy is configured, but curl is not installed. Install curl or clear the download proxy."
 msgstr "已配置下载代理，但未安装 curl。请安装 curl 或清除下载代理。"
