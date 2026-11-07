@@ -142,6 +142,26 @@ function isEmptyNode(node) {
 }
 
 /*
+ * Mappings and sequences both expose "items", so a key like "args:" can look
+ * like a list to a plain Array.isArray() check. Inspect the first item and fall
+ * back to toJSON() for empty collections; a scalar or alias is neither.
+ */
+function nodeKind(node) {
+	if (!node || !Array.isArray(node.items))
+		return '';
+
+	if (node.items.length)
+		return isPairItem(node.items[0]) ? 'map' : 'seq';
+
+	try {
+		return Array.isArray(node.toJSON()) ? 'seq' : 'map';
+	}
+	catch (err) {
+		return '';
+	}
+}
+
+/*
  * Document.addIn() and setIn() throw when a hand-written key without a value
  * ("args:", "upstreams:", "entries:") parses as a null scalar. Replace the
  * empty scalar ancestors with mappings and an empty target with a list so the
@@ -880,6 +900,29 @@ function uniquePluginTag(doc, base) {
 }
 
 /*
+ * The getting-started button completes the first UDP and TCP server by writing
+ * entry and listen into their args. A hand-written list or scalar there cannot
+ * hold those keys, so refuse the click before anything is created.
+ */
+function bootstrapArgsProblem(doc) {
+	var problem = '';
+
+	pluginItems(doc).forEach(function(item, index) {
+		var type = pluginType(item);
+
+		if (problem || (type !== 'udp_server' && type !== 'tcp_server'))
+			return;
+
+		var args = item.get('args');
+
+		if (args && nodeKind(args) !== 'map' && !isEmptyNode(args))
+			problem = pluginTag(item, index);
+	});
+
+	return problem;
+}
+
+/*
  * Complete the first server plugin of the given type instead of adding a
  * second one; fields that are already set are left alone.
  */
@@ -894,7 +937,15 @@ function ensureBootstrapServer(doc, type, entryTag, listen) {
 	if (found) {
 		var args = found.get('args');
 
-		if (!args || typeof args.set !== 'function') {
+		/*
+		 * A hand-written list (typically "args: []") is not a mapping; only
+		 * replace it when it is empty, otherwise the caller has already
+		 * refused the click.
+		 */
+		if (args && nodeKind(args) !== 'map' && !isEmptyNode(args))
+			return;
+
+		if (!args || nodeKind(args) !== 'map') {
 			found.set('args', doc.createNode({}));
 			args = found.get('args');
 		}
@@ -987,6 +1038,14 @@ function bootstrapSection(doc, options) {
 				'click': function(ev) {
 					ev.preventDefault();
 					options.beforeChange();
+
+					var problem = bootstrapArgsProblem(doc);
+
+					if (problem) {
+						ui.addNotification(null, E('p', {},
+							_('The args of the %s plugin must be a mapping. Fix it in Advanced Mode.').format(problem)), 'danger');
+						return;
+					}
 
 					if (!ensureListNode(doc, [ 'plugins' ])) {
 						listShapeProblem('plugins');
@@ -1631,7 +1690,7 @@ function sequenceArgs(doc, tag) {
 		return null;
 
 	var args = found.item.get('args');
-	return args && Array.isArray(args.items) ? args : null;
+	return args && nodeKind(args) === 'seq' ? args : null;
 }
 
 function managedStep(step, tag) {
@@ -1712,7 +1771,7 @@ function removeStepWiring(doc, tag) {
 
 		var args = item.get('args');
 
-		if (!args || !Array.isArray(args.items))
+		if (!args || nodeKind(args) !== 'seq')
 			return;
 
 		for (var i = args.items.length - 1; i >= 0; i--) {

@@ -115,6 +115,26 @@ function pluginArgs(item) {
 	return args && typeof args.get === 'function' ? args : null;
 }
 
+/*
+ * Mappings and sequences both expose "items", so a hand-written "args: {}"
+ * can look like a list to a plain Array.isArray() check. Inspect the first
+ * item and fall back to toJSON() for empty collections.
+ */
+function isListNode(node) {
+	if (!node || !Array.isArray(node.items))
+		return false;
+
+	if (node.items.length)
+		return !('key' in node.items[0] && 'value' in node.items[0]);
+
+	try {
+		return Array.isArray(node.toJSON());
+	}
+	catch (err) {
+		return false;
+	}
+}
+
 function sequenceTags(doc) {
 	var tags = {};
 
@@ -519,7 +539,7 @@ function sequenceNode(doc, tag) {
 		return null;
 
 	var args = found.item.get('args');
-	return args && Array.isArray(args.items) ? args : null;
+	return isListNode(args) ? args : null;
 }
 
 function managedStep(step) {
@@ -568,7 +588,7 @@ function removeWiring(doc) {
 
 		var args = item.get('args');
 
-		if (!args || !Array.isArray(args.items))
+		if (!isListNode(args))
 			return;
 
 		for (var i = args.items.length - 1; i >= 0; i--) {

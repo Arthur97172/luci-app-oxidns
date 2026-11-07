@@ -1549,6 +1549,9 @@ msgstr "%s 插件 %s 必须填写 %s 字段。"
 msgid "The %s field must be a list. Fix it in Advanced Mode."
 msgstr "%s 字段必须是列表。请在高级模式下修改。"
 
+msgid "The args of the %s plugin must be a mapping. Fix it in Advanced Mode."
+msgstr "%s 插件的 args 字段必须是映射。请在高级模式下修改。"
+
 msgid "The %s field of the fallback plugin %s references the missing plugin %s."
 msgstr "fallback 插件 %s 的 %s 字段引用了不存在的插件 %s。"
 

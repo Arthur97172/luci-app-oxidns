@@ -1547,6 +1547,9 @@ msgstr ""
 msgid "The %s field must be a list. Fix it in Advanced Mode."
 msgstr ""
 
+msgid "The args of the %s plugin must be a mapping. Fix it in Advanced Mode."
+msgstr ""
+
 msgid "The %s field of the fallback plugin %s references the missing plugin %s."
 msgstr ""
 
