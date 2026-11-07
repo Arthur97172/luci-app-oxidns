@@ -551,8 +551,14 @@ function apiSection(doc, bindings, options) {
 	var shorthand = typeof http === 'string';
 	var listen = shorthand ? http : text(doc.getIn([ 'api', 'http', 'listen' ]));
 
+	/*
+	 * In shorthand form the binding path is the whole api.http value, so
+	 * "delete" would silently drop the API when the field is cleared. Keep an
+	 * empty scalar instead and let validate() report it like the expanded form.
+	 */
 	addBinding(bindings, 'oxidns-cfg-api-listen',
-		shorthand ? [ 'api', 'http' ] : [ 'api', 'http', 'listen' ], 'delete');
+		shorthand ? [ 'api', 'http' ] : [ 'api', 'http', 'listen' ],
+		shorthand ? 'set' : 'delete');
 
 	var rows = [
 		row(_('HTTP listen'), textInput('oxidns-cfg-api-listen', listen, '0.0.0.0:9199'))
@@ -1637,10 +1643,14 @@ function cacheSection(doc, bindings, options) {
 
 	if (!managed) {
 		if (other) {
+			var otherTag = pluginTag(other.item, other.index);
+			var otherEditable = !!(definition && Array.isArray(definition.fields) && definition.fields.length);
+
 			return {
 				'node': section(_('Cache'), null, [
-					noteRow(_('Cache is configured by the %s plugin. Edit it in Advanced Mode.')
-						.format(pluginTag(other.item, other.index)))
+					noteRow(otherEditable
+						? _('Cache is configured by the %s plugin. Edit that plugin\'s settings below.').format(otherTag)
+						: _('Cache is configured by the %s plugin. Edit it in Advanced Mode.').format(otherTag))
 				])
 			};
 		}
@@ -1767,10 +1777,14 @@ function hostsSection(doc, bindings, options) {
 
 	if (!managed) {
 		if (other) {
+			var otherTag = pluginTag(other.item, other.index);
+			var otherEditable = !!(definition && Array.isArray(definition.fields) && definition.fields.length);
+
 			return {
 				'node': section(_('Hosts'), null, [
-					noteRow(_('Hosts is configured by the %s plugin. Edit it in Advanced Mode.')
-						.format(pluginTag(other.item, other.index)))
+					noteRow(otherEditable
+						? _('Hosts is configured by the %s plugin. Edit that plugin\'s settings below.').format(otherTag)
+						: _('Hosts is configured by the %s plugin. Edit it in Advanced Mode.').format(otherTag))
 				])
 			};
 		}

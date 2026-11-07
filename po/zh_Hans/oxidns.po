@@ -52,6 +52,9 @@ msgstr "开机自启仅影响下次开机。"
 msgid "Cache is configured by the %s plugin. Edit it in Advanced Mode."
 msgstr "缓存由插件 %s 配置。请在高级模式中编辑。"
 
+msgid "Cache is configured by the %s plugin. Edit that plugin's settings below."
+msgstr "缓存由插件 %s 配置。请在下方修改该插件的设置。"
+
 msgid "Cache stores DNS responses locally so repeated queries are answered without contacting upstream servers."
 msgstr "缓存将 DNS 响应保存在本地，使重复查询无需访问上游服务器即可得到应答。"
 
@@ -189,6 +192,9 @@ msgstr "hosts 在本地应答配置过的域名，例如把域名映射到局域
 
 msgid "Hosts is configured by the %s plugin. Edit it in Advanced Mode."
 msgstr "主机记录由插件 %s 配置。请在高级模式中编辑。"
+
+msgid "Hosts is configured by the %s plugin. Edit that plugin's settings below."
+msgstr "主机记录由插件 %s 配置。请在下方修改该插件的设置。"
 
 msgid "Install Core"
 msgstr "安装内核"

@@ -50,6 +50,9 @@ msgstr ""
 msgid "Cache is configured by the %s plugin. Edit it in Advanced Mode."
 msgstr ""
 
+msgid "Cache is configured by the %s plugin. Edit that plugin's settings below."
+msgstr ""
+
 msgid "Cache stores DNS responses locally so repeated queries are answered without contacting upstream servers."
 msgstr ""
 
@@ -186,6 +189,9 @@ msgid "Hosts answers configured names locally, for example to map a domain to a 
 msgstr ""
 
 msgid "Hosts is configured by the %s plugin. Edit it in Advanced Mode."
+msgstr ""
+
+msgid "Hosts is configured by the %s plugin. Edit that plugin's settings below."
 msgstr ""
 
 msgid "Install Core"
