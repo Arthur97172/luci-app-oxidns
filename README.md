@@ -6,15 +6,15 @@
 
 本仓库只包含 LuCI 管理界面和 rpcd 后端；OxiDNS 内核、WebUI 与通用 release 由 [svenshi/oxidns](https://github.com/svenshi/oxidns) 提供。
 
-**完整操作说明**：从零配置 DNS、普通模式/高级模式逐项参考、插件参数、常见任务、故障排查以及 OxiDNS WebUI 的使用方法，见 [info/README.md](info/README.md)。其中在 `基本信息` 一键启用 dnsmasq 转发、手动配置以及回滚，见 [4.9 用 dnsmasq 转发（推荐）](info/README.md#49-用-dnsmasq-转发推荐)。
+**完整操作说明**：从零配置 DNS、普通模式/高级模式逐项参考、插件参数、常见任务、故障排查以及 OxiDNS WebUI 的使用方法，见 [info/README.md](info/README.md)。其中在 `基本信息` 一键启用 dnsmasq 转发、手动配置以及回滚，见 [4.9 用 dnsmasq 转发（推荐）](info/README.md#49-用-dnsmasq-转发推荐)；普通模式的广告过滤卡片见 [3.8 广告过滤](info/README.md#38-广告过滤ad-filtering)。
 
 ## 功能
 
 - `基本信息`：`状态概览` 展示后端、内核、构建信息、服务状态、开机自启和 WebUI 入口；下方可启动、停止或重启服务。
 - `系统 DNS 接入`：位于 `基本信息` 页面，可一键启用或停用 dnsmasq 转发。启用后 dnsmasq 将通用 DNS 查询转发到 OxiDNS 的监听地址，保留特定域名上游；默认关闭，停用时会恢复原来的通用上游和 `noresolv` 设置。
-- `DNS配置`：普通模式表单与高级模式完整 YAML；两种模式都支持校验、下载/上传配置、保存、保存并应用和改动预览。
-- `设置`：安装、更新、上传、修复或删除内核与 WebUI；配置内核仓库、bundle、路径、系统日志输出和下载凭据。
-- `日志`：查看 OxiDNS 运行日志。
+- `安装部署`：安装、更新、上传、修复或删除内核与 WebUI；配置内核仓库、bundle、路径、系统日志输出和下载凭据。
+- `DNS配置`：普通模式表单与高级模式完整 YAML；两种模式都支持校验、下载/上传配置、保存、保存并应用和改动预览。`forward` 的上游可从下拉框选择常用 DNS 服务器或输入自定义地址；普通模式的 `广告过滤` 卡片可一键创建并管理固定的 `download` / `adguard_rule` / `black_hole` 插件组，支持订阅下载、内联规则、本地规则文件和拦截模式，并把拦截规则插入每个入口 sequence 的最前面。
+- `运行日志`：查看 OxiDNS 运行日志。
 
 ## 安装 LuCI 插件
 
@@ -75,7 +75,7 @@ make package/luci-app-oxidns/compile V=s
 - 只支持 OxiDNS 已发布的 Linux musl release target。
 - `更新内核` 只安装严格更新的正式版本，不会降级已安装的较新或自定义构建。
 - 替换内核或 WebUI 前会暂存并校验新文件；复制失败时恢复旧文件，避免留下内核与 WebUI 不匹配的状态。
-- 普通模式只编辑已存在的插件实例，新增/删除插件和 sequence 规则需在高级模式或 OxiDNS WebUI 中完成；配置使用 YAML anchor、alias 或 merge key 时，普通模式会变为只读。
+- 普通模式只编辑已存在的插件实例，新增/删除插件和 sequence 规则需在高级模式或 OxiDNS WebUI 中完成；`广告过滤` 卡片是唯一例外，它可以创建或删除固定的 `download` / `adguard_rule` / `black_hole` 插件组并维护入口 sequence 的拦截规则。配置使用 YAML anchor、alias 或 merge key 时，普通模式会变为只读。
 - 普通模式保存会重新序列化 YAML：保留注释、字段顺序和表单未管理的字段，只写入实际改动的字段。普通模式、高级模式和 OxiDNS WebUI 编辑同一份文件，建议同时只使用一个入口。
 - `基本信息` 的 WebUI 入口要求 WebUI 文件已安装、服务正在运行且 HTTP 监听地址可访问；只监听 `127.0.0.1` / `::1` 时需要本机访问或 SSH 隧道。
 - `系统 DNS 接入` 要求 OxiDNS 已启动，UDP 与 TCP 监听使用同一个端口并共享可达的 IPv4 地址；只监听 IPv6、端口不一致或没有共同可达的 IPv4 地址时，“启用 dnsmasq 转发”按钮不可用。
@@ -84,7 +84,7 @@ make package/luci-app-oxidns/compile V=s
 
 ## 私有仓库与下载
 
-路由器需要能访问 GitHub Releases 和 release archive。私有仓库或受限网络可以在 `设置` 中配置 GitHub token 或下载代理；Token 和代理值保存后不会在 LuCI 中回显。配置下载代理需要安装 `curl`，也可以使用 `上传内核` 离线安装。
+路由器需要能访问 GitHub Releases 和 release archive。私有仓库或受限网络可以在 `安装部署` 中配置 GitHub token 或下载代理；Token 和代理值保存后不会在 LuCI 中回显。配置下载代理需要安装 `curl`，也可以使用 `上传内核` 离线安装。
 
 ## 许可证
 

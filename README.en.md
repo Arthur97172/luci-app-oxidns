@@ -6,15 +6,15 @@ Language: [中文](./README.md) | English
 
 This repository contains only the LuCI management UI and the rpcd backend; the OxiDNS core, WebUI, and general releases come from [svenshi/oxidns](https://github.com/svenshi/oxidns).
 
-**Full guide**: configuring DNS from scratch, the Normal/Advanced mode field reference, plugin fields, common tasks, troubleshooting, and OxiDNS WebUI instructions are in [info/README.en.md](info/README.en.md). For enabling dnsmasq forwarding with one click on `Basic Information`, manual configuration, and rollback, see [4.9 Forward Through dnsmasq (Recommended)](info/README.en.md#49-forward-through-dnsmasq-recommended).
+**Full guide**: configuring DNS from scratch, the Normal/Advanced mode field reference, plugin fields, common tasks, troubleshooting, and OxiDNS WebUI instructions are in [info/README.en.md](info/README.en.md). For enabling dnsmasq forwarding with one click on `Basic Information`, manual configuration, and rollback, see [4.9 Forward Through dnsmasq (Recommended)](info/README.en.md#49-forward-through-dnsmasq-recommended); for the Normal mode ad filtering card, see [3.8 Ad Filtering](info/README.en.md#38-ad-filtering).
 
 ## Features
 
 - `Basic Information`: `Status Overview` shows the backend, core, build, service status, boot autostart, and WebUI entry, with start, stop, and restart controls below.
 - `System DNS integration`: on the `Basic Information` page, enable or disable dnsmasq forwarding in one click. When enabled, dnsmasq forwards generic DNS queries to OxiDNS's listen address while keeping domain-specific upstreams; it is disabled by default, and disabling restores the previous generic upstreams and `noresolv` setting.
-- `DNS Configuration`: Normal mode forms and Advanced mode full YAML; both support validation, config download/upload, save, save and apply, and a change preview.
-- `Settings`: install, update, upload, repair, or remove the core and WebUI; configure core repository, bundle, paths, system log output, and download credentials.
-- `Logs`: view OxiDNS runtime logs.
+- `Installation and Deployment`: install, update, upload, repair, or remove the core and WebUI; configure the core repository, bundle, paths, system log output, and download credentials.
+- `DNS Configuration`: Normal mode forms and Advanced mode full YAML; both support validation, config download/upload, save, save and apply, and a change preview. `forward` upstreams can be picked from a preset combobox or entered as a custom address; the Normal mode `Ad filtering` card creates and manages a fixed `download` / `adguard_rule` / `black_hole` plugin group with subscription downloads, inline rules, local rule files, and a blocking mode, and inserts the blocking rule at the front of every entry sequence.
+- `Runtime Logs`: view OxiDNS runtime logs.
 
 ## Install The LuCI App
 
@@ -75,7 +75,7 @@ The artifacts appear under `bin/packages/<arch>/`: a 24.10 build tree produces `
 - Only published OxiDNS Linux musl release targets are supported.
 - `Update Core` installs only strictly newer stable releases and never downgrades a newer or custom build.
 - Before replacing the core or WebUI, LuCI stages and verifies the new files; if a copy fails, the old files are restored so the core and WebUI cannot be left mismatched.
-- Normal mode only edits plugin instances that already exist. Adding or removing plugins and changing sequence rules require Advanced mode or the OxiDNS WebUI; with YAML anchors, aliases, or merge keys, Normal mode becomes read-only.
+- Normal mode only edits plugin instances that already exist. Adding or removing plugins and changing sequence rules require Advanced mode or the OxiDNS WebUI; the `Ad filtering` card is the one exception, creating or removing a fixed `download` / `adguard_rule` / `black_hole` group and maintaining the blocking rule in the entry sequences. With YAML anchors, aliases, or merge keys, Normal mode becomes read-only.
 - Saving from Normal mode re-serializes the YAML: comments, field order, and fields the form does not manage are preserved, and only edited fields are written. Normal mode, Advanced mode, and the OxiDNS WebUI edit the same file, so use only one entry point at a time.
 - The WebUI entry on `Basic Information` requires installed WebUI files, a running service, and a reachable HTTP listen address; with `127.0.0.1` / `::1`, use local access or an SSH tunnel.
 - `System DNS integration` requires OxiDNS to be running, with UDP and TCP listeners on the same port that share a reachable IPv4 address; the `Enable dnsmasq forwarding` button stays unavailable with IPv6-only listeners, mismatched ports, or no shared reachable IPv4 address.
@@ -84,7 +84,7 @@ The artifacts appear under `bin/packages/<arch>/`: a 24.10 build tree produces `
 
 ## Private Repositories And Downloads
 
-The router must be able to reach GitHub Releases and release archives. For private repositories or restricted networks, configure a GitHub token or download proxy in `Settings`; saved values are never shown again in LuCI. A download proxy requires `curl`; alternatively use `Upload Core` for offline installs.
+The router must be able to reach GitHub Releases and release archives. For private repositories or restricted networks, configure a GitHub token or download proxy in `Installation and Deployment`; saved values are never shown again in LuCI. A download proxy requires `curl`; alternatively use `Upload Core` for offline installs.
 
 ## License
 

@@ -339,7 +339,7 @@ The backend still runs `oxidns check`, and the core's result is authoritative.
 
 ### 3.8 Ad Filtering
 
-The `Ad filtering` card bundles the common ad-blocking setup. After you click `Add ad filtering`, Normal Mode creates three fixed-tag plugins and inserts the blocking rule at the front of every server entry sequence:
+The `Ad filtering` card bundles the common ad-blocking setup. It needs at least one server entry sequence in the configuration; when none exists, `Add ad filtering` stays disabled and the card asks you to configure a server entry in Advanced Mode first. After you click `Add ad filtering`, Normal Mode creates three fixed-tag plugins and inserts the blocking rule at the front of every server entry sequence:
 
 | Tag | Type | Purpose |
 | --- | --- | --- |
@@ -356,7 +356,7 @@ The inserted sequence rule is fixed:
 
 It sits at the front of each entry sequence, so ad domains are blocked before `forward` runs.
 
-Before configuration the card only shows `Add ad filtering`. Once configured it offers:
+Before configuration the card shows the `Ad filtering is not configured.` note and the `Add ad filtering` button; the button stays disabled when no server entry sequence exists. Once configured it offers:
 
 | Field | Description |
 | --- | --- |
@@ -366,6 +366,8 @@ Before configuration the card only shows `Add ad filtering`. Once configured it 
 | `Blocking mode` | Maps to `black_hole.mode`; defaults to `nxdomain`. |
 | `Blocking addresses` | IPv4 / IPv6 addresses returned in `custom` mode. |
 | `Rules directory` | Directory for downloaded subscription files, default `/etc/oxidns/rules`; generated rule files start with `oxidns-ads-`. |
+
+If you keep the subscription download plugin but clear all URLs, validation asks for a URL or tells you to click `Remove subscription downloads` first.
 
 `Remove subscription downloads` deletes only the `download` plugin and the rule-file paths it generated, keeping inline rules, local rule files, and the blocking plugin. `Remove ad filtering` removes the whole group and the sequence rule.
 
