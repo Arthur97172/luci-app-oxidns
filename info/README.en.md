@@ -115,7 +115,7 @@ Configuration path: `log`.
 | `Log level` | `log.level` | `off`, `trace`, `debug`, `info`, `warn`, or `error`; default `info`. |
 | `Log file` | `log.file` | Log file path, default `/tmp/oxidns/oxidns.log`. Leave empty to log only to standard output. |
 | `Rotation` | `log.rotation.type` | `never` (default), `minutely`, `hourly`, `daily`, or `weekly`. |
-| `Maximum rotation files` | `log.rotation.max_files` | Number of history files to keep. Leave it empty or set `0` to disable automatic deletion; the field is only written when you enter a value. |
+| `Maximum rotation files` | `log.rotation.max_files` | Number of history files to keep. Leave it empty or set `0` to disable automatic deletion; the field is only written when you enter a value. Switching rotation to `never` clears a saved value. |
 
 Notes:
 
@@ -171,7 +171,7 @@ Notes:
 - The drop-down lists only profile names that already exist under `network.outbound.profiles`. When none are defined, only "None" is available; add profiles in Advanced mode or the WebUI first.
 - The default is used by HTTP clients and upstreams that do not set their own outbound profile. Individual upstreams and plugins such as `ip_selector` and `download` can still override it with their own `Outbound profile`.
 - A `default` that points to an undefined profile stays selected and is marked "not defined"; validation reports it before saving. Define that profile under `network.outbound.profiles` or select a defined one.
-- Selecting "None" deletes `network.outbound.default` and restores the core default behavior (system DNS and direct connections).
+- Selecting "None" deletes `network.outbound.default` and restores the core default behavior (system DNS and direct connections); if `network.outbound` is left empty, the empty mapping is removed as well.
 - Normal mode does not edit the contents of `network.outbound.profiles`.
 
 ### 3.5 API (Management API and WebUI)

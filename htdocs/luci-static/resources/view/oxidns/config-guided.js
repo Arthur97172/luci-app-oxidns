@@ -177,6 +177,25 @@ function ensureListNode(doc, path) {
 	return true;
 }
 
+/*
+ * Delete a field and then the mapping or sequence that held it when it has
+ * nothing left, so clearing network.outbound.default does not leave an
+ * "outbound: {}" behind. Stop at the first ancestor that still has content.
+ */
+function deleteAndPrune(doc, path) {
+	doc.deleteIn(path);
+
+	for (var depth = path.length - 1; depth > 0; depth--) {
+		var prefix = path.slice(0, depth);
+		var node = doc.getIn(prefix, true);
+
+		if (!node || !Array.isArray(node.items) || node.items.length)
+			break;
+
+		doc.deleteIn(prefix);
+	}
+}
+
 function listShapeProblem(field) {
 	ui.addNotification(null, E('p', {},
 		_('The %s field must be a list. Fix it in Advanced Mode.').format(field)), 'danger');
@@ -282,14 +301,23 @@ function rotationSelect(id, value) {
 		}));
 }
 
-function addBinding(bindings, id, path, empty, kind, defaultValue) {
-	bindings.push({
+function addBinding(bindings, id, path, empty, kind, defaultValue, options) {
+	var binding = {
 		'id': id,
 		'path': path,
 		'empty': empty || 'set',
 		'kind': kind || 'string',
 		'default': defaultValue
-	});
+	};
+
+	if (options) {
+		for (var key in options) {
+			if (Object.prototype.hasOwnProperty.call(options, key))
+				binding[key] = options[key];
+		}
+	}
+
+	bindings.push(binding);
 }
 
 function bindingValue(doc, path) {
@@ -426,8 +454,12 @@ function applyBindings(doc, bindings) {
 
 			if (!value) {
 				if (binding.empty === 'delete') {
-					if (present)
-						doc.deleteIn(binding.path);
+					if (present) {
+						if (binding.prune)
+							deleteAndPrune(doc, binding.path);
+						else
+							doc.deleteIn(binding.path);
+					}
 				}
 				else {
 					doc.setIn(binding.path, '');
@@ -475,6 +507,24 @@ function logSection(doc, bindings) {
 	addBinding(bindings, 'oxidns-cfg-log-file', [ 'log', 'file' ], 'delete');
 	addBinding(bindings, 'oxidns-cfg-log-rotation', [ 'log', 'rotation', 'type' ], 'delete', 'string', 'never');
 	addBinding(bindings, 'oxidns-cfg-log-rotation-max-files', [ 'log', 'rotation', 'max_files' ], 'delete', 'number');
+
+	/*
+	 * The keep count only applies while rotation runs. When the user switches
+	 * rotation off, drop a stored count instead of leaving an unused value
+	 * behind. A config that already says "never" is saved unchanged.
+	 */
+	bindings.push({
+		'kind': 'custom',
+		'apply': function() {
+			var input = document.getElementById('oxidns-cfg-log-rotation');
+
+			if (!input || String(input.value) !== 'never' || rotation === 'never')
+				return;
+
+			if (hasNodePath(doc, [ 'log', 'rotation', 'max_files' ]))
+				doc.deleteIn([ 'log', 'rotation', 'max_files' ]);
+		}
+	});
 
 	return section(_('Log'), null, [
 		row(_('Log level'), levelSelect('oxidns-cfg-log-level', level)),
@@ -547,7 +597,7 @@ function outboundSection(doc, bindings) {
 		choices.push(current);
 
 	addBinding(bindings, 'oxidns-cfg-outbound-default',
-		[ 'network', 'outbound', 'default' ], 'delete', 'string');
+		[ 'network', 'outbound', 'default' ], 'delete', 'string', undefined, { 'prune': true });
 
 	return section(_('Outbound Network'),
 		profiles.length

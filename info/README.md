@@ -117,7 +117,7 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 | 日志级别（`Log level`） | `log.level` | 可选 `off`、`trace`、`debug`、`info`、`warn`、`error`，默认 `info`。 |
 | 日志文件（`Log file`） | `log.file` | 日志文件路径，默认 `/tmp/oxidns/oxidns.log`。留空表示不写日志文件，只输出到标准输出。 |
 | 轮转（`Rotation`） | `log.rotation.type` | 轮转周期：`never`（不轮转，默认）、`minutely`、`hourly`、`daily`、`weekly`。 |
-| 最大轮转文件数（`Maximum rotation files`） | `log.rotation.max_files` | 最多保留多少个历史文件。留空或填写 `0` 表示不自动删除；只有填写了值才会写入配置文件。 |
+| 最大轮转文件数（`Maximum rotation files`） | `log.rotation.max_files` | 最多保留多少个历史文件。留空或填写 `0` 表示不自动删除；只有填写了值才会写入配置文件。轮转切换为 `never` 时会清除已保存的值。 |
 
 说明：
 
@@ -173,7 +173,7 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 - 下拉框只列出 `network.outbound.profiles` 中已经存在的配置名称。没有定义任何 profile 时只能选择“无”，需要先在高级模式或 WebUI 中添加 profile。
 - 该设置供未单独指定出站配置的 HTTP 客户端和上游使用；单个上游、`ip_selector`、`download` 等插件仍可用各自的 `Outbound profile` 覆盖。
 - 配置文件中指向未定义 profile 的 `default` 会保留在下拉框中并标记为“未定义”，保存前会提示校验错误。请先在 `network.outbound.profiles` 中定义该 profile，或改选已定义的 profile。
-- 选择“无”会删除 `network.outbound.default`，恢复核心默认行为（使用系统 DNS 和直连连接）。
+- 选择“无”会删除 `network.outbound.default`，恢复核心默认行为（使用系统 DNS 和直连连接）；如果 `network.outbound` 因此变空，这个空映射也会一并移除。
 - 普通模式不编辑 `network.outbound.profiles` 的具体内容。
 
 ### 3.5 API（管理接口与 WebUI）
