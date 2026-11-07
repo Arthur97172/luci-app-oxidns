@@ -90,7 +90,7 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 
 ### 校验与保存的行为
 
-- 普通模式在提交前会按内置 schema 先做一次前端检查：必填字段、数值范围、枚举取值、服务端 `entry` / `listen` / 证书私钥成对配置、HTTP 服务端入口路径、管理 API 安全配置等不满足时会直接列出问题，不会发起保存。
+- 普通模式在提交前会按内置 schema 先做一次前端检查：必填字段、数值范围、枚举取值、插件 tag 重复、服务端 `entry` / sequence 步骤引用不存在的插件、`entry` / `listen` / 证书私钥成对配置、HTTP 服务端入口路径、管理 API 安全配置等不满足时会直接列出问题，不会发起保存。配置通过 `include` 引入外部文件时，跨文件引用无法确认，引用检查会自动跳过。
 - `保存` 和 `保存并应用` 都会先后端执行 `oxidns check -c <临时文件> -d <工作目录>`，校验失败不会写入。
 - `保存并应用` 总会重启服务；`保存` 只写文件，不重启。因此先用 `保存` 再点 `保存并应用` 时，即使文件内容与上次保存相同，也会重启一次让新配置生效。
 - 保存采用原子写入，并在写入前备份原文件。
@@ -253,8 +253,10 @@ api:
 
 | 界面字段 | 配置字段 | 说明 |
 | --- | --- | --- |
-| 入口（`Entry <tag>`） | `plugins[i].args.entry` | 入口 sequence 的 tag，通常是 `main_sequence`。 |
+| 入口（`Entry <tag>`） | `plugins[i].args.entry` | 入口插件 tag，通常是 sequence。下拉框列出配置中已有的插件 tag：sequence 排在最前，其它插件在 `其它插件` 分组；当前值不在列表中时以 `…（未定义）` 保留，不会静默改写。 |
 | 监听（`Listen <tag>`） | `plugins[i].args.listen` | 监听地址和端口，默认 `:5335`。 |
+
+`Entry` 使用下拉框，避免手填 tag 出错。配置通过 `include` 引入外部插件时，页面无法枚举这些 tag，`Entry` 回退为文本输入，引用检查也会跳过。
 
 示例：让 UDP 和 TCP 只监听本机，供 dnsmasq 转发：
 
@@ -282,6 +284,8 @@ api:
 ### 3.7 上游 DNS（Upstream DNS）
 
 对应 `forward` 插件的 `plugins[i].args.upstreams`。
+
+配置中没有任何 `forward` 插件时，区块会显示 `创建 forward 插件`（`Create forward plugin`）按钮。点击后会创建 tag 为 `forward` 的 `forward` 插件，并把 `- exec: $forward` 加到每个入口 sequence 的末尾（末尾是 `accept` 时插在它前面），之后在下方添加上游即可。按钮需要配置中至少有一个 server 入口 sequence，没有可用入口时不可用；tag `forward` 已被其它类型插件占用时会提示先在高级模式中重命名。
 
 每个 `forward` 插件会显示一个区块，区块标题是插件 tag。每个上游包含：
 
@@ -333,6 +337,8 @@ api:
 
 保存前前端会检查：
 
+- 插件 tag 不能重复；重复的 tag 会被核心拒绝；
+- server 插件的 `entry`、sequence 每一步的 `exec: $tag`、DoH 入口的 `exec` 必须指向已存在的插件 tag；`entry` 和 DoH `exec` 填写的是不带 `$` 的 tag；
 - `forward` 插件至少有一个上游；
 - 每个上游的 `addr` 不能为空；
 - `min_conns` 不能大于 `max_conns`。
@@ -658,10 +664,11 @@ plugins:
 ### 4.1 更换上游 DNS
 
 1. 进入 `DNS配置 -> 普通模式`。
-2. 在 `Upstream DNS` 中找到目标 `forward` 插件。
-3. 从下拉框选择预设，或直接输入自定义地址。
-4. 需要多个上游时，在 `Add upstream DNS` 下拉框中再次选择或输入地址，每选一次会自动新增一个上游；停留在“选择或输入上游 DNS 服务器”状态的上游不会保存。
-5. 点击 `校验`；通过后点击 `保存并应用`。
+2. 如果 `Upstream DNS` 区块提示没有 forward 插件，点击 `创建 forward 插件`；页面会创建 `forward` 插件并把转发步骤接入入口 sequence。
+3. 在 `Upstream DNS` 中找到目标 `forward` 插件。
+4. 从下拉框选择预设，或直接输入自定义地址。
+5. 需要多个上游时，在 `Add upstream DNS` 下拉框中再次选择或输入地址，每选一次会自动新增一个上游；停留在“选择或输入上游 DNS 服务器”状态的上游不会保存。
+6. 点击 `校验`；通过后点击 `保存并应用`。
 
 ### 4.2 使用 DoH / DoT / DoQ 上游
 
@@ -673,7 +680,7 @@ plugins:
 ### 4.3 修改监听地址或端口
 
 1. 在 `Listen Addresses` 中修改对应 server 的 `Listen`。
-2. 确认 `Entry` 指向存在的 sequence（通常是 `main_sequence`）。
+2. 从 `Entry` 下拉框选择入口 sequence（通常是 `main_sequence`）。
 3. 点击 `保存并应用`。
 4. 用 `nslookup -po=<端口> example.com 127.0.0.1`（或对应地址）验证。
 

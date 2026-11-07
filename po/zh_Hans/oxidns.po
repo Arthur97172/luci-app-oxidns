@@ -22,6 +22,9 @@ msgstr "添加缓存插件，并在转发前运行。缓存响应可在不访问
 msgid "API"
 msgstr "API"
 
+msgid "Adds a forward plugin and runs it at the end of the entry sequence. Add at least one upstream DNS server below."
+msgstr "添加 forward 插件，并在入口 sequence 末尾运行。请在下方至少添加一个上游 DNS 服务器。"
+
 msgid "Adds a hosts plugin and runs it before forwarding in the entry sequence. Configured names are answered locally and everything else is forwarded."
 msgstr "添加 hosts 插件，并在入口序列中先于转发运行。配置过的域名在本地应答，其余请求继续转发。"
 
@@ -60,6 +63,9 @@ msgstr "变更预览"
 
 msgid "Checking for OxiDNS core updates..."
 msgstr "正在检查 OxiDNS 内核更新..."
+
+msgid "Choose the sequence that handles queries for this server."
+msgstr "选择处理此服务器查询的 sequence。"
 
 msgid "Clear"
 msgstr "清空"
@@ -106,6 +112,9 @@ msgstr "内核操作失败"
 msgid "Core repository"
 msgstr "内核仓库"
 
+msgid "Create forward plugin"
+msgstr "创建 forward 插件"
+
 msgid "Define which address and entry the UDP, TCP, and QUIC server plugins listen on."
 msgstr "设置 UDP/TCP/QUIC 服务插件的监听地址和入口。"
 
@@ -120,6 +129,12 @@ msgstr "取消开机自启"
 
 msgid "Discard the unsaved changes and reload the last saved configuration?"
 msgstr "放弃未保存的更改并重新加载上次保存的配置？"
+
+msgid "DoH entry %d of the HTTP server plugin %s must reference the plugin tag without \"$\"."
+msgstr "DoH 条目 %d（HTTP 服务器插件 %s）必须引用不带 \"$\" 的插件标签。"
+
+msgid "DoH entry %d of the HTTP server plugin %s references the missing plugin %s."
+msgstr "DoH 条目 %d（HTTP 服务器插件 %s）引用了不存在的插件 %s。"
 
 msgid "Download proxy"
 msgstr "下载代理"
@@ -216,6 +231,9 @@ msgstr "配置架构中没有可用的缓存选项。"
 
 msgid "No hosts options are available in the configuration schema."
 msgstr "配置架构中没有可用的 hosts 选项。"
+
+msgid "Other plugins"
+msgstr "其它插件"
 
 msgid "Remove cache"
 msgstr "移除缓存"
@@ -361,6 +379,9 @@ msgstr "正在保存配置..."
 msgid "Saving settings..."
 msgstr "正在保存设置..."
 
+msgid "Select an entry plugin"
+msgstr "选择入口插件"
+
 msgid "Service action failed"
 msgstr "服务操作失败"
 
@@ -409,6 +430,9 @@ msgstr "请先启动 OxiDNS 服务再打开 WebUI。"
 msgid "Status Overview"
 msgstr "状态概览"
 
+msgid "Step %d of the sequence plugin %s references the missing plugin %s."
+msgstr "sequence 插件 %s 的第 %d 步引用了不存在的插件 %s。"
+
 msgid "Stop"
 msgstr "停止"
 
@@ -426,6 +450,12 @@ msgstr "无法将缓存步骤插入入口序列。请在高级模式中检查序
 
 msgid "The configuration is too large to preview here. Review the changes in Advanced Mode before saving."
 msgstr "配置过大，无法在此预览。保存前请在高级模式中检查更改。"
+
+msgid "The entry %s of the %s server plugin %s does not reference an existing plugin."
+msgstr "entry %s（%s 服务器插件 %s）没有引用已存在的插件。"
+
+msgid "The entry %s of the %s server plugin %s must use the plugin tag without \"$\"."
+msgstr "服务器插件的 entry 必须使用不带 \"$\" 的插件标签：%s（%s 插件 %s）。"
 
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
@@ -463,9 +493,6 @@ msgstr "日志级别"
 msgid "No changes."
 msgstr "没有变更。"
 
-msgid "No forward plugins were found."
-msgstr "未找到 forward 插件。"
-
 msgid "No plugins are configured."
 msgstr "未配置任何插件。"
 
@@ -499,6 +526,9 @@ msgstr "forward 插件 %s 至少需要一个上游服务器。"
 msgid "The hosts step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
 msgstr "无法将 hosts 步骤插入入口序列。请在高级模式中检查序列配置。"
 
+msgid "The plugin tag %s is used by more than one plugin. Choose a unique tag in Advanced Mode."
+msgstr "插件标签 %s 被多个插件使用。请在高级模式中改用唯一的标签。"
+
 msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling cache."
 msgstr "标签 %s 已被 %s 插件使用。请先在高级模式中重命名，再启用缓存。"
 
@@ -507,6 +537,9 @@ msgstr "YAML 无效：%s"
 
 msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling hosts."
 msgstr "标签 %s 已被 %s 插件使用。请先在高级模式中重命名，再启用 hosts。"
+
+msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode to create a forward plugin."
+msgstr "标签 %s 已被 %s 插件使用。请在高级模式中重命名后再创建 forward 插件。"
 
 msgid "Type"
 msgstr "类型"

@@ -20,6 +20,9 @@ msgstr ""
 msgid "API"
 msgstr ""
 
+msgid "Adds a forward plugin and runs it at the end of the entry sequence. Add at least one upstream DNS server below."
+msgstr ""
+
 msgid "Adds a hosts plugin and runs it before forwarding in the entry sequence. Configured names are answered locally and everything else is forwarded."
 msgstr ""
 
@@ -57,6 +60,9 @@ msgid "Change Preview"
 msgstr ""
 
 msgid "Checking for OxiDNS core updates..."
+msgstr ""
+
+msgid "Choose the sequence that handles queries for this server."
 msgstr ""
 
 msgid "Clear"
@@ -104,6 +110,9 @@ msgstr ""
 msgid "Core repository"
 msgstr ""
 
+msgid "Create forward plugin"
+msgstr ""
+
 msgid "Define which address and entry the UDP, TCP, and QUIC server plugins listen on."
 msgstr ""
 
@@ -117,6 +126,12 @@ msgid "Disable on boot"
 msgstr ""
 
 msgid "Discard the unsaved changes and reload the last saved configuration?"
+msgstr ""
+
+msgid "DoH entry %d of the HTTP server plugin %s must reference the plugin tag without \"$\"."
+msgstr ""
+
+msgid "DoH entry %d of the HTTP server plugin %s references the missing plugin %s."
 msgstr ""
 
 msgid "Download proxy"
@@ -213,6 +228,9 @@ msgid "No cache options are available in the configuration schema."
 msgstr ""
 
 msgid "No hosts options are available in the configuration schema."
+msgstr ""
+
+msgid "Other plugins"
 msgstr ""
 
 msgid "Remove cache"
@@ -359,6 +377,9 @@ msgstr ""
 msgid "Saving settings..."
 msgstr ""
 
+msgid "Select an entry plugin"
+msgstr ""
+
 msgid "Service control"
 msgstr ""
 
@@ -407,6 +428,9 @@ msgstr ""
 msgid "Status Overview"
 msgstr ""
 
+msgid "Step %d of the sequence plugin %s references the missing plugin %s."
+msgstr ""
+
 msgid "Stop"
 msgstr ""
 
@@ -423,6 +447,12 @@ msgid "The cache step could not be inserted into the entry sequence. Check the s
 msgstr ""
 
 msgid "The configuration is too large to preview here. Review the changes in Advanced Mode before saving."
+msgstr ""
+
+msgid "The entry %s of the %s server plugin %s does not reference an existing plugin."
+msgstr ""
+
+msgid "The entry %s of the %s server plugin %s must use the plugin tag without \"$\"."
 msgstr ""
 
 msgid "The file must be named config.yaml."
@@ -461,9 +491,6 @@ msgstr ""
 msgid "No changes."
 msgstr ""
 
-msgid "No forward plugins were found."
-msgstr ""
-
 msgid "No plugins are configured."
 msgstr ""
 
@@ -497,6 +524,9 @@ msgstr ""
 msgid "The hosts step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
 msgstr ""
 
+msgid "The plugin tag %s is used by more than one plugin. Choose a unique tag in Advanced Mode."
+msgstr ""
+
 msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling cache."
 msgstr ""
 
@@ -504,6 +534,9 @@ msgid "The YAML is invalid: %s"
 msgstr ""
 
 msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling hosts."
+msgstr ""
+
+msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode to create a forward plugin."
 msgstr ""
 
 msgid "Type"

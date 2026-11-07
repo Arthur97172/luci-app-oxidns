@@ -628,8 +628,54 @@ function apiSection(doc, bindings, options) {
 	return section(_('API'), null, rows);
 }
 
+/*
+ * The entry field names another plugin, normally a sequence. Offer the known
+ * plugin tags so a typo cannot silently break the lookup chain; an unknown
+ * current value stays selectable so opening the page never rewrites it.
+ */
+function entrySelect(doc, id, value) {
+	var sequences = [];
+	var others = [];
+
+	pluginItems(doc).forEach(function(item, index) {
+		var tag = pluginTag(item, index);
+
+		if (tag.charAt(0) === '#')
+			return;
+
+		if (pluginType(item) === 'sequence')
+			sequences.push(tag);
+		else
+			others.push(tag);
+	});
+
+	var options = [ E('option', { 'value': '' }, _('Select an entry plugin')) ];
+
+	function option(tag) {
+		return E('option', {
+			'value': tag,
+			'selected': tag === value ? 'selected' : null
+		}, tag);
+	}
+
+	sequences.forEach(function(tag) {
+		options.push(option(tag));
+	});
+
+	if (others.length)
+		options.push(E('optgroup', { 'label': _('Other plugins') }, others.map(option)));
+
+	if (value && sequences.indexOf(value) === -1 && others.indexOf(value) === -1)
+		options.push(E('option', { 'value': value, 'selected': 'selected' },
+			_('%s (not defined)').format(value)));
+
+	return E('select', { 'id': id, 'class': 'cbi-input-select oxidns-control' }, options);
+}
+
 function listenSection(doc, bindings) {
 	var rows = [];
+	var include = plainValue(doc, [ 'include' ]);
+	var externalPlugins = Array.isArray(include) && include.length > 0;
 
 	pluginItems(doc).forEach(function(item, index) {
 		if (!LISTEN_SERVER_TYPES[pluginType(item)])
@@ -638,12 +684,18 @@ function listenSection(doc, bindings) {
 		var tag = pluginTag(item, index);
 		var entryId = 'oxidns-cfg-entry-%d'.format(index);
 		var listenId = 'oxidns-cfg-listen-%d'.format(index);
+		var entryValue = text(doc.getIn([ 'plugins', index, 'args', 'entry' ]));
 
 		addBinding(bindings, entryId, [ 'plugins', index, 'args', 'entry' ], 'delete');
 		addBinding(bindings, listenId, [ 'plugins', index, 'args', 'listen' ], 'delete');
 
+		/*
+		 * Included files can define plugins this page cannot see, so a tag
+		 * list would mislabel a valid entry as undefined there.
+		 */
 		rows.push(row(_('Entry') + ' (' + tag + ')',
-			textInput(entryId, text(doc.getIn([ 'plugins', index, 'args', 'entry' ])))));
+			externalPlugins ? textInput(entryId, entryValue) : entrySelect(doc, entryId, entryValue),
+			_('Choose the sequence that handles queries for this server.')));
 		rows.push(row(_('Listen') + ' (' + tag + ')',
 			textInput(listenId, text(doc.getIn([ 'plugins', index, 'args', 'listen' ])), ':5335')));
 	});
@@ -926,8 +978,61 @@ function upstreamSection(doc, bindings, options) {
 		}, [ upstreamAdder(doc, index, options) ])));
 	});
 
-	if (!found)
-		rows.push(noteRow(_('No forward plugins were found.')));
+	/*
+	 * Without a forward plugin every sequence ends without an upstream, so
+	 * offer to create one instead of only reporting the gap.
+	 */
+	if (!found) {
+		var existing = findPluginByTag(doc, FORWARD_TAG);
+
+		if (existing) {
+			rows.push(noteRow(_('The tag %s is already used by a %s plugin. Rename it in Advanced Mode to create a forward plugin.')
+				.format(FORWARD_TAG, pluginType(existing.item) || _('unknown'))));
+		}
+		else {
+			var canCreate = entrySequences(doc).length > 0;
+
+			rows.push(E('div', { 'class': 'tr' }, [
+				E('div', {
+					'class': 'td left',
+					'style': 'padding: .5em var(--section-inset, 0);'
+				}, [
+					E('button', {
+						'class': 'btn cbi-button cbi-button-positive',
+						'disabled': canCreate ? null : 'disabled',
+						'click': function(ev) {
+							ev.preventDefault();
+							options.beforeChange();
+
+							var targets = entrySequences(doc);
+
+							if (!targets.length) {
+								ui.addNotification(null, E('p', {},
+									_('No entry sequence was found. Configure a server entry in Advanced Mode first.')), 'danger');
+								return;
+							}
+
+							if (!doc.getIn([ 'plugins' ], true))
+								doc.setIn([ 'plugins' ], doc.createNode([]));
+
+							doc.addIn([ 'plugins' ], doc.createNode({
+								'tag': FORWARD_TAG,
+								'type': FORWARD_TYPE,
+								'args': {}
+							}));
+
+							ensureForwardWiring(doc, FORWARD_TAG, targets);
+							options.rerender();
+						}
+					}, _('Create forward plugin')),
+					E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .35em;' },
+						canCreate
+							? _('Adds a forward plugin and runs it at the end of the entry sequence. Add at least one upstream DNS server below.')
+							: _('No entry sequence was found. Configure a server entry in Advanced Mode first.'))
+				])
+			]));
+		}
+	}
 
 	return section(_('Upstream DNS'),
 		_('Queries are forwarded to these upstream servers.') + ' ' +
@@ -1117,6 +1222,8 @@ var CACHE_TAG = 'oxidns_cache';
 var CACHE_TYPE = 'cache';
 var HOSTS_TAG = 'oxidns_hosts';
 var HOSTS_TYPE = 'hosts';
+var FORWARD_TAG = 'forward';
+var FORWARD_TYPE = 'forward';
 var ENTRY_SERVER_TYPES = { udp_server: true, tcp_server: true, quic_server: true };
 
 function findPluginByTag(doc, tag) {
@@ -1248,6 +1355,29 @@ function ensureStepWiring(doc, tag, targets, predecessors) {
 			if (anchors[sequenceStepExec(args.items[j])])
 				position = j + 1;
 		}
+
+		args.items.splice(position, 0, doc.createNode({ 'exec': '$' + tag }));
+	});
+}
+
+/*
+ * The forward step runs after the managed ad, hosts, and cache steps and
+ * before a trailing accept, which ends the sequence with the forwarded reply.
+ */
+function ensureForwardWiring(doc, tag, targets) {
+	(targets || []).forEach(function(sequenceTag) {
+		var args = sequenceArgs(doc, sequenceTag);
+
+		if (!args)
+			return;
+
+		if (args.items.some(function(step) { return managedStep(step, tag); }))
+			return;
+
+		var last = args.items.length - 1;
+		var position = last >= 0 && sequenceStepExec(args.items[last]) === 'accept'
+			? last
+			: args.items.length;
 
 		args.items.splice(position, 0, doc.createNode({ 'exec': '$' + tag }));
 	});
@@ -1944,6 +2074,23 @@ function schemaFieldProblems(doc, basePath, fields, pluginTitle, tag, problems) 
 function validateConfig(doc, options) {
 	var problems = [];
 	var definitions = schemaDefinitions(options) || {};
+	var includeValue = plainValue(doc, [ 'include' ]);
+	var externalPlugins = Array.isArray(includeValue) && includeValue.length > 0;
+	var knownTags = {};
+	var seenTags = {};
+
+	pluginItems(doc).forEach(function(item) {
+		var tag = text(item && typeof item.get === 'function' ? item.get('tag') : '');
+
+		if (!tag)
+			return;
+
+		if (seenTags[tag])
+			problems.push(_('The plugin tag %s is used by more than one plugin. Choose a unique tag in Advanced Mode.').format(tag));
+
+		seenTags[tag] = true;
+		knownTags[tag] = true;
+	});
 
 	pluginItems(doc).forEach(function(item, index) {
 		var type = pluginType(item);
@@ -1980,6 +2127,27 @@ function validateConfig(doc, options) {
 			schemaFieldProblems(doc, argsPath, definition.fields,
 				_(text(definition.title) || type), tag, problems);
 
+		/*
+		 * Sequence steps reference plugins by tag. Included files can define
+		 * plugins this page cannot see, so only resolve tags without them.
+		 */
+		if (type === 'sequence' && !externalPlugins) {
+			var steps = plainValue(doc, argsPath);
+
+			(Array.isArray(steps) ? steps : []).forEach(function(step, position) {
+				var exec = text(step && step.exec);
+
+				if (exec.charAt(0) !== '$')
+					return;
+
+				var referenced = exec.slice(1);
+
+				if (!knownTags[referenced])
+					problems.push(_('Step %d of the sequence plugin %s references the missing plugin %s.')
+						.format(position + 1, tag, referenced));
+			});
+		}
+
 		if (!SERVER_PLUGIN_TYPES[type])
 			return;
 
@@ -1990,6 +2158,13 @@ function validateConfig(doc, options) {
 
 		if (type !== 'http_server' && !entry)
 			problems.push(_('The %s server plugin %s requires the entry field.').format(type, tag));
+
+		if (entry && !externalPlugins) {
+			if (entry.charAt(0) === '$')
+				problems.push(_('The entry %s of the %s server plugin %s must use the plugin tag without "$".').format(entry, type, tag));
+			else if (!knownTags[entry])
+				problems.push(_('The entry %s of the %s server plugin %s does not reference an existing plugin.').format(entry, type, tag));
+		}
 
 		if (!listen)
 			problems.push(_('The %s server plugin %s requires the listen field.').format(type, tag));
@@ -2002,9 +2177,22 @@ function validateConfig(doc, options) {
 
 			(Array.isArray(entries) ? entries : []).forEach(function(entryValue, position) {
 				var dohPath = text(entryValue && entryValue.path);
+				var dohExec = text(entryValue && entryValue.exec);
 
 				if (dohPath && dohPath.charAt(0) !== '/')
 					problems.push(_('DoH entry %d of the HTTP server plugin %s must use a path that starts with "/".').format(position + 1, tag));
+
+				/*
+				 * The DoH exec field takes the bare plugin tag; a leading "$"
+				 * would be read as part of the tag name.
+				 */
+				if (!dohExec || externalPlugins)
+					return;
+
+				if (dohExec.charAt(0) === '$')
+					problems.push(_('DoH entry %d of the HTTP server plugin %s must reference the plugin tag without "$".').format(position + 1, tag));
+				else if (!knownTags[dohExec])
+					problems.push(_('DoH entry %d of the HTTP server plugin %s references the missing plugin %s.').format(position + 1, tag, dohExec));
 			});
 
 			if (plainValue(doc, argsPath.concat([ 'enable_http3' ])) === true && (!cert || !key))

@@ -90,7 +90,7 @@ The preview is read-only and never writes the file. Clear the checkbox to hide i
 
 ### Validation and Saving
 
-- Normal Mode runs a front-end check against the built-in schema before submitting: missing required fields, out-of-range numbers, invalid enum values, server `entry` / `listen` / certificate-key pairing, HTTP server entry paths, and management API security settings are reported directly and nothing is saved.
+- Normal Mode runs a front-end check against the built-in schema before submitting: missing required fields, out-of-range numbers, invalid enum values, duplicate plugin tags, server `entry` and sequence steps that reference missing plugins, server `entry` / `listen` / certificate-key pairing, HTTP server entry paths, and management API security settings are reported directly and nothing is saved. When the configuration pulls in external plugins through `include`, cross-file references cannot be resolved and the reference checks are skipped.
 - Both `Save` and `Save and Apply` then run `oxidns check -c <temp file> -d <working directory>` in the backend; invalid content is never written.
 - `Save and Apply` always restarts the service, while `Save` only writes the file. Saving first and then clicking `Save and Apply` therefore still triggers a restart even when the file matches the last save, so the running service picks up the new configuration.
 - Writes are atomic and the previous file is backed up before replacement.
@@ -251,8 +251,10 @@ Normal Mode shows two fields per instance:
 
 | Field | Config key | Description |
 | --- | --- | --- |
-| `Entry (<tag>)` | `plugins[i].args.entry` | Entry sequence tag, usually `main_sequence`. |
+| `Entry (<tag>)` | `plugins[i].args.entry` | Entry plugin tag, usually a sequence. The dropdown lists the plugin tags defined in the configuration: sequences first, other plugins under `Other plugins`. A current value that is not in the list is kept as `… (not defined)` instead of being rewritten. |
 | `Listen (<tag>)` | `plugins[i].args.listen` | Listen address and port, default `:5335`. |
+
+`Entry` is a dropdown so a mistyped tag cannot silently break the lookup chain. When the configuration pulls in external plugins through `include`, the page cannot list those tags, so `Entry` falls back to a text input and the reference checks are skipped.
 
 Example: listen on loopback only so dnsmasq can forward to OxiDNS:
 
@@ -280,6 +282,8 @@ Notes:
 ### 3.7 Upstream DNS
 
 Configuration path: `plugins[i].args.upstreams` of the `forward` plugin.
+
+When the configuration has no `forward` plugin, the section shows a `Create forward plugin` button. Clicking it creates a `forward` plugin tagged `forward` and adds `- exec: $forward` at the end of every entry sequence (before a trailing `accept` when one is present); add at least one upstream below afterwards. The button needs at least one server entry sequence and stays disabled otherwise; if the tag `forward` is already used by a plugin of another type, the section asks you to rename it in Advanced Mode first.
 
 Each `forward` instance gets a section titled with its tag. Each upstream has:
 
@@ -331,6 +335,8 @@ Fields under `Options`:
 
 The front end checks before saving:
 
+- plugin tags are unique; the core rejects duplicate tags;
+- every server `entry`, every sequence step `exec: $tag`, and every DoH entry `exec` references an existing plugin tag; `entry` and DoH `exec` take the bare tag without a `$` prefix;
 - a `forward` plugin has at least one upstream;
 - every upstream `addr` is non-empty;
 - `min_conns` does not exceed `max_conns`.
@@ -657,10 +663,11 @@ This section never modifies the configuration. Use Advanced Mode or the WebUI pl
 ### 4.1 Change Upstream DNS
 
 1. Open `DNS Configuration -> Normal Mode`.
-2. Find the target `forward` plugin under `Upstream DNS`.
-3. Pick a preset or type a custom address.
-4. To add more upstreams, pick or enter another address in the `Add upstream DNS` combobox; each selection appends one upstream. Upstreams left at "Select or input an upstream DNS server" are not saved.
-5. Click `Validate`, then `Save and Apply`.
+2. If the `Upstream DNS` section reports that no forward plugin exists, click `Create forward plugin`; the page creates the `forward` plugin and wires it into the entry sequences.
+3. Find the target `forward` plugin under `Upstream DNS`.
+4. Pick a preset or type a custom address.
+5. To add more upstreams, pick or enter another address in the `Add upstream DNS` combobox; each selection appends one upstream. Upstreams left at "Select or input an upstream DNS server" are not saved.
+6. Click `Validate`, then `Save and Apply`.
 
 ### 4.2 Use DoH / DoT / DoQ Upstreams
 
@@ -672,7 +679,7 @@ This section never modifies the configuration. Use Advanced Mode or the WebUI pl
 ### 4.3 Change the Listen Address or Port
 
 1. Edit `Listen` for the relevant server under `Listen Addresses`.
-2. Make sure `Entry` references an existing sequence (usually `main_sequence`).
+2. Choose the entry sequence from the `Entry` dropdown (usually `main_sequence`).
 3. Click `Save and Apply`.
 4. Test with `nslookup -po=<port> example.com 127.0.0.1` or the matching address.
 

@@ -29,8 +29,8 @@
 		"hosts": {
 			"title": "Hosts",
 			"fields": [
-				{ "path": [ "entries" ], "label": "Hosts entries", "type": "string-list", "placeholder": "example.com 192.0.2.1" },
-				{ "path": [ "files" ], "label": "Hosts files", "type": "string-list", "placeholder": "/etc/hosts" },
+				{ "path": [ "entries" ], "label": "Hosts entries", "type": "string-list", "placeholder": "example.com 192.0.2.1", "width": "calc(100% / 3)" },
+				{ "path": [ "files" ], "label": "Hosts files", "type": "string-list", "placeholder": "/etc/hosts", "width": "calc(100% / 3)" },
 				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
 			]
 		},
