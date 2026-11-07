@@ -250,15 +250,20 @@ function resetYaml() {
 	    !window.confirm(_('Discard the unsaved changes and reload the last saved configuration?')))
 		return;
 
-	state.serializeError = null;
-	state.advancedDraft = state.raw;
+	return L.resolveDefault(callConfigRead(), null).then(function(result) {
+		if (!result || result.ok === false || typeof result.content !== 'string') {
+			setStatus((result && (result.message || result.error)) ||
+				_('Unable to reload the saved configuration.'), true);
+			return;
+		}
 
-	if (!parseContent(state.raw))
-		state.mode = 'advanced';
-
-	updateModeButtons();
-	renderBody();
-	setStatus(_('Unsaved changes were discarded.'), false);
+		state.mtime = result.mtime !== undefined ? result.mtime : state.mtime;
+		state.serializeError = null;
+		applySavedContent(result.content);
+		setStatus(_('Unsaved changes were discarded and the saved configuration was reloaded.'), false);
+	}).catch(function(err) {
+		setStatus(loadErrorMessage(err), true);
+	});
 }
 
 function applySavedContent(content) {
@@ -817,7 +822,7 @@ function actionButtons() {
 			'class': 'btn cbi-button cbi-button-negative',
 			'click': function(ev) {
 				ev.preventDefault();
-				resetYaml();
+				return resetYaml();
 			}
 		}, _('Reset'))
 	]);

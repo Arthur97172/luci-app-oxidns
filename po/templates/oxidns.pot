@@ -431,6 +431,9 @@ msgstr ""
 msgid "Step %d of the sequence plugin %s references the missing plugin %s."
 msgstr ""
 
+msgid "The matches of step %d of the sequence plugin %s reference the missing plugin %s."
+msgstr ""
+
 msgid "Stop"
 msgstr ""
 
@@ -518,9 +521,6 @@ msgstr ""
 msgid "The configuration file is empty."
 msgstr ""
 
-msgid "The forward plugin %s needs at least one upstream server."
-msgstr ""
-
 msgid "The hosts step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
 msgstr ""
 
@@ -548,6 +548,9 @@ msgstr ""
 msgid "Unable to load configuration."
 msgstr ""
 
+msgid "Unable to reload the saved configuration."
+msgstr ""
+
 msgid "Unable to read the selected file."
 msgstr ""
 
@@ -563,6 +566,9 @@ msgstr ""
 msgid "Unsaved changes were discarded."
 msgstr ""
 
+msgid "Unsaved changes were discarded and the saved configuration was reloaded."
+msgstr ""
+
 msgid "Update Core"
 msgstr ""
 
@@ -573,9 +579,6 @@ msgid "Uploading config.yaml replaces the saved configuration immediately and di
 msgstr ""
 
 msgid "Uploading configuration..."
-msgstr ""
-
-msgid "Upstream %d of the forward plugin %s keeps more minimum connections than its maximum."
 msgstr ""
 
 msgid "Validate"
@@ -594,9 +597,6 @@ msgid "Unpack core archive"
 msgstr ""
 
 msgid "Upstream address"
-msgstr ""
-
-msgid "Upstream address %d of the forward plugin %s cannot be empty."
 msgstr ""
 
 msgid "Upstream DNS"
@@ -1478,9 +1478,6 @@ msgstr ""
 msgid "DoH entry"
 msgstr ""
 
-msgid "DoH entry %d of the HTTP server plugin %s must use a path that starts with \"/\"."
-msgstr ""
-
 msgid "Downloads"
 msgstr ""
 
@@ -1535,13 +1532,7 @@ msgstr ""
 msgid "The %s plugin %s requires the %s field."
 msgstr ""
 
-msgid "The %s server plugin %s must configure cert and key together."
-msgstr ""
-
-msgid "The %s server plugin %s requires the entry field."
-msgstr ""
-
-msgid "The %s server plugin %s requires the listen field."
+msgid "The %s field of the fallback plugin %s references the missing plugin %s."
 msgstr ""
 
 msgid "The API certificate and private key must be configured together."
@@ -1551,9 +1542,6 @@ msgid "The API listen address cannot be empty."
 msgstr ""
 
 msgid "The API requires a client CA when client certificate verification is enabled."
-msgstr ""
-
-msgid "The HTTP server plugin %s enables HTTP/3 but does not configure both cert and key."
 msgstr ""
 
 msgid "The saved password is never shown again. Fill both username and password to enable Basic authentication."

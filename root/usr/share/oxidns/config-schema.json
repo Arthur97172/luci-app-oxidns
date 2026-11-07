@@ -45,8 +45,8 @@
 		"fallback": {
 			"title": "Fallback",
 			"fields": [
-				{ "path": [ "primary" ], "label": "Primary executor", "type": "string", "required": true },
-				{ "path": [ "secondary" ], "label": "Standby executor", "type": "string", "required": true },
+				{ "path": [ "primary" ], "label": "Primary executor", "type": "string" },
+				{ "path": [ "secondary" ], "label": "Standby executor", "type": "string" },
 				{ "path": [ "threshold" ], "label": "Slow threshold (ms)", "type": "integer", "min": 0, "default": 0 },
 				{ "path": [ "always_standby" ], "label": "Always run standby", "type": "boolean" },
 				{ "path": [ "short_circuit" ], "label": "Short circuit", "type": "boolean" }
@@ -90,7 +90,7 @@
 		"learn_domain": {
 			"title": "Learn Domain",
 			"fields": [
-				{ "path": [ "provider" ], "label": "Target dynamic domain set", "type": "string", "required": true },
+				{ "path": [ "provider" ], "label": "Target dynamic domain set", "type": "string" },
 				{ "path": [ "phase" ], "label": "Learning phase", "type": "enum", "values": [ "before", "after" ], "default": "after" },
 				{ "path": [ "questions" ], "label": "Questions", "type": "enum", "values": [ "first", "all" ], "default": "first" },
 				{ "path": [ "qtypes" ], "label": "Query types", "type": "string-list", "placeholder": "A\nAAAA", "default": [ "A", "AAAA" ] },
@@ -105,7 +105,7 @@
 		"query_recorder": {
 			"title": "Query Recorder",
 			"fields": [
-				{ "path": [ "path" ], "label": "Database path", "type": "string", "placeholder": "/tmp/oxidns/query.db", "required": true },
+				{ "path": [ "path" ], "label": "Database path", "type": "string", "placeholder": "/tmp/oxidns/query.db" },
 				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1, "default": 8192 },
 				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1, "default": 256 },
 				{ "path": [ "flush_interval_ms" ], "label": "Flush interval (ms)", "type": "integer", "min": 1, "default": 200 },
@@ -164,7 +164,7 @@
 					"type": "object-list",
 					"item_label": "Download",
 					"fields": [
-						{ "path": [ "url" ], "label": "URL", "type": "string", "required": true, "placeholder": "https://example.com/rules.txt" },
+						{ "path": [ "url" ], "label": "URL", "type": "string", "placeholder": "https://example.com/rules.txt" },
 						{ "path": [ "dir" ], "label": "Target directory", "type": "string", "placeholder": "/etc/oxidns" },
 						{ "path": [ "filename" ], "label": "File name", "type": "string" }
 					]
@@ -189,13 +189,13 @@
 			"title": "NftSet",
 			"description": "Edits the structured ipv4 and ipv6 targets. Compatibility-form fields remain in Advanced Mode.",
 			"fields": [
-				{ "path": [ "ipv4", "table_family" ], "label": "IPv4 table family", "type": "string", "required": true, "placeholder": "ip" },
-				{ "path": [ "ipv4", "table_name" ], "label": "IPv4 table name", "type": "string", "required": true, "placeholder": "mangle" },
-				{ "path": [ "ipv4", "set_name" ], "label": "IPv4 set name", "type": "string", "required": true, "placeholder": "dns_v4" },
+				{ "path": [ "ipv4", "table_family" ], "label": "IPv4 table family", "type": "string", "placeholder": "ip" },
+				{ "path": [ "ipv4", "table_name" ], "label": "IPv4 table name", "type": "string", "placeholder": "mangle" },
+				{ "path": [ "ipv4", "set_name" ], "label": "IPv4 set name", "type": "string", "placeholder": "dns_v4" },
 				{ "path": [ "ipv4", "mask" ], "label": "IPv4 prefix length", "type": "integer", "min": 0, "max": 32, "default": 24 },
-				{ "path": [ "ipv6", "table_family" ], "label": "IPv6 table family", "type": "string", "required": true, "placeholder": "ip6" },
-				{ "path": [ "ipv6", "table_name" ], "label": "IPv6 table name", "type": "string", "required": true, "placeholder": "mangle" },
-				{ "path": [ "ipv6", "set_name" ], "label": "IPv6 set name", "type": "string", "required": true, "placeholder": "dns_v6" },
+				{ "path": [ "ipv6", "table_family" ], "label": "IPv6 table family", "type": "string", "placeholder": "ip6" },
+				{ "path": [ "ipv6", "table_name" ], "label": "IPv6 table name", "type": "string", "placeholder": "mangle" },
+				{ "path": [ "ipv6", "set_name" ], "label": "IPv6 set name", "type": "string", "placeholder": "dns_v6" },
 				{ "path": [ "ipv6", "mask" ], "label": "IPv6 prefix length", "type": "integer", "min": 0, "max": 128, "default": 48 }
 			]
 		},
@@ -218,14 +218,14 @@
 		"geosite": {
 			"title": "GeoSite",
 			"fields": [
-				{ "path": [ "file" ], "label": "GeoSite data file", "type": "string", "placeholder": "/usr/share/oxidns/geosite.dat", "required": true },
+				{ "path": [ "file" ], "label": "GeoSite data file", "type": "string", "placeholder": "/usr/share/oxidns/geosite.dat" },
 				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\ngeolocation-!cn", "width": "calc(100% / 3)", "help": "One selector per line. Selectors must exist in the data file." }
 			]
 		},
 		"geoip": {
 			"title": "GeoIP",
 			"fields": [
-				{ "path": [ "file" ], "label": "GeoIP data file", "type": "string", "placeholder": "/usr/share/oxidns/geoip.dat", "required": true },
+				{ "path": [ "file" ], "label": "GeoIP data file", "type": "string", "placeholder": "/usr/share/oxidns/geoip.dat" },
 				{ "path": [ "selectors" ], "label": "Selectors", "type": "string-list", "placeholder": "cn\nprivate", "width": "calc(100% / 3)", "help": "One selector per line. Selectors must exist in the data file." }
 			]
 		},
@@ -239,7 +239,7 @@
 		"dynamic_domain_set": {
 			"title": "Dynamic Domain Set",
 			"fields": [
-				{ "path": [ "path" ], "label": "Rules file", "type": "string", "placeholder": "/tmp/oxidns/learned.txt", "required": true },
+				{ "path": [ "path" ], "label": "Rules file", "type": "string", "placeholder": "/tmp/oxidns/learned.txt" },
 				{ "path": [ "bootstrap_rules" ], "label": "Bootstrap rules", "type": "string-list" },
 				{ "path": [ "queue_size" ], "label": "Queue size", "type": "integer", "min": 1, "default": 1024 },
 				{ "path": [ "batch_size" ], "label": "Batch size", "type": "integer", "min": 1, "default": 256 },
@@ -262,10 +262,9 @@
 					"label": "DoH entries",
 					"type": "object-list",
 					"item_label": "DoH entry",
-					"required": true,
 					"fields": [
-						{ "path": [ "path" ], "label": "Request path", "type": "string", "required": true, "placeholder": "/dns-query" },
-						{ "path": [ "exec" ], "label": "Entry executor", "type": "string", "required": true },
+						{ "path": [ "path" ], "label": "Request path", "type": "string", "placeholder": "/dns-query" },
+						{ "path": [ "exec" ], "label": "Entry executor", "type": "string" },
 						{ "path": [ "json_api" ], "label": "Enable JSON DNS API", "type": "boolean", "default": false }
 					]
 				},
@@ -280,8 +279,8 @@
 		"quic_server": {
 			"title": "QUIC Server",
 			"fields": [
-				{ "path": [ "cert" ], "label": "TLS certificate", "type": "string", "placeholder": "/etc/oxidns/server.crt", "required": true },
-				{ "path": [ "key" ], "label": "TLS private key", "type": "string", "placeholder": "/etc/oxidns/server.key", "required": true },
+				{ "path": [ "cert" ], "label": "TLS certificate", "type": "string", "placeholder": "/etc/oxidns/server.crt" },
+				{ "path": [ "key" ], "label": "TLS private key", "type": "string", "placeholder": "/etc/oxidns/server.key" },
 				{ "path": [ "idle_timeout" ], "label": "Idle timeout", "type": "integer", "min": 0 }
 			]
 		}

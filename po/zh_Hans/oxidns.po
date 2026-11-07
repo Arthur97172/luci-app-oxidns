@@ -433,6 +433,9 @@ msgstr "状态概览"
 msgid "Step %d of the sequence plugin %s references the missing plugin %s."
 msgstr "sequence 插件 %s 的第 %d 步引用了不存在的插件 %s。"
 
+msgid "The matches of step %d of the sequence plugin %s reference the missing plugin %s."
+msgstr "sequence 插件 %s 的第 %d 步 matches 引用了不存在的插件 %s。"
+
 msgid "Stop"
 msgstr "停止"
 
@@ -520,9 +523,6 @@ msgstr "标签"
 msgid "The configuration file is empty."
 msgstr "配置文件为空。"
 
-msgid "The forward plugin %s needs at least one upstream server."
-msgstr "forward 插件 %s 至少需要一个上游服务器。"
-
 msgid "The hosts step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
 msgstr "无法将 hosts 步骤插入入口序列。请在高级模式中检查序列配置。"
 
@@ -550,6 +550,9 @@ msgstr "无法查询 OxiDNS 状态"
 msgid "Unable to load configuration."
 msgstr "无法加载配置。"
 
+msgid "Unable to reload the saved configuration."
+msgstr "无法重新读取已保存的配置。"
+
 msgid "Unable to read the selected file."
 msgstr "无法读取所选文件。"
 
@@ -561,6 +564,9 @@ msgstr "上传已取消"
 
 msgid "Unsaved changes were discarded."
 msgstr "已放弃未保存的修改。"
+
+msgid "Unsaved changes were discarded and the saved configuration was reloaded."
+msgstr "已放弃未保存的修改，并重新读取了已保存的配置。"
 
 msgid "Update Core"
 msgstr "更新内核"
@@ -576,9 +582,6 @@ msgstr "上传 config.yaml 会立即替换已保存的配置并放弃未保存�
 
 msgid "Uploading configuration..."
 msgstr "正在上传配置..."
-
-msgid "Upstream %d of the forward plugin %s keeps more minimum connections than its maximum."
-msgstr "forward 插件 %s 的上游 %d 的最小连接数不能大于最大连接数。"
 
 msgid "Validate"
 msgstr "校验"
@@ -597,9 +600,6 @@ msgstr "解压内核压缩包"
 
 msgid "Upstream address"
 msgstr "上游地址"
-
-msgid "Upstream address %d of the forward plugin %s cannot be empty."
-msgstr "forward 插件 %s 的第 %d 个上游地址不能为空。"
 
 msgid "Upstream DNS"
 msgstr "上游 DNS"
@@ -1480,9 +1480,6 @@ msgstr "DoH 入口"
 msgid "DoH entry"
 msgstr "DoH 入口项"
 
-msgid "DoH entry %d of the HTTP server plugin %s must use a path that starts with \"/\"."
-msgstr "HTTP 服务端插件 %s 的第 %d 个 DoH 入口必须使用以“/”开头的路径。"
-
 msgid "Downloads"
 msgstr "下载项"
 
@@ -1537,14 +1534,8 @@ msgstr "%s 插件 %s 的 %s 值无效。"
 msgid "The %s plugin %s requires the %s field."
 msgstr "%s 插件 %s 必须填写 %s 字段。"
 
-msgid "The %s server plugin %s must configure cert and key together."
-msgstr "%s 服务端插件 %s 必须同时配置 cert 和 key。"
-
-msgid "The %s server plugin %s requires the entry field."
-msgstr "%s 服务端插件 %s 必须填写 entry 字段。"
-
-msgid "The %s server plugin %s requires the listen field."
-msgstr "%s 服务端插件 %s 必须填写 listen 字段。"
+msgid "The %s field of the fallback plugin %s references the missing plugin %s."
+msgstr "fallback 插件 %s 的 %s 字段引用了不存在的插件 %s。"
 
 msgid "The API certificate and private key must be configured together."
 msgstr "API 证书和私钥必须同时配置。"
@@ -1554,9 +1545,6 @@ msgstr "API 监听地址不能为空。"
 
 msgid "The API requires a client CA when client certificate verification is enabled."
 msgstr "启用客户端证书校验时，API 必须配置客户端 CA。"
-
-msgid "The HTTP server plugin %s enables HTTP/3 but does not configure both cert and key."
-msgstr "HTTP 服务端插件 %s 启用了 HTTP/3，但没有同时配置 cert 和 key。"
 
 msgid "The saved password is never shown again. Fill both username and password to enable Basic authentication."
 msgstr "已保存的密码不会再次显示。要启用 Basic 认证，请同时填写用户名和密码。"

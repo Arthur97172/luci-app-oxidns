@@ -2097,30 +2097,6 @@ function validateConfig(doc, options) {
 		var tag = pluginTag(item, index);
 		var argsPath = [ 'plugins', index, 'args' ];
 
-		if (type === 'forward') {
-			var seq = doc.getIn(argsPath.concat([ 'upstreams' ]), true);
-			var upstreams = seq && seq.items ? seq.items : [];
-
-			if (!upstreams.length) {
-				problems.push(_('The forward plugin %s needs at least one upstream server.').format(tag));
-			}
-			else {
-				upstreams.forEach(function(upstream, position) {
-					var addr = text(doc.getIn(argsPath.concat([ 'upstreams', position, 'addr' ])));
-					var maxPath = argsPath.concat([ 'upstreams', position, 'max_conns' ]);
-					var minPath = argsPath.concat([ 'upstreams', position, 'min_conns' ]);
-					var maxConns = hasNodePath(doc, maxPath) ? Number(plainValue(doc, maxPath)) : 64;
-					var minConns = hasNodePath(doc, minPath) ? Number(plainValue(doc, minPath)) : 0;
-
-					if (!addr)
-						problems.push(_('Upstream address %d of the forward plugin %s cannot be empty.').format(position + 1, tag));
-
-					if (isFinite(minConns) && isFinite(maxConns) && minConns > maxConns)
-						problems.push(_('Upstream %d of the forward plugin %s keeps more minimum connections than its maximum.').format(position + 1, tag));
-				});
-			}
-		}
-
 		var definition = definitions[type];
 
 		if (definition && Array.isArray(definition.fields))
@@ -2137,14 +2113,29 @@ function validateConfig(doc, options) {
 			(Array.isArray(steps) ? steps : []).forEach(function(step, position) {
 				var exec = text(step && step.exec);
 
-				if (exec.charAt(0) !== '$')
-					return;
-
-				var referenced = exec.slice(1);
-
-				if (!knownTags[referenced])
+				if (exec.charAt(0) === '$' && !knownTags[exec.slice(1)])
 					problems.push(_('Step %d of the sequence plugin %s references the missing plugin %s.')
-						.format(position + 1, tag, referenced));
+						.format(position + 1, tag, exec.slice(1)));
+
+				var matches = text(step && step.matches);
+				var referencePattern = /\$([A-Za-z0-9_.-]+)/g;
+				var match;
+
+				while ((match = referencePattern.exec(matches)) !== null) {
+					if (!knownTags[match[1]])
+						problems.push(_('The matches of step %d of the sequence plugin %s reference the missing plugin %s.')
+							.format(position + 1, tag, match[1]));
+				}
+			});
+		}
+
+		if (type === 'fallback' && !externalPlugins) {
+			[ 'primary', 'secondary' ].forEach(function(field) {
+				var referenced = text(plainValue(doc, argsPath.concat([ field ])));
+
+				if (referenced && !knownTags[referenced])
+					problems.push(_('The %s field of the fallback plugin %s references the missing plugin %s.')
+						.format(field, tag, referenced));
 			});
 		}
 
@@ -2152,12 +2143,6 @@ function validateConfig(doc, options) {
 			return;
 
 		var entry = text(plainValue(doc, argsPath.concat([ 'entry' ])));
-		var listen = text(plainValue(doc, argsPath.concat([ 'listen' ])));
-		var cert = text(plainValue(doc, argsPath.concat([ 'cert' ])));
-		var key = text(plainValue(doc, argsPath.concat([ 'key' ])));
-
-		if (type !== 'http_server' && !entry)
-			problems.push(_('The %s server plugin %s requires the entry field.').format(type, tag));
 
 		if (entry && !externalPlugins) {
 			if (entry.charAt(0) === '$')
@@ -2166,21 +2151,11 @@ function validateConfig(doc, options) {
 				problems.push(_('The entry %s of the %s server plugin %s does not reference an existing plugin.').format(entry, type, tag));
 		}
 
-		if (!listen)
-			problems.push(_('The %s server plugin %s requires the listen field.').format(type, tag));
-
-		if (!!cert !== !!key)
-			problems.push(_('The %s server plugin %s must configure cert and key together.').format(type, tag));
-
 		if (type === 'http_server') {
 			var entries = plainValue(doc, argsPath.concat([ 'entries' ]));
 
 			(Array.isArray(entries) ? entries : []).forEach(function(entryValue, position) {
-				var dohPath = text(entryValue && entryValue.path);
 				var dohExec = text(entryValue && entryValue.exec);
-
-				if (dohPath && dohPath.charAt(0) !== '/')
-					problems.push(_('DoH entry %d of the HTTP server plugin %s must use a path that starts with "/".').format(position + 1, tag));
 
 				/*
 				 * The DoH exec field takes the bare plugin tag; a leading "$"
@@ -2194,9 +2169,6 @@ function validateConfig(doc, options) {
 				else if (!knownTags[dohExec])
 					problems.push(_('DoH entry %d of the HTTP server plugin %s references the missing plugin %s.').format(position + 1, tag, dohExec));
 			});
-
-			if (plainValue(doc, argsPath.concat([ 'enable_http3' ])) === true && (!cert || !key))
-				problems.push(_('The HTTP server plugin %s enables HTTP/3 but does not configure both cert and key.').format(tag));
 		}
 	});
 
