@@ -87,8 +87,7 @@ function hasNodePath(doc, path) {
 }
 
 function pluginItems(doc) {
-	var seq = doc.getIn([ 'plugins' ], true);
-	return seq && seq.items ? seq.items : [];
+	return arrayItems(doc, [ 'plugins' ]);
 }
 
 function pluginType(item) {
@@ -108,7 +107,40 @@ function pluginTag(item, index) {
 
 function arrayItems(doc, path) {
 	var seq = doc.getIn(path, true);
-	return seq && seq.items ? seq.items : [];
+
+	if (!seq || !Array.isArray(seq.items))
+		return [];
+
+	// A mapping also exposes pairs through "items"; only read sequences.
+	return seq.items.length && isPairItem(seq.items[0]) ? [] : seq.items;
+}
+
+function isPairItem(item) {
+	return !!(item && typeof item === 'object' && 'key' in item && 'value' in item);
+}
+
+/*
+ * Document.addIn() and setIn() throw when a hand-written key without a value
+ * ("args:", "upstreams:", "entries:") parses as a null scalar. Replace the
+ * scalar ancestors with mappings and the target with a list so the caller can
+ * append to it.
+ */
+function ensureListNode(doc, path) {
+	for (var depth = 1; depth < path.length; depth++) {
+		var prefix = path.slice(0, depth);
+		var node = doc.getIn(prefix, true);
+
+		if (node === undefined)
+			break;
+
+		if (!Array.isArray(node.items))
+			doc.setIn(prefix, doc.createNode({}));
+	}
+
+	var list = doc.getIn(path, true);
+
+	if (!list || !Array.isArray(list.items) || !list.items.length || isPairItem(list.items[0]))
+		doc.setIn(path, doc.createNode([]));
 }
 
 function pathStartsWith(path, prefix) {
@@ -799,13 +831,21 @@ function bootstrapEntrySelect(doc, id, value) {
  * the user to Advanced Mode.
  */
 function bootstrapSection(doc, options) {
-	if (entrySequences(doc).length)
+	var include = plainValue(doc, [ 'include' ]);
+	var external = Array.isArray(include) && include.length > 0;
+
+	/*
+	 * Included files can define the serving entry themselves, so their
+	 * configurations keep the lenient check: any local entry sequence is
+	 * enough to hide the card. Without includes, only a sequence that a
+	 * server actually references counts.
+	 */
+	if (external ? entrySequences(doc).length : serverSequenceTags(doc).length)
 		return null;
 
-	var include = plainValue(doc, [ 'include' ]);
 	var rows = [];
 
-	if (Array.isArray(include) && include.length > 0) {
+	if (external) {
 		rows.push(noteRow(_('This configuration loads plugins from included files, so they cannot be created here. Add the entry sequence and server plugins in those files or in Advanced Mode.')));
 		return section(_('Getting Started'), null, rows);
 	}
@@ -1033,8 +1073,7 @@ function upstreamAdder(doc, index, options) {
 			options.beforeChange();
 
 			var path = [ 'plugins', index, 'args', 'upstreams' ];
-			if (!hasNodePath(doc, path))
-				doc.setIn(path, doc.createNode([]));
+			ensureListNode(doc, path);
 			doc.addIn(path, doc.createNode({ 'addr': value }));
 			options.rerender();
 		}, 0);
@@ -1167,8 +1206,7 @@ function upstreamSection(doc, bindings, options) {
 								return;
 							}
 
-							if (!doc.getIn([ 'plugins' ], true))
-								doc.setIn([ 'plugins' ], doc.createNode([]));
+							ensureListNode(doc, [ 'plugins' ]);
 
 							doc.addIn([ 'plugins' ], doc.createNode({
 								'tag': FORWARD_TAG,
@@ -1434,7 +1472,12 @@ function serverEntryTags(doc) {
 	return entries;
 }
 
-function entrySequences(doc) {
+/*
+ * Sequences that a server plugin actually uses as its entry point. A
+ * sequence nothing points at cannot answer queries, so it is not an entry
+ * sequence even when it is the only one in the file.
+ */
+function serverSequenceTags(doc) {
 	var known = sequenceTags(doc);
 	var result = [];
 
@@ -1442,6 +1485,13 @@ function entrySequences(doc) {
 		if (tag && known[tag] && result.indexOf(tag) === -1)
 			result.push(tag);
 	});
+
+	return result;
+}
+
+function entrySequences(doc) {
+	var known = sequenceTags(doc);
+	var result = serverSequenceTags(doc);
 
 	if (result.length)
 		return result;
@@ -1617,8 +1667,7 @@ function cacheSection(doc, bindings, options) {
 						}
 
 						if (!findPluginByTag(doc, CACHE_TAG)) {
-							if (!doc.getIn([ 'plugins' ], true))
-								doc.setIn([ 'plugins' ], doc.createNode([]));
+							ensureListNode(doc, [ 'plugins' ]);
 
 							doc.addIn([ 'plugins' ], doc.createNode({
 								'tag': CACHE_TAG,
@@ -1748,8 +1797,7 @@ function hostsSection(doc, bindings, options) {
 						}
 
 						if (!findPluginByTag(doc, HOSTS_TAG)) {
-							if (!doc.getIn([ 'plugins' ], true))
-								doc.setIn([ 'plugins' ], doc.createNode([]));
+							ensureListNode(doc, [ 'plugins' ]);
 
 							doc.addIn([ 'plugins' ], doc.createNode({
 								'tag': HOSTS_TAG,
@@ -1941,9 +1989,7 @@ function schemaObjectList(doc, field, bindings, path, id, options) {
 			ev.preventDefault();
 			options.beforeChange();
 
-			if (!hasNodePath(doc, path))
-				doc.setIn(path, doc.createNode([]));
-
+			ensureListNode(doc, path);
 			doc.addIn(path, doc.createNode({}));
 			options.rerender();
 		}
