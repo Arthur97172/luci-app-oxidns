@@ -6,6 +6,7 @@
 var LOG_LEVELS = [ 'off', 'trace', 'debug', 'info', 'warn', 'error' ];
 var LOG_ROTATIONS = [ 'never', 'minutely', 'hourly', 'daily', 'weekly' ];
 var LISTEN_SERVER_TYPES = { udp_server: true, tcp_server: true, quic_server: true };
+var TLS_SERVER_TYPES = { tcp_server: true, quic_server: true, http_server: true };
 
 var UPSTREAM_CHOICES = null;
 
@@ -119,11 +120,33 @@ function isPairItem(item) {
 	return !!(item && typeof item === 'object' && 'key' in item && 'value' in item);
 }
 
+function isListNode(node) {
+	return !!(node && Array.isArray(node.items) &&
+		!(node.items.length && isPairItem(node.items[0])));
+}
+
+function isEmptyNode(node) {
+	if (node === null || node === undefined)
+		return true;
+
+	if (typeof node !== 'object')
+		return node === '';
+
+	if (Array.isArray(node.items))
+		return !node.items.length;
+
+	if ('value' in node)
+		return node.value === null || node.value === undefined || node.value === '';
+
+	return false;
+}
+
 /*
  * Document.addIn() and setIn() throw when a hand-written key without a value
  * ("args:", "upstreams:", "entries:") parses as a null scalar. Replace the
- * scalar ancestors with mappings and the target with a list so the caller can
- * append to it.
+ * empty scalar ancestors with mappings and an empty target with a list so the
+ * caller can append to it. A node that already holds a value is left alone;
+ * the caller reports the problem instead of discarding what the user wrote.
  */
 function ensureListNode(doc, path) {
 	for (var depth = 1; depth < path.length; depth++) {
@@ -133,14 +156,42 @@ function ensureListNode(doc, path) {
 		if (node === undefined)
 			break;
 
-		if (!Array.isArray(node.items))
-			doc.setIn(prefix, doc.createNode({}));
+		if (Array.isArray(node.items))
+			continue;
+
+		if (!isEmptyNode(node))
+			return false;
+
+		doc.setIn(prefix, doc.createNode({}));
 	}
 
 	var list = doc.getIn(path, true);
 
-	if (!list || !Array.isArray(list.items) || !list.items.length || isPairItem(list.items[0]))
-		doc.setIn(path, doc.createNode([]));
+	if (isListNode(list) && list.items.length)
+		return true;
+
+	if (list && !isEmptyNode(list))
+		return false;
+
+	doc.setIn(path, doc.createNode([]));
+	return true;
+}
+
+function listShapeProblem(field) {
+	ui.addNotification(null, E('p', {},
+		_('The %s field must be a list. Fix it in Advanced Mode.').format(field)), 'danger');
+}
+
+function pluginsShapeProblem(doc) {
+	var value = plainValue(doc, [ 'plugins' ]);
+
+	if (value === undefined || value === null || Array.isArray(value))
+		return false;
+
+	if (typeof value === 'object')
+		return Object.keys(value).length > 0;
+
+	return value !== '';
 }
 
 function pathStartsWith(path, prefix) {
@@ -887,8 +938,10 @@ function bootstrapSection(doc, options) {
 					ev.preventDefault();
 					options.beforeChange();
 
-					if (!Array.isArray(plainValue(doc, [ 'plugins' ])))
-						doc.setIn([ 'plugins' ], doc.createNode([]));
+					if (!ensureListNode(doc, [ 'plugins' ])) {
+						listShapeProblem('plugins');
+						return;
+					}
 
 					var entryNode = document.getElementById(entryId);
 					var listenNode = document.getElementById(listenId);
@@ -1079,7 +1132,12 @@ function upstreamAdder(doc, index, options) {
 			options.beforeChange();
 
 			var path = [ 'plugins', index, 'args', 'upstreams' ];
-			ensureListNode(doc, path);
+
+			if (!ensureListNode(doc, path)) {
+				listShapeProblem('upstreams');
+				return;
+			}
+
 			doc.addIn(path, doc.createNode({ 'addr': value }));
 			options.rerender();
 		}, 0);
@@ -1212,7 +1270,10 @@ function upstreamSection(doc, bindings, options) {
 								return;
 							}
 
-							ensureListNode(doc, [ 'plugins' ]);
+							if (!ensureListNode(doc, [ 'plugins' ])) {
+								listShapeProblem('plugins');
+								return;
+							}
 
 							doc.addIn([ 'plugins' ], doc.createNode({
 								'tag': FORWARD_TAG,
@@ -1677,7 +1738,10 @@ function cacheSection(doc, bindings, options) {
 						}
 
 						if (!findPluginByTag(doc, CACHE_TAG)) {
-							ensureListNode(doc, [ 'plugins' ]);
+							if (!ensureListNode(doc, [ 'plugins' ])) {
+								listShapeProblem('plugins');
+								return;
+							}
 
 							doc.addIn([ 'plugins' ], doc.createNode({
 								'tag': CACHE_TAG,
@@ -1811,7 +1875,10 @@ function hostsSection(doc, bindings, options) {
 						}
 
 						if (!findPluginByTag(doc, HOSTS_TAG)) {
-							ensureListNode(doc, [ 'plugins' ]);
+							if (!ensureListNode(doc, [ 'plugins' ])) {
+								listShapeProblem('plugins');
+								return;
+							}
 
 							doc.addIn([ 'plugins' ], doc.createNode({
 								'tag': HOSTS_TAG,
@@ -2003,7 +2070,11 @@ function schemaObjectList(doc, field, bindings, path, id, options) {
 			ev.preventDefault();
 			options.beforeChange();
 
-			ensureListNode(doc, path);
+			if (!ensureListNode(doc, path)) {
+				listShapeProblem(String(path[path.length - 1]));
+				return;
+			}
+
 			doc.addIn(path, doc.createNode({}));
 			options.rerender();
 		}
@@ -2221,7 +2292,9 @@ function pluginSection(doc, options) {
 	});
 
 	if (!items.length)
-		rows.push(noteRow(_('No plugins are configured.')));
+		rows.push(noteRow(pluginsShapeProblem(doc)
+			? _('The %s field must be a list. Fix it in Advanced Mode.').format('plugins')
+			: _('No plugins are configured.')));
 
 	var description = _('Normal mode covers common settings only. Use Advanced Mode to edit plugins and options not listed here.');
 
@@ -2373,6 +2446,34 @@ function validateConfig(doc, options) {
 			return;
 
 		var entry = text(plainValue(doc, argsPath.concat([ 'entry' ])));
+		var title = _(text(definition && definition.title) || type);
+
+		// The core refuses to start a server plugin without these fields.
+		if (LISTEN_SERVER_TYPES[type] && !entry)
+			problems.push(_('The %s plugin %s requires the %s field.').format(title, tag, _('Entry')));
+
+		if (!text(plainValue(doc, argsPath.concat([ 'listen' ]))))
+			problems.push(_('The %s plugin %s requires the %s field.').format(title, tag, _('Listen')));
+
+		var cert = text(plainValue(doc, argsPath.concat([ 'cert' ])));
+		var key = text(plainValue(doc, argsPath.concat([ 'key' ])));
+		var tlsRequired = type === 'quic_server' ||
+			(type === 'http_server' && plainValue(doc, argsPath.concat([ 'enable_http3' ])) === true);
+
+		/*
+		 * QUIC and HTTP/3 cannot serve plaintext, so the core refuses to start
+		 * them without a certificate and key.
+		 */
+		if (tlsRequired) {
+			if (!cert)
+				problems.push(_('The %s plugin %s requires the %s field.').format(title, tag, _('TLS certificate')));
+
+			if (!key)
+				problems.push(_('The %s plugin %s requires the %s field.').format(title, tag, _('TLS private key')));
+		}
+		else if (TLS_SERVER_TYPES[type] && !!cert !== !!key) {
+			problems.push(_('The TLS certificate and private key of the %s plugin %s must be configured together.').format(title, tag));
+		}
 
 		if (entry && !externalPlugins) {
 			if (entry.charAt(0) === '$')
@@ -2385,13 +2486,26 @@ function validateConfig(doc, options) {
 			var entries = plainValue(doc, argsPath.concat([ 'entries' ]));
 
 			(Array.isArray(entries) ? entries : []).forEach(function(entryValue, position) {
+				var dohPath = text(entryValue && entryValue.path);
 				var dohExec = text(entryValue && entryValue.exec);
+
+				if (!dohPath)
+					problems.push(_('DoH entry %d of the HTTP server plugin %s requires the %s field.')
+						.format(position + 1, tag, _('Request path')));
+
+				if (!dohExec) {
+					problems.push(_('DoH entry %d of the HTTP server plugin %s requires the %s field.')
+						.format(position + 1, tag, _('Entry executor')));
+					return;
+				}
 
 				/*
 				 * The DoH exec field takes the bare plugin tag; a leading "$"
-				 * would be read as part of the tag name.
+				 * would be read as part of the tag name. Included files can
+				 * define the referenced plugin, so only resolve tags without
+				 * them.
 				 */
-				if (!dohExec || externalPlugins)
+				if (externalPlugins)
 					return;
 
 				if (dohExec.charAt(0) === '$')

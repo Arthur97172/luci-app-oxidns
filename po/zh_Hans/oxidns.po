@@ -142,6 +142,9 @@ msgstr "DoH 条目 %d（HTTP 服务器插件 %s）必须引用不带 \"$\" 的�
 msgid "DoH entry %d of the HTTP server plugin %s references the missing plugin %s."
 msgstr "DoH 条目 %d（HTTP 服务器插件 %s）引用了不存在的插件 %s。"
 
+msgid "DoH entry %d of the HTTP server plugin %s requires the %s field."
+msgstr "DoH 条目 %d（HTTP 服务器插件 %s）必须填写 %s 字段。"
+
 msgid "Download proxy"
 msgstr "下载代理"
 
@@ -1543,6 +1546,9 @@ msgstr "%s 插件 %s 的 %s 值无效。"
 msgid "The %s plugin %s requires the %s field."
 msgstr "%s 插件 %s 必须填写 %s 字段。"
 
+msgid "The %s field must be a list. Fix it in Advanced Mode."
+msgstr "%s 字段必须是列表。请在高级模式下修改。"
+
 msgid "The %s field of the fallback plugin %s references the missing plugin %s."
 msgstr "fallback 插件 %s 的 %s 字段引用了不存在的插件 %s。"
 
@@ -1554,6 +1560,9 @@ msgstr "API 监听地址不能为空。"
 
 msgid "The API requires a client CA when client certificate verification is enabled."
 msgstr "启用客户端证书校验时，API 必须配置客户端 CA。"
+
+msgid "The TLS certificate and private key of the %s plugin %s must be configured together."
+msgstr "%s 插件 %s 的 TLS 证书和私钥必须同时配置。"
 
 msgid "The saved password is never shown again. Fill both username and password to enable Basic authentication."
 msgstr "已保存的密码不会再次显示。要启用 Basic 认证，请同时填写用户名和密码。"

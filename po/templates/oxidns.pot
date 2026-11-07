@@ -140,6 +140,9 @@ msgstr ""
 msgid "DoH entry %d of the HTTP server plugin %s references the missing plugin %s."
 msgstr ""
 
+msgid "DoH entry %d of the HTTP server plugin %s requires the %s field."
+msgstr ""
+
 msgid "Download proxy"
 msgstr ""
 
@@ -1541,6 +1544,9 @@ msgstr ""
 msgid "The %s plugin %s requires the %s field."
 msgstr ""
 
+msgid "The %s field must be a list. Fix it in Advanced Mode."
+msgstr ""
+
 msgid "The %s field of the fallback plugin %s references the missing plugin %s."
 msgstr ""
 
@@ -1551,6 +1557,9 @@ msgid "The API listen address cannot be empty."
 msgstr ""
 
 msgid "The API requires a client CA when client certificate verification is enabled."
+msgstr ""
+
+msgid "The TLS certificate and private key of the %s plugin %s must be configured together."
 msgstr ""
 
 msgid "The saved password is never shown again. Fill both username and password to enable Basic authentication."
