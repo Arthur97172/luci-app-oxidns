@@ -1998,3 +1998,42 @@ msgid "Used by custom mode. Separate IPv4 and IPv6 addresses with commas or spac
 msgstr "用于自定义模式。IPv4 和 IPv6 地址之间用逗号或空格分隔。"
 
 
+msgid "Adds the missing plugins without changing existing ones, and wires the servers to the sequence."
+msgstr "添加缺失的插件（不改动已有插件），并把服务端接到该 sequence。"
+
+msgid "Both the UDP and TCP server plugins will listen on this address."
+msgstr "UDP 和 TCP 服务端插件都将监听这个地址。"
+
+msgid "Choose an existing sequence, or leave this empty to create %s."
+msgstr "选择已有 sequence；留空则创建 %s。"
+
+msgid "Create a new sequence"
+msgstr "创建新 sequence"
+
+msgid "Create entry sequence and servers"
+msgstr "创建入口 sequence 和服务端"
+
+msgid "Entry sequence"
+msgstr "入口 sequence"
+
+msgid "Getting Started"
+msgstr "快速开始"
+
+msgid "Listen address"
+msgstr "监听地址"
+
+msgid "No server entry points at an entry sequence yet. Create the minimal sequence and server setup below, then add upstream DNS."
+msgstr "还没有任何服务端入口指向 sequence。请在下方创建最小的 sequence 与服务端配置，然后添加上游 DNS。"
+
+msgid "Select an entry executor"
+msgstr "选择入口执行插件"
+
+msgid "This configuration has no server plugin that references a sequence, so it cannot answer queries yet."
+msgstr "当前配置没有引用 sequence 的服务端插件，因此还不能应答查询。"
+
+msgid "This configuration loads plugins from included files, so they cannot be created here. Add the entry sequence and server plugins in those files or in Advanced Mode."
+msgstr "当前配置通过 include 引入外部插件，无法在这里创建。请在这些文件或高级模式中添加入口 sequence 和服务端插件。"
+
+msgid "A new sequence named %s will be created."
+msgstr "将创建名为 %s 的新 sequence。"
+

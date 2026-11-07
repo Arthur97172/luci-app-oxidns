@@ -1996,3 +1996,42 @@ msgid "Used by custom mode. Separate IPv4 and IPv6 addresses with commas or spac
 msgstr ""
 
 
+msgid "Adds the missing plugins without changing existing ones, and wires the servers to the sequence."
+msgstr ""
+
+msgid "Both the UDP and TCP server plugins will listen on this address."
+msgstr ""
+
+msgid "Choose an existing sequence, or leave this empty to create %s."
+msgstr ""
+
+msgid "Create a new sequence"
+msgstr ""
+
+msgid "Create entry sequence and servers"
+msgstr ""
+
+msgid "Entry sequence"
+msgstr ""
+
+msgid "Getting Started"
+msgstr ""
+
+msgid "Listen address"
+msgstr ""
+
+msgid "No server entry points at an entry sequence yet. Create the minimal sequence and server setup below, then add upstream DNS."
+msgstr ""
+
+msgid "Select an entry executor"
+msgstr ""
+
+msgid "This configuration has no server plugin that references a sequence, so it cannot answer queries yet."
+msgstr ""
+
+msgid "This configuration loads plugins from included files, so they cannot be created here. Add the entry sequence and server plugins in those files or in Advanced Mode."
+msgstr ""
+
+msgid "A new sequence named %s will be created."
+msgstr ""
+

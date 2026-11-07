@@ -102,7 +102,9 @@ The preview is read-only and never writes the file. Clear the checkbox to hide i
 
 ## 3. Normal Mode Field Reference
 
-Normal Mode is generated from the backend configuration schema plus fixed front-end sections. **It only shows plugin instances that already exist in the configuration** and never creates plugins; the one exception is the `Ad filtering` card, which can create, edit, or remove a fixed-tag `adguard_rule` / `black_hole` group and, once subscription URLs are entered, its `download` plugin (see [3.8 Ad Filtering](#38-ad-filtering)). Use Advanced Mode or the WebUI to add or remove other plugins or change sequence rules.
+Normal Mode is generated from the backend configuration schema plus fixed front-end sections. **It only shows plugin instances that already exist in the configuration** and never creates plugins; the exceptions are the `Ad filtering` card, which can create, edit, or remove a fixed-tag `adguard_rule` / `black_hole` group and, once subscription URLs are entered, its `download` plugin (see [3.8 Ad Filtering](#38-ad-filtering)), and the `Getting Started` card shown while no server entry references a sequence, which can fill in a minimal sequence plus UDP/TCP server setup.
+
+The `Getting Started` card appears only when no server plugin references a sequence, a configuration that cannot answer queries. Pick or create an entry sequence, set the listen address (default `:5335`), and click `Create entry sequence and servers`. An existing server plugin of the same type only has its empty `entry` / `listen` fields filled in; it is never duplicated, and tag collisions fall back to suffixes such as `main_sequence_2`. When the configuration pulls in plugins through `include`, the card only shows a note and leaves those files alone. Once created, the `Create forward plugin` button in `Upstream DNS` can wire forwarding into the entry sequence.
 
 ### 3.1 Log
 
@@ -574,7 +576,7 @@ Processing order is `fix` → `min` → `max`; when both bounds are set, the max
 
 | Field | Description |
 | --- | --- |
-| `Downloads` | List of download entries. Each entry has a required `URL`, plus `Target directory` and `File name`. Entries can be added and removed individually. |
+| `Downloads` | List of download entries. Each entry has a `URL`, plus `Target directory` and `File name`. Entries can be added and removed individually. |
 | `Timeout` | Download timeout, such as `30s`. |
 | `Skip TLS verification` | Skip TLS verification for downloads. |
 | `Outbound profile` / `SOCKS5 proxy` | Outbound profile or proxy for downloads. |
@@ -636,7 +638,7 @@ Notes:
 
 List fields (`entries`, `files`, `selectors`, `rules`, and similar) take **one item per line**. Clearing a list removes the key; a default list is written only when it was actually changed.
 
-Object-list fields (`Downloads`, `DoH entries`) can add and remove entries individually. Required fields, numeric ranges, and enum values of each entry are validated before saving; a DoH entry's `Request path` must start with `/`. Missing required plugin fields (such as the primary and standby executors for `fallback`, the database path for `query_recorder`, the data files for `geosite` / `geoip`, the rules file for `dynamic_domain_set`, and the certificate and key for `quic_server`) are reported directly as well.
+Object-list fields (`Downloads`, `DoH entries`) can add and remove entries individually. Numeric ranges and enum values of each entry are validated before saving; fields inside an entry may stay empty, matching the core. A DoH entry's `Entry executor` is a dropdown of the plugin tags defined in the configuration (sequences first, other plugins under `Other plugins`), so it cannot point at a missing plugin by typo; when the configuration pulls in plugins through `include`, it falls back to a text input.
 
 ### 3.12 Plugin Overview
 

@@ -102,7 +102,9 @@ LuCI 的 `DNS配置` 页面和 OxiDNS WebUI 修改的是**同一份** `/etc/oxid
 
 ## 三、普通模式逐项说明
 
-普通模式由后端下发的配置 schema 和前端固定区域共同生成。**它只显示当前配置中已经存在的插件实例**，不会凭空创建插件；唯一例外是 `广告过滤` 卡片，它可以一键创建、修改或移除一组固定 tag 的 `adguard_rule` / `black_hole` 插件，并在填写订阅地址后创建对应的 `download` 插件，详见 [3.8 广告过滤](#38-广告过滤ad-filtering)。其他插件的新增、删除或 sequence 规则修改请使用高级模式或 WebUI。
+普通模式由后端下发的配置 schema 和前端固定区域共同生成。**它只显示当前配置中已经存在的插件实例**，不会凭空创建插件；例外是 `广告过滤` 卡片（可以一键创建、修改或移除一组固定 tag 的 `adguard_rule` / `black_hole` 插件，并在填写订阅地址后创建对应的 `download` 插件，详见 [3.8 广告过滤](#38-广告过滤ad-filtering)），以及配置还没有可用的服务端入口时显示的 `快速开始`（`Getting Started`）卡片：它能在配置缺少插件时补全最小的 sequence + UDP/TCP 服务端配置。其他插件的新增、删除或 sequence 规则修改请使用高级模式或 WebUI。
+
+`快速开始` 卡片只在没有任何服务端插件引用 sequence 时出现，此时配置无法应答查询。选择或新建入口 sequence、填写监听地址（默认 `:5335`），点击 `创建入口 sequence 和服务端` 即可。已有同名类型的服务端插件只会补齐空缺的 `entry` / `listen`，不会被重复创建；tag 冲突时自动使用 `main_sequence_2` 这类后缀。配置通过 `include` 引入外部插件时，卡片只显示提示，交给外部文件处理。创建完成后，`上游 DNS` 区域的 `创建 forward 插件` 按钮即可把转发接入入口 sequence。
 
 下文表格里的字段名沿用 schema 中的英文名称；中文 LuCI 界面会显示对应的中文译文，尚未翻译的字段仍显示英文。
 
@@ -576,7 +578,7 @@ plugins:
 
 | 字段 | 说明 |
 | --- | --- |
-| `Downloads` | 下载条目列表，每条包含 `URL`（必填）、`Target directory` 和 `File name`。可以逐条添加或删除。 |
+| `Downloads` | 下载条目列表，每条包含 `URL`、`Target directory` 和 `File name`。可以逐条添加或删除。 |
 | `Timeout` | 下载超时，例如 `30s`。 |
 | `Skip TLS verification` | 跳过下载 TLS 校验。 |
 | `Outbound profile` / `SOCKS5 proxy` | 下载使用的出站配置或代理。 |
@@ -638,7 +640,7 @@ plugins:
 
 列表类字段（例如 `entries`、`files`、`selectors`、`rules`）在文本框中**每行一项**。清空文本框会删除该配置项；恢复为默认列表时，只有实际改动才会写回文件。
 
-对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的必填项、数值范围和枚举取值都会参与保存前校验；DoH 入口的 `Request path` 必须以 `/` 开头。插件自身要求的必填字段（例如 `fallback` 的主备执行器、`query_recorder` 的数据库路径、`geosite` / `geoip` 的数据文件、`dynamic_domain_set` 的规则文件、`quic_server` 的证书和私钥）缺失时也会直接提示。
+对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的数值范围和枚举取值会参与保存前校验；条目中的字段允许留空，与核心行为一致。DoH 入口的 `Entry executor` 使用下拉框列出配置中已有的插件 tag（sequence 排在最前，其它插件在 `其它插件` 分组），避免手填引用不存在的插件；通过 `include` 引入外部插件时回退为文本输入。
 
 ### 3.12 插件概览
 

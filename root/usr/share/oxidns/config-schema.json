@@ -264,7 +264,7 @@
 					"item_label": "DoH entry",
 					"fields": [
 						{ "path": [ "path" ], "label": "Request path", "type": "string", "placeholder": "/dns-query" },
-						{ "path": [ "exec" ], "label": "Entry executor", "type": "string" },
+						{ "path": [ "exec" ], "label": "Entry executor", "type": "plugin-tag" },
 						{ "path": [ "json_api" ], "label": "Enable JSON DNS API", "type": "boolean", "default": false }
 					]
 				},

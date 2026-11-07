@@ -633,7 +633,7 @@ function apiSection(doc, bindings, options) {
  * plugin tags so a typo cannot silently break the lookup chain; an unknown
  * current value stays selectable so opening the page never rewrites it.
  */
-function entrySelect(doc, id, value) {
+function entrySelect(doc, id, value, placeholder) {
 	var sequences = [];
 	var others = [];
 
@@ -649,7 +649,7 @@ function entrySelect(doc, id, value) {
 			others.push(tag);
 	});
 
-	var options = [ E('option', { 'value': '' }, _('Select an entry plugin')) ];
+	var options = [ E('option', { 'value': '' }, placeholder || _('Select an entry plugin')) ];
 
 	function option(tag) {
 		return E('option', {
@@ -717,6 +717,161 @@ function upstreamButton(label, onClick, options) {
 			options.rerender();
 		}
 	}, label);
+}
+
+var BOOTSTRAP_ENTRY_TAG = 'main_sequence';
+var BOOTSTRAP_LISTEN = ':5335';
+
+function uniquePluginTag(doc, base) {
+	var tags = {};
+
+	pluginItems(doc).forEach(function(item, index) {
+		tags[pluginTag(item, index)] = true;
+	});
+
+	if (!tags[base])
+		return base;
+
+	for (var suffix = 2; ; suffix++) {
+		var candidate = '%s_%d'.format(base, suffix);
+
+		if (!tags[candidate])
+			return candidate;
+	}
+}
+
+/*
+ * Complete the first server plugin of the given type instead of adding a
+ * second one; fields that are already set are left alone.
+ */
+function ensureBootstrapServer(doc, type, entryTag, listen) {
+	var found = null;
+
+	pluginItems(doc).forEach(function(item, index) {
+		if (!found && pluginType(item) === type)
+			found = item;
+	});
+
+	if (found) {
+		var args = found.get('args');
+
+		if (!args || typeof args.set !== 'function') {
+			found.set('args', doc.createNode({}));
+			args = found.get('args');
+		}
+
+		if (!text(args.get('entry')))
+			args.set('entry', doc.createNode(entryTag));
+
+		if (!text(args.get('listen')))
+			args.set('listen', doc.createNode(listen));
+
+		return;
+	}
+
+	doc.addIn([ 'plugins' ], doc.createNode({
+		'tag': uniquePluginTag(doc, type),
+		'type': type,
+		'args': {
+			'entry': entryTag,
+			'listen': listen
+		}
+	}));
+}
+
+function bootstrapEntrySelect(doc, id, value) {
+	var options = [ E('option', { 'value': '' }, _('Create a new sequence')) ];
+
+	Object.keys(sequenceTags(doc)).forEach(function(tag) {
+		options.push(E('option', {
+			'value': tag,
+			'selected': tag === value ? 'selected' : null
+		}, tag));
+	});
+
+	return E('select', { 'id': id, 'class': 'cbi-input-select oxidns-control' }, options);
+}
+
+/*
+ * A configuration without any server entry that points at a sequence cannot
+ * answer queries. Normal Mode only shows existing plugins, so offer the
+ * minimal sequence plus UDP and TCP server setup here instead of sending
+ * the user to Advanced Mode.
+ */
+function bootstrapSection(doc, options) {
+	if (entrySequences(doc).length)
+		return null;
+
+	var include = plainValue(doc, [ 'include' ]);
+	var rows = [];
+
+	if (Array.isArray(include) && include.length > 0) {
+		rows.push(noteRow(_('This configuration loads plugins from included files, so they cannot be created here. Add the entry sequence and server plugins in those files or in Advanced Mode.')));
+		return section(_('Getting Started'), null, rows);
+	}
+
+	var sequences = Object.keys(sequenceTags(doc));
+	var defaultEntry = sequences.indexOf(BOOTSTRAP_ENTRY_TAG) !== -1
+		? BOOTSTRAP_ENTRY_TAG
+		: (sequences[0] || '');
+	var entryId = 'oxidns-cfg-bootstrap-entry';
+	var listenId = 'oxidns-cfg-bootstrap-listen';
+
+	rows.push(noteRow(_('No server entry points at an entry sequence yet. Create the minimal sequence and server setup below, then add upstream DNS.')));
+
+	if (sequences.length) {
+		rows.push(row(_('Entry sequence'), bootstrapEntrySelect(doc, entryId, defaultEntry),
+			_('Choose an existing sequence, or leave this empty to create %s.').format(BOOTSTRAP_ENTRY_TAG)));
+	}
+	else {
+		rows.push(noteRow(_('A new sequence named %s will be created.').format(BOOTSTRAP_ENTRY_TAG)));
+	}
+
+	rows.push(row(_('Listen address'), textInput(listenId, BOOTSTRAP_LISTEN, BOOTSTRAP_LISTEN),
+		_('Both the UDP and TCP server plugins will listen on this address.')));
+
+	rows.push(E('div', { 'class': 'tr' }, [
+		E('div', {
+			'class': 'td left',
+			'style': 'padding: .5em var(--section-inset, 0);'
+		}, [
+			E('button', {
+				'class': 'btn cbi-button cbi-button-positive',
+				'click': function(ev) {
+					ev.preventDefault();
+					options.beforeChange();
+
+					if (!Array.isArray(plainValue(doc, [ 'plugins' ])))
+						doc.setIn([ 'plugins' ], doc.createNode([]));
+
+					var entryNode = document.getElementById(entryId);
+					var listenNode = document.getElementById(listenId);
+					var entryTag = entryNode && entryNode.value ? String(entryNode.value) : '';
+					var listen = listenNode && listenNode.value ? String(listenNode.value) : BOOTSTRAP_LISTEN;
+
+					if (!entryTag) {
+						entryTag = uniquePluginTag(doc, BOOTSTRAP_ENTRY_TAG);
+
+						doc.addIn([ 'plugins' ], doc.createNode({
+							'tag': entryTag,
+							'type': 'sequence',
+							'args': []
+						}));
+					}
+
+					ensureBootstrapServer(doc, 'udp_server', entryTag, listen);
+					ensureBootstrapServer(doc, 'tcp_server', entryTag, listen);
+					options.rerender();
+				}
+			}, _('Create entry sequence and servers')),
+			E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .35em;' },
+				_('Adds the missing plugins without changing existing ones, and wires the servers to the sequence.'))
+		])
+	]));
+
+	return section(_('Getting Started'),
+		_('This configuration has no server plugin that references a sequence, so it cannot answer queries yet.'),
+		rows);
 }
 
 var UPSTREAM_FIELDS = [
@@ -1851,6 +2006,21 @@ function schemaControl(doc, index, fieldIndex, field, bindings, basePath, idPref
 	case 'object-list':
 		return schemaObjectList(doc, field, bindings, path, id, options);
 
+	case 'plugin-tag': {
+		addBinding(bindings, id, path, empty, 'string', defaultValue);
+
+		/*
+		 * Included files can define plugins this page cannot see, so a tag
+		 * list would mislabel a valid reference as undefined there.
+		 */
+		var includeFiles = plainValue(doc, [ 'include' ]);
+
+		if (Array.isArray(includeFiles) && includeFiles.length)
+			return textInput(id, displayText, text(field.placeholder));
+
+		return entrySelect(doc, id, displayText, text(field.placeholder) || _('Select an entry executor'));
+	}
+
 	default:
 		addBinding(bindings, id, path, empty, 'string', defaultValue);
 		return textInput(id, displayText, text(field.placeholder));
@@ -2345,6 +2515,7 @@ return baseclass.extend({
 			logSection(doc, bindings),
 			runtimeSection(doc, bindings),
 			includeSection(doc, bindings),
+			bootstrapSection(doc, handlers),
 			outboundSection(doc, bindings),
 			apiSection(doc, bindings, handlers),
 			listenSection(doc, bindings),
