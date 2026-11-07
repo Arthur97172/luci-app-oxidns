@@ -375,7 +375,32 @@ api:
 
 这些 tag 是固定的。如果配置中已有同名 tag 但类型不同，卡片会提示冲突且不会覆盖，需要先在高级模式中重命名。普通模式的通用插件字段区域也不会再显示这三个受管理的插件。
 
-### 3.9 缓存（Cache）
+### 3.9 本地 Hosts（Hosts）
+
+`Hosts` 卡片管理一个固定 tag 的 `hosts` 插件，用于在本地应答指定域名：
+
+- 未配置时显示 `启用 hosts` 按钮。按钮需要配置中至少有一个 server 入口 sequence；没有可用入口时不可用，并提示先在高级模式配置 server 入口。
+- 点击 `启用 hosts` 会创建 `oxidns_hosts` 插件，并在每个入口 sequence 中插入：
+
+```yaml
+- exec: $oxidns_hosts
+```
+
+  该步骤位于广告过滤拦截步骤之后，缓存步骤和 `forward` 之前。启用时会默认写入 `short_circuit: true`，命中记录后直接结束后续步骤；未命中的查询继续执行后续步骤。
+- 启用后卡片显示 schema 中的全部 hosts 字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `Hosts entries`（`entries`） | 内联记录，每行一条，格式为 `域名 IP`，例如 `router.lan 192.168.10.1`。 |
+| `Hosts files`（`files`） | 引用的 hosts 文件，每行一个路径，例如 `/etc/hosts`。 |
+| `Short circuit`（`short_circuit`） | 命中后短路。启用卡片时已默认开启。 |
+
+  未修改的字段不会写入配置，默认值由 OxiDNS 核心决定。
+- `移除 hosts` 删除 `oxidns_hosts` 插件和所有 sequence 中的 hosts 步骤。
+
+如果配置中已经存在其它 tag 的 `hosts` 插件，卡片只提示该插件由高级模式管理，不会重复创建。如果 `oxidns_hosts` 已被其它类型插件占用，卡片会提示冲突，需要先在高级模式中重命名。
+
+### 3.10 缓存（Cache）
 
 `缓存` 卡片管理一个固定 tag 的 `cache` 插件：
 
@@ -386,13 +411,13 @@ api:
 - exec: $oxidns_cache
 ```
 
-  该步骤位于广告过滤拦截步骤之后、`forward` 之前；没有广告过滤时位于 sequence 最前面。启用时会默认写入 `short_circuit: true`，缓存命中后直接结束后续步骤；未命中时继续执行后续步骤。
+  该步骤位于广告过滤拦截步骤和 hosts 步骤之后、`forward` 之前；这些步骤都不存在时位于 sequence 最前面。启用时会默认写入 `short_circuit: true`，缓存命中后直接结束后续步骤；未命中时继续执行后续步骤。
 - 启用后卡片显示 schema 中的全部缓存字段：`size`、`lazy_cache_ttl`、`dump_file`、`dump_interval`、`short_circuit`、`cache_negative`、`max_negative_ttl`、`negative_ttl_without_soa`、`max_positive_ttl`、`min_positive_ttl` 和 `ecs_in_key`。未修改的字段不会写入配置，默认值由 OxiDNS 核心决定。
 - `移除缓存` 删除 `oxidns_cache` 插件和所有 sequence 中的缓存步骤。
 
 如果配置中已经存在其它 tag 的 `cache` 插件，卡片只提示该插件由高级模式管理，不会重复创建。如果 `oxidns_cache` 已被其它类型插件占用，卡片会提示冲突，需要先在高级模式中重命名。
 
-### 3.10 常用插件参数
+### 3.11 常用插件参数
 
 普通模式会按插件类型显示 schema 中定义的字段。下面是常见插件的字段和各字段默认值。
 
@@ -609,7 +634,7 @@ plugins:
 
 对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的必填项、数值范围和枚举取值都会参与保存前校验；DoH 入口的 `Request path` 必须以 `/` 开头。插件自身要求的必填字段（例如 `fallback` 的主备执行器、`query_recorder` 的数据库路径、`geosite` / `geoip` 的数据文件、`dynamic_domain_set` 的规则文件、`quic_server` 的证书和私钥）缺失时也会直接提示。
 
-### 3.11 插件概览
+### 3.12 插件概览
 
 页面最下方的 `Plugins` 区域只读显示：
 
@@ -657,7 +682,7 @@ plugins:
 ### 4.4 启用缓存
 
 1. 在普通模式的 `缓存` 卡片中点击 `启用缓存`。没有可用的 server 入口 sequence 时，需要先在高级模式中配置 server 入口。
-2. 卡片会创建 `oxidns_cache` 插件，并把 `- exec: $oxidns_cache` 插入入口 sequence；有广告过滤时位于拦截步骤之后，否则位于 sequence 最前面。
+2. 卡片会创建 `oxidns_cache` 插件，并把 `- exec: $oxidns_cache` 插入入口 sequence；有广告过滤或 hosts 步骤时位于它们之后，否则位于 sequence 最前面。
 3. 按需调整缓存大小、TTL 和否定缓存等字段；没有修改的字段不会写入配置。
 4. 点击 `保存并应用`。
 
@@ -665,16 +690,43 @@ plugins:
 
 ### 4.5 添加本地 hosts 记录
 
-1. 在 `Hosts 主机` 区域找到 `Hosts 条目`（`Hosts entries`）。
-2. 每行写一条记录，例如：
+#### 使用普通模式的 Hosts 卡片（推荐）
+
+1. 进入 `DNS配置 -> 普通模式`，找到 `Hosts` 区域。
+2. 如果还没有 hosts 插件，点击 `启用 hosts`。页面会创建 `oxidns_hosts` 插件，并在每个入口 sequence 中插入 hosts 步骤（位于广告过滤之后、缓存和转发之前）。
+3. 在 `Hosts entries` 中每行填写一条记录，例如：
 
 ```text
 router.lan 192.168.1.1
 nas.lan 192.168.1.10
 ```
 
-3. `Hosts 文件`（`Hosts files`）可以引用系统 hosts 文件，例如 `/etc/hosts`。
-4. 点击 `保存并应用`。
+4. `Hosts files` 可以引用系统 hosts 文件，例如 `/etc/hosts`。
+5. 点击 `校验`，通过后点击 `保存并应用`。
+
+记录按 `域名 IP` 或 `域名 主机名` 的格式书写，一个域名可以有多条记录（例如同时给出 IPv4 和 IPv6 地址）。未命中任何记录的查询会继续走缓存和 `forward`。
+
+如果配置中已经存在其它 tag 的 `hosts` 插件，卡片只会提示到高级模式中编辑，不会重复创建。
+
+#### 在高级模式中手动配置
+
+普通模式也会为已有的 `hosts` 插件显示字段，前提是插件已经存在于配置中。手动创建时注意 `short_circuit: true`，否则后续的 `forward` 会覆盖 hosts 应答：
+
+```yaml
+- tag: local_hosts
+  type: hosts
+  args:
+    short_circuit: true
+    entries:
+      - "router.lan 192.168.1.1"
+
+- tag: main_sequence
+  type: sequence
+  args:
+    - exec: $local_hosts
+    - exec: $forward
+    - exec: accept
+```
 
 ### 4.6 拦截广告或指定域名
 

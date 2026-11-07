@@ -20,6 +20,9 @@ msgstr ""
 msgid "API"
 msgstr ""
 
+msgid "Adds a hosts plugin and runs it before forwarding in the entry sequence. Configured names are answered locally and everything else is forwarded."
+msgstr ""
+
 msgid "Applying service action..."
 msgstr ""
 
@@ -131,6 +134,9 @@ msgstr ""
 msgid "Enable cache"
 msgstr ""
 
+msgid "Enable hosts"
+msgstr ""
+
 msgid "Enable on boot"
 msgstr ""
 
@@ -159,6 +165,12 @@ msgid "Format: http://host:port, https://host:port, socks5://host:port, or socks
 msgstr ""
 
 msgid "GitHub token"
+msgstr ""
+
+msgid "Hosts answers configured names locally, for example to map a domain to a LAN address."
+msgstr ""
+
+msgid "Hosts is configured by the %s plugin. Edit it in Advanced Mode."
 msgstr ""
 
 msgid "Install Core"
@@ -200,10 +212,19 @@ msgstr ""
 msgid "No cache options are available in the configuration schema."
 msgstr ""
 
+msgid "No hosts options are available in the configuration schema."
+msgstr ""
+
 msgid "Remove cache"
 msgstr ""
 
+msgid "Remove hosts"
+msgstr ""
+
 msgid "Remove the cache plugin? Cached responses are discarded and the cache step is removed from the entry sequence."
+msgstr ""
+
+msgid "Remove the hosts plugin? Local name mappings are discarded and the hosts step is removed from the entry sequence."
 msgstr ""
 
 msgid "Remove the subscription download plugin? Subscription downloads stop and the plugin with all of its download options is removed. The ad filtering rules and downloaded files on disk stay."
@@ -473,10 +494,16 @@ msgstr ""
 msgid "The forward plugin %s needs at least one upstream server."
 msgstr ""
 
+msgid "The hosts step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
+msgstr ""
+
 msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling cache."
 msgstr ""
 
 msgid "The YAML is invalid: %s"
+msgstr ""
+
+msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling hosts."
 msgstr ""
 
 msgid "Type"

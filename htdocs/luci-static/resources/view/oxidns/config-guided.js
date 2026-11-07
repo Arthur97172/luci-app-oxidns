@@ -1109,12 +1109,14 @@ function adFilterSection(doc, options) {
 }
 
 /*
- * Guided cache manages one fixed cache plugin and its sequence step. The
- * plugin options come from the configuration schema, so enabling the cache
- * exposes the same fields as Advanced Mode.
+ * Guided cache and hosts each manage one fixed plugin and its sequence step.
+ * The plugin options come from the configuration schema, so enabling either
+ * card exposes the same fields as Advanced Mode.
  */
 var CACHE_TAG = 'oxidns_cache';
 var CACHE_TYPE = 'cache';
+var HOSTS_TAG = 'oxidns_hosts';
+var HOSTS_TYPE = 'hosts';
 var ENTRY_SERVER_TYPES = { udp_server: true, tcp_server: true, quic_server: true };
 
 function findPluginByTag(doc, tag) {
@@ -1203,15 +1205,19 @@ function sequenceArgs(doc, tag) {
 	return args && Array.isArray(args.items) ? args : null;
 }
 
-function cacheStep(step) {
-	return sequenceStepExec(step) === '$' + CACHE_TAG;
+function managedStep(step, tag) {
+	return sequenceStepExec(step) === '$' + tag;
 }
 
-function ensureCacheWiring(doc, targets) {
-	var adBlockStep = '$' + adfilter.tags.block;
+function ensureStepWiring(doc, tag, targets, predecessors) {
+	var anchors = {};
 
-	(targets || []).forEach(function(tag) {
-		var args = sequenceArgs(doc, tag);
+	(predecessors || []).forEach(function(predecessor) {
+		anchors['$' + predecessor] = true;
+	});
+
+	(targets || []).forEach(function(sequenceTag) {
+		var args = sequenceArgs(doc, sequenceTag);
 
 		if (!args)
 			return;
@@ -1219,7 +1225,7 @@ function ensureCacheWiring(doc, targets) {
 		var found = -1;
 
 		for (var i = args.items.length - 1; i >= 0; i--) {
-			if (!cacheStep(args.items[i]))
+			if (!managedStep(args.items[i], tag))
 				continue;
 
 			if (found !== -1)
@@ -1232,23 +1238,22 @@ function ensureCacheWiring(doc, targets) {
 			return;
 
 		/*
-		 * Run the cache after ad filtering so blocked names are never
-		 * answered from a cached upstream response.
+		 * Keep managed steps in a fixed order: ad filtering, hosts, cache,
+		 * all ahead of forward. Blocked names are never answered from hosts
+		 * or the cache, and cached responses never mask host entries.
 		 */
 		var position = 0;
 
 		for (var j = 0; j < args.items.length; j++) {
-			if (sequenceStepExec(args.items[j]) === adBlockStep) {
+			if (anchors[sequenceStepExec(args.items[j])])
 				position = j + 1;
-				break;
-			}
 		}
 
-		args.items.splice(position, 0, doc.createNode({ 'exec': '$' + CACHE_TAG }));
+		args.items.splice(position, 0, doc.createNode({ 'exec': '$' + tag }));
 	});
 }
 
-function removeCacheWiring(doc) {
+function removeStepWiring(doc, tag) {
 	pluginItems(doc).forEach(function(item) {
 		if (pluginType(item) !== 'sequence')
 			return;
@@ -1259,16 +1264,16 @@ function removeCacheWiring(doc) {
 			return;
 
 		for (var i = args.items.length - 1; i >= 0; i--) {
-			if (cacheStep(args.items[i]))
+			if (managedStep(args.items[i], tag))
 				args.items.splice(i, 1);
 		}
 	});
 }
 
-function cacheWiringMissing(doc, targets) {
-	return (targets || []).filter(function(tag) {
-		var args = sequenceArgs(doc, tag);
-		return !args || !args.items.some(cacheStep);
+function stepWiringMissing(doc, tag, targets) {
+	return (targets || []).filter(function(sequenceTag) {
+		var args = sequenceArgs(doc, sequenceTag);
+		return !args || !args.items.some(function(step) { return managedStep(step, tag); });
 	});
 }
 
@@ -1337,7 +1342,8 @@ function cacheSection(doc, bindings, options) {
 							}));
 						}
 
-						ensureCacheWiring(doc, targets);
+						ensureStepWiring(doc, CACHE_TAG, targets,
+							[ adfilter.tags.block, HOSTS_TAG ]);
 						options.rerender();
 					}
 				}, _('Enable cache')),
@@ -1384,7 +1390,7 @@ function cacheSection(doc, bindings, options) {
 					return;
 
 				options.beforeChange();
-				removeCacheWiring(doc);
+				removeStepWiring(doc, CACHE_TAG);
 				doc.deleteIn([ 'plugins', managed.index ]);
 				options.rerender();
 			}
@@ -1394,6 +1400,136 @@ function cacheSection(doc, bindings, options) {
 	return {
 		'node': section(_('Cache'),
 			_('Cache stores DNS responses locally so repeated queries are answered without contacting upstream servers.'),
+			rows, null, footer)
+	};
+}
+
+/*
+ * Guided hosts manages one fixed hosts plugin and its sequence step, so local
+ * name records can be added without opening Advanced Mode.
+ */
+function hostsSection(doc, bindings, options) {
+	var definitions = schemaDefinitions(options);
+	var definition = definitions ? definitions[HOSTS_TYPE] : null;
+	var managed = findPluginByTag(doc, HOSTS_TAG);
+	var other = null;
+
+	pluginItems(doc).forEach(function(item, index) {
+		if (pluginType(item) !== HOSTS_TYPE || (managed && index === managed.index))
+			return;
+
+		if (!other)
+			other = { 'item': item, 'index': index };
+	});
+
+	if (managed && pluginType(managed.item) !== HOSTS_TYPE) {
+		return {
+			'node': section(_('Hosts'), null, [
+				noteRow(_('The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling hosts.')
+					.format(HOSTS_TAG, pluginType(managed.item) || _('unknown')))
+			])
+		};
+	}
+
+	if (!managed) {
+		if (other) {
+			return {
+				'node': section(_('Hosts'), null, [
+					noteRow(_('Hosts is configured by the %s plugin. Edit it in Advanced Mode.')
+						.format(pluginTag(other.item, other.index)))
+				])
+			};
+		}
+
+		var canEnable = entrySequences(doc).length > 0;
+		var enableRow = E('div', { 'class': 'tr' }, [
+			E('div', {
+				'class': 'td left',
+				'style': 'padding: .5em var(--section-inset, 0);'
+			}, [
+				E('button', {
+					'class': 'btn cbi-button cbi-button-positive',
+					'disabled': canEnable ? null : 'disabled',
+					'click': function(ev) {
+						ev.preventDefault();
+						options.beforeChange();
+
+						var targets = entrySequences(doc);
+
+						if (!targets.length) {
+							ui.addNotification(null, E('p', {},
+								_('No entry sequence was found. Configure a server entry in Advanced Mode first.')), 'danger');
+							return;
+						}
+
+						if (!findPluginByTag(doc, HOSTS_TAG)) {
+							if (!doc.getIn([ 'plugins' ], true))
+								doc.setIn([ 'plugins' ], doc.createNode([]));
+
+							doc.addIn([ 'plugins' ], doc.createNode({
+								'tag': HOSTS_TAG,
+								'type': HOSTS_TYPE,
+								'args': { 'short_circuit': true }
+							}));
+						}
+
+						ensureStepWiring(doc, HOSTS_TAG, targets, [ adfilter.tags.block ]);
+						options.rerender();
+					}
+				}, _('Enable hosts')),
+				E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .35em;' },
+					canEnable
+						? _('Adds a hosts plugin and runs it before forwarding in the entry sequence. Configured names are answered locally and everything else is forwarded.')
+						: _('No entry sequence was found. Configure a server entry in Advanced Mode first.'))
+			])
+		]);
+
+		return {
+			'node': section(_('Hosts'),
+				_('Hosts answers configured names locally, for example to map a domain to a LAN address.'),
+				[ enableRow ])
+		};
+	}
+
+	var rows = [];
+
+	(definition && Array.isArray(definition.fields) ? definition.fields : []).forEach(function(field, fieldIndex) {
+		if (!field || !Array.isArray(field.path) || !field.path.length)
+			return;
+
+		rows.push(row(
+			field.type === 'boolean' ? '' : _(text(field.label) || field.path.join('.')),
+			schemaControl(doc, managed.index, fieldIndex, field, bindings, null, null, options),
+			field.help ? _(field.help) : null
+		));
+	});
+
+	if (!rows.length)
+		rows.push(noteRow(_('No hosts options are available in the configuration schema.')));
+
+	var footer = E('div', {
+		'class': 'cbi-button-row',
+		'style': 'display: flex; flex-wrap: wrap; gap: .5em; margin-top: .75em; padding-inline: var(--section-inset, 0);'
+	}, [
+		E('button', {
+			'class': 'btn cbi-button cbi-button-negative',
+			'click': function(ev) {
+				ev.preventDefault();
+
+				if (!window.confirm(_('Remove the hosts plugin? Local name mappings are discarded and the hosts step is removed from the entry sequence.')))
+					return;
+
+				options.beforeChange();
+				removeStepWiring(doc, HOSTS_TAG);
+				doc.deleteIn([ 'plugins', managed.index ]);
+				options.rerender();
+			}
+		}, _('Remove hosts'))
+	]);
+
+	return {
+		'node': section(_('Hosts'),
+			_('Hosts answers configured names locally, for example to map a domain to a LAN address.'),
 			rows, null, footer)
 	};
 }
@@ -1606,8 +1742,9 @@ function schemaSections(doc, bindings, options) {
 		if (adfilter.manages(tag, type))
 			return;
 
-		// The guided cache plugin has its own section.
-		if (type === CACHE_TYPE && tag === CACHE_TAG)
+		// The guided cache and hosts plugins have their own sections.
+		if ((type === CACHE_TYPE && tag === CACHE_TAG) ||
+		    (type === HOSTS_TYPE && tag === HOSTS_TAG))
 			return;
 
 		var definition = definitions[type];
@@ -1972,8 +2109,26 @@ function validateConfig(doc, options) {
 
 			if (!cacheTargets.length)
 				problems.push(_('No entry sequence was found. Configure a server entry in Advanced Mode first.'));
-			else if (cacheWiringMissing(doc, cacheTargets).length)
+			else if (stepWiringMissing(doc, CACHE_TAG, cacheTargets).length)
 				problems.push(_('The cache step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode.'));
+		}
+	}
+
+	// The managed hosts plugin must stay wired into the entry sequences.
+	var hostsPlugin = findPluginByTag(doc, HOSTS_TAG);
+
+	if (hostsPlugin) {
+		if (pluginType(hostsPlugin.item) !== HOSTS_TYPE) {
+			problems.push(_('The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling hosts.')
+				.format(HOSTS_TAG, pluginType(hostsPlugin.item) || _('unknown')));
+		}
+		else {
+			var hostsTargets = entrySequences(doc);
+
+			if (!hostsTargets.length)
+				problems.push(_('No entry sequence was found. Configure a server entry in Advanced Mode first.'));
+			else if (stepWiringMissing(doc, HOSTS_TAG, hostsTargets).length)
+				problems.push(_('The hosts step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode.'));
 		}
 	}
 
@@ -2021,6 +2176,7 @@ return baseclass.extend({
 		var handlers = options || {};
 		var bootstrap = isBootstrapTheme();
 		var adFilter = adFilterSection(doc, handlers);
+		var hosts = hostsSection(doc, bindings, handlers);
 		var cache = cacheSection(doc, bindings, handlers);
 
 		var sections = [
@@ -2034,6 +2190,7 @@ return baseclass.extend({
 			listenSection(doc, bindings),
 			upstreamSection(doc, bindings, handlers),
 			adFilter.node,
+			hosts.node,
 			cache.node
 		].concat(schemaSections(doc, bindings, handlers));
 

@@ -22,6 +22,9 @@ msgstr "添加缓存插件，并在转发前运行。缓存响应可在不访问
 msgid "API"
 msgstr "API"
 
+msgid "Adds a hosts plugin and runs it before forwarding in the entry sequence. Configured names are answered locally and everything else is forwarded."
+msgstr "添加 hosts 插件，并在入口序列中先于转发运行。配置过的域名在本地应答，其余请求继续转发。"
+
 msgid "Applying service action..."
 msgstr "正在执行服务操作..."
 
@@ -133,6 +136,9 @@ msgstr "下载 release 元数据"
 msgid "Enable cache"
 msgstr "启用缓存"
 
+msgid "Enable hosts"
+msgstr "启用 hosts"
+
 msgid "Enable on boot"
 msgstr "设为开机自启"
 
@@ -162,6 +168,12 @@ msgstr "格式：http://主机:端口、https://主机:端口、socks5://主机:
 
 msgid "GitHub token"
 msgstr "GitHub Token"
+
+msgid "Hosts answers configured names locally, for example to map a domain to a LAN address."
+msgstr "hosts 在本地应答配置过的域名，例如把域名映射到局域网地址。"
+
+msgid "Hosts is configured by the %s plugin. Edit it in Advanced Mode."
+msgstr "主机记录由插件 %s 配置。请在高级模式中编辑。"
 
 msgid "Install Core"
 msgstr "安装内核"
@@ -202,11 +214,20 @@ msgstr "日志路径不能为空。"
 msgid "No cache options are available in the configuration schema."
 msgstr "配置架构中没有可用的缓存选项。"
 
+msgid "No hosts options are available in the configuration schema."
+msgstr "配置架构中没有可用的 hosts 选项。"
+
 msgid "Remove cache"
 msgstr "移除缓存"
 
+msgid "Remove hosts"
+msgstr "移除 hosts"
+
 msgid "Remove the cache plugin? Cached responses are discarded and the cache step is removed from the entry sequence."
 msgstr "移除缓存插件？已缓存的响应将被丢弃，入口序列中的缓存步骤也会被移除。"
+
+msgid "Remove the hosts plugin? Local name mappings are discarded and the hosts step is removed from the entry sequence."
+msgstr "移除 hosts 插件？本地域名映射将被丢弃，入口序列中的 hosts 步骤也会被移除。"
 
 msgid "Remove the subscription download plugin? Subscription downloads stop and the plugin with all of its download options is removed. The ad filtering rules and downloaded files on disk stay."
 msgstr "移除订阅下载插件？订阅下载将停止，插件及其所有下载选项都会被移除。广告过滤规则和磁盘上已下载的文件会保留。"
@@ -475,11 +496,17 @@ msgstr "配置文件为空。"
 msgid "The forward plugin %s needs at least one upstream server."
 msgstr "forward 插件 %s 至少需要一个上游服务器。"
 
+msgid "The hosts step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
+msgstr "无法将 hosts 步骤插入入口序列。请在高级模式中检查序列配置。"
+
 msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling cache."
 msgstr "标签 %s 已被 %s 插件使用。请先在高级模式中重命名，再启用缓存。"
 
 msgid "The YAML is invalid: %s"
 msgstr "YAML 无效：%s"
+
+msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling hosts."
+msgstr "标签 %s 已被 %s 插件使用。请先在高级模式中重命名，再启用 hosts。"
 
 msgid "Type"
 msgstr "类型"

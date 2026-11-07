@@ -373,7 +373,32 @@ If you keep the subscription download plugin but clear all URLs, validation asks
 
 These tags are fixed. If the configuration already uses one of them with a different type, the card reports a collision and does not overwrite it; rename the existing plugin in Advanced Mode first. The generic plugin field sections also stop showing these managed plugins.
 
-### 3.9 Cache
+### 3.9 Local Hosts
+
+The `Hosts` card manages one `hosts` plugin with a fixed tag, so local name records can be added without Advanced Mode:
+
+- Before configuration it shows the `Enable hosts` button. The button needs at least one server entry sequence; when none exists it stays disabled and asks you to configure a server entry in Advanced Mode first.
+- Clicking `Enable hosts` creates the `oxidns_hosts` plugin and inserts this step into every entry sequence:
+
+```yaml
+- exec: $oxidns_hosts
+```
+
+  The step runs after the ad filtering block step and before the cache step and `forward`. Enabling writes `short_circuit: true` by default so a matching record ends the chain; unmatched queries continue through the remaining steps.
+- Once enabled, the card shows every hosts field from the schema:
+
+| Field | Description |
+| --- | --- |
+| `Hosts entries` (`entries`) | One record per line in `name address` form, for example `router.lan 192.168.10.1`. |
+| `Hosts files` (`files`) | Referenced hosts files, one path per line, for example `/etc/hosts`. |
+| `Short circuit` (`short_circuit`) | Ends the chain on a match. Enabled by default when the card creates the plugin. |
+
+  Fields you do not edit are not written, so the OxiDNS core defaults apply.
+- `Remove hosts` deletes the `oxidns_hosts` plugin and the hosts step from every sequence.
+
+If the configuration already has a `hosts` plugin under another tag, the card only points to Advanced Mode and does not create a second one. If the `oxidns_hosts` tag is already used by another plugin type, the card reports a collision; rename that plugin in Advanced Mode first.
+
+### 3.10 Cache
 
 The `Cache` card manages one `cache` plugin with a fixed tag:
 
@@ -384,13 +409,13 @@ The `Cache` card manages one `cache` plugin with a fixed tag:
 - exec: $oxidns_cache
 ```
 
-  The step runs after the ad filtering block step and before `forward`; without ad filtering it sits at the front of the sequence. Enabling writes `short_circuit: true` by default so a cache hit ends the chain; misses continue through the remaining steps.
+  The step runs after the ad filtering block step and the hosts step, and before `forward`; when neither exists it sits at the front of the sequence. Enabling writes `short_circuit: true` by default so a cache hit ends the chain; misses continue through the remaining steps.
 - Once enabled, the card shows every cache field from the schema: `size`, `lazy_cache_ttl`, `dump_file`, `dump_interval`, `short_circuit`, `cache_negative`, `max_negative_ttl`, `negative_ttl_without_soa`, `max_positive_ttl`, `min_positive_ttl`, and `ecs_in_key`. Fields you do not edit are not written, so the OxiDNS core defaults apply.
 - `Remove cache` deletes the `oxidns_cache` plugin and the cache step from every sequence.
 
 If the configuration already has a `cache` plugin under another tag, the card only points to Advanced Mode and does not create a second one. If the `oxidns_cache` tag is already used by another plugin type, the card reports a collision; rename that plugin in Advanced Mode first.
 
-### 3.10 Common Plugin Fields
+### 3.11 Common Plugin Fields
 
 Normal Mode renders fields from the schema for each plugin type already present. Labels are English; the defaults below come from the current schema.
 
@@ -607,7 +632,7 @@ List fields (`entries`, `files`, `selectors`, `rules`, and similar) take **one i
 
 Object-list fields (`Downloads`, `DoH entries`) can add and remove entries individually. Required fields, numeric ranges, and enum values of each entry are validated before saving; a DoH entry's `Request path` must start with `/`. Missing required plugin fields (such as the primary and standby executors for `fallback`, the database path for `query_recorder`, the data files for `geosite` / `geoip`, the rules file for `dynamic_domain_set`, and the certificate and key for `quic_server`) are reported directly as well.
 
-### 3.11 Plugin Overview
+### 3.12 Plugin Overview
 
 The read-only `Plugins` section at the bottom shows:
 
@@ -656,7 +681,7 @@ To use port 53, stop whatever else occupies it (usually dnsmasq's DNS function).
 ### 4.4 Enable Caching
 
 1. In Normal Mode, click `Enable cache` in the `Cache` card. If no server entry sequence exists, configure one in Advanced Mode first.
-2. The card creates the `oxidns_cache` plugin and inserts `- exec: $oxidns_cache` into the entry sequences; with ad filtering it goes after the block step, otherwise at the front of the sequence.
+2. The card creates the `oxidns_cache` plugin and inserts `- exec: $oxidns_cache` into the entry sequences; with ad filtering or the hosts step it goes after them, otherwise at the front of the sequence.
 3. Adjust cache size, TTLs, and negative caching as needed; fields you do not edit are not written.
 4. Click `Save and Apply`.
 
@@ -664,16 +689,43 @@ You can also add a `cache` plugin under any tag in Advanced Mode and reference i
 
 ### 4.5 Add Local Hosts Entries
 
-1. Find `Hosts entries` in the `Hosts` section.
-2. Write one record per line:
+#### The Normal Mode Hosts card (recommended)
+
+1. Open `DNS Configuration -> Normal Mode` and find the `Hosts` section.
+2. If there is no hosts plugin yet, click `Enable hosts`. LuCI creates the `oxidns_hosts` plugin and inserts the hosts step into every entry sequence, after ad filtering and before the cache step and forwarding.
+3. Write one record per line in `Hosts entries`:
 
 ```text
 router.lan 192.168.1.1
 nas.lan 192.168.1.10
 ```
 
-3. `Hosts files` can reference a system hosts file such as `/etc/hosts`.
-4. Click `Save and Apply`.
+4. `Hosts files` can reference a system hosts file such as `/etc/hosts`.
+5. Click `Validate`, then `Save and Apply`.
+
+Records use the form `name address` or `name hostname`, and a name may have several records (for example an IPv4 and an IPv6 address). Queries that match no record continue through the cache and `forward`.
+
+If the configuration already has a `hosts` plugin under another tag, the card only points you to Advanced Mode and does not create a second one.
+
+#### Manual configuration in Advanced Mode
+
+Normal Mode also renders fields for an existing `hosts` plugin, but only when the plugin is already in the configuration. When creating one by hand, set `short_circuit: true`, otherwise the later `forward` step overrides the hosts answer:
+
+```yaml
+- tag: local_hosts
+  type: hosts
+  args:
+    short_circuit: true
+    entries:
+      - "router.lan 192.168.1.1"
+
+- tag: main_sequence
+  type: sequence
+  args:
+    - exec: $local_hosts
+    - exec: $forward
+    - exec: accept
+```
 
 ### 4.6 Block Ads or Specific Domains
 
