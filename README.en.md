@@ -8,13 +8,7 @@ This repository contains only the LuCI management UI and the rpcd backend; the O
 
 **Full guide**: configuring DNS from scratch, the Normal/Advanced mode field reference, plugin fields, common tasks, troubleshooting, and OxiDNS WebUI instructions are in [info/README.en.md](info/README.en.md). For enabling dnsmasq forwarding with one click on `Basic Information`, manual configuration, and rollback, see [4.9 Forward Through dnsmasq (Recommended)](info/README.en.md#49-forward-through-dnsmasq-recommended); for the Normal mode ad filtering card, see [3.8 Ad Filtering](info/README.en.md#38-ad-filtering).
 
-## Features
-
-- `Basic Information`: `Status Overview` shows the backend, core, build, service status, boot autostart, and WebUI entry, with start, stop, and restart controls below.
-- `System DNS integration`: on the `Basic Information` page, enable or disable dnsmasq forwarding in one click. When enabled, dnsmasq forwards generic DNS queries to OxiDNS's listen address while keeping domain-specific upstreams; it is disabled by default, and disabling restores the previous generic upstreams and `noresolv` setting.
-- `Installation and Deployment`: install, update, upload, repair, or remove the core and WebUI; configure the core repository, bundle, paths, system log output, and download credentials.
-- `DNS Configuration`: Advanced mode (a full YAML editor) is the default; Normal mode provides forms for common settings. Both support validation, config download/upload, save, save and apply, and a change preview. `forward` upstreams can be picked from a preset combobox or entered as a custom address; the Normal mode `Ad filtering` card creates and manages a fixed `adguard_rule` / `black_hole` plugin group (plus a `download` plugin once subscription URLs are entered) with inline rules, local rule files, and a blocking mode, and inserts the blocking rule at the front of every entry sequence. The Normal mode `Cache` card creates the fixed `cache` plugin (`oxidns_cache`), inserts the cache step into the entry sequences, and exposes every cache field once enabled.
-- `Runtime Logs`: view OxiDNS runtime logs.
+![OxiDNS LuCI interface](screenshot.png)
 
 ## Install The LuCI App
 
@@ -58,6 +52,14 @@ make package/luci-app-oxidns/compile V=s
 ```
 
 The artifacts appear under `bin/packages/<arch>/`: a 24.10 build tree produces `.ipk`, and a 25.12 build tree produces `.apk`.
+
+## Features
+
+- `Basic Information`: `Status Overview` shows the backend, core, build, service status, boot autostart, and WebUI entry, with start, stop, and restart controls below.
+- `System DNS integration`: on the `Basic Information` page, enable or disable dnsmasq forwarding in one click. When enabled, dnsmasq forwards generic DNS queries to OxiDNS's listen address while keeping domain-specific upstreams; it is disabled by default, and disabling restores the previous generic upstreams and `noresolv` setting.
+- `Installation and Deployment`: install, update, upload, repair, or remove the core and WebUI; configure the core repository, bundle, paths, system log output, and download credentials.
+- `DNS Configuration`: Advanced mode (a full YAML editor) is the default; Normal mode provides forms for common settings. Both support validation, config download/upload, save, save and apply, and a change preview. `forward` upstreams can be picked from a preset combobox or entered as a custom address; the Normal mode `Ad filtering` card creates and manages a fixed `adguard_rule` / `black_hole` plugin group (plus a `download` plugin once subscription URLs are entered) with inline rules, local rule files, and a blocking mode, and inserts the blocking rule at the front of every entry sequence. The Normal mode `Cache` card creates the fixed `cache` plugin (`oxidns_cache`), inserts the cache step into the entry sequences, and exposes every cache field once enabled.
+- `Runtime Logs`: view OxiDNS runtime logs.
 
 ## Default Paths
 
