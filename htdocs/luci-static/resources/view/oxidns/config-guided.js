@@ -847,7 +847,7 @@ function upstreamSection(doc, bindings, options) {
 		found = true;
 
 		var tag = pluginTag(item, index);
-		var upstreams = pruneEmptyUpstreams(doc, index);
+		var upstreams = arrayItems(doc, [ 'plugins', index, 'args', 'upstreams' ]);
 
 		rows.push(E('div', { 'class': 'tr' }, [
 			E('div', { 'class': 'td left', 'style': 'width: 240px' }, E('strong', {}, _('Plugin') + ': ' + tag)),
@@ -1004,7 +1004,7 @@ function adFilterSection(doc, options) {
 			}
 		}, _('Add ad filtering')),
 		canEnable
-			? _('Adds subscription downloads, AdGuard rules, and blocking plugins, then inserts the blocking rule at the start of the entry sequence.')
+			? _('Adds AdGuard rules and blocking plugins, then inserts the blocking rule at the start of the entry sequence. The subscription download plugin is added when you enter subscription URLs.')
 			: _('No entry sequence was found. Configure a server entry in Advanced Mode first.')));
 
 		return {

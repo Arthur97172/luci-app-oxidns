@@ -931,6 +931,9 @@ msgstr "普通模式不可用：%s"
 msgid "Normal mode needs valid YAML. Fix the YAML in advanced mode first."
 msgstr "普通模式需要有效的 YAML，请先在高级模式中修正。"
 
+msgid "the top level must be a mapping of keys to values."
+msgstr "顶层必须是键值映射。"
+
 msgid "This configuration uses YAML anchors, aliases, or merge keys. Normal mode is read-only for this file; edit it in advanced mode."
 msgstr "此配置使用了 YAML 锚点、别名或合并键。该文件的普通模式为只读；请使用高级模式编辑。"
 
@@ -1823,8 +1826,8 @@ msgstr "OxiDNS 已停止。在启动 OxiDNS 或取消系统 DNS 接入之前，�
 msgid "Add ad filtering"
 msgstr "添加广告过滤"
 
-msgid "Adds subscription downloads, AdGuard rules, and blocking plugins, then inserts the blocking rule at the start of the entry sequence."
-msgstr "添加订阅下载、AdGuard 规则和拦截插件，并将拦截规则插入到入口序列的开头。"
+msgid "Adds AdGuard rules and blocking plugins, then inserts the blocking rule at the start of the entry sequence. The subscription download plugin is added when you enter subscription URLs."
+msgstr "添加 AdGuard 规则和拦截插件，并将拦截规则插入到入口序列的开头。填写订阅地址后才会创建订阅下载插件。"
 
 msgid "Ad filtering"
 msgstr "广告过滤"

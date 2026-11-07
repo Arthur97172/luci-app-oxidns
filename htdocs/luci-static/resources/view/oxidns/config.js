@@ -54,7 +54,7 @@ var state = {
 	parseError: null,
 	serializeError: null,
 	mtime: '',
-	mode: 'guided',
+	mode: 'advanced',
 	preview: true,
 	bindings: [],
 	readOnly: false,
@@ -89,6 +89,15 @@ function setStatus(message, danger) {
 	node.className = danger ? 'alert-message error' : 'alert-message info';
 }
 
+/*
+ * Normal mode builds its form from mapping keys. A sequence or scalar at the
+ * top level parses as YAML but cannot be edited there, so treat it the same
+ * as a syntax error and keep the user in advanced mode.
+ */
+function topLevelMapping(doc) {
+	return !!doc && !!doc.contents && yaml.isMap(doc.contents) === true;
+}
+
 function parseContent(content) {
 	state.doc = null;
 	state.parseError = null;
@@ -102,6 +111,9 @@ function parseContent(content) {
 		}
 		else if (!doc.contents) {
 			state.parseError = _('The configuration file is empty.');
+		}
+		else if (!topLevelMapping(doc)) {
+			state.parseError = _('the top level must be a mapping of keys to values.');
 		}
 		else {
 			state.doc = doc;
@@ -240,7 +252,7 @@ function applySavedContent(content) {
 	state.raw = content;
 	state.advancedDraft = content;
 
-	if (state.mode === 'guided' && !parseContent(content))
+	if (!parseContent(content) && state.mode === 'guided')
 		state.mode = 'advanced';
 
 	updateModeButtons();
@@ -684,6 +696,15 @@ function fillBody(body) {
 
 	if (state.mode === 'advanced') {
 		state.bindings = [];
+		state.readOnly = false;
+		state.serializeError = null;
+
+		/*
+		 * Refresh the parse state from the editor draft so the "Normal mode is
+		 * unavailable" notice reflects the current content, not the file that
+		 * was loaded when the page opened.
+		 */
+		parseContent(state.advancedDraft);
 
 		if (state.parseError) {
 			body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
@@ -693,8 +714,12 @@ function fillBody(body) {
 		body.appendChild(yamlEditor.render(state.advancedDraft, {
 			'onInput': function(value) {
 				state.advancedDraft = value;
+				state.serializeError = null;
+				schedulePreview();
 			}
 		}));
+
+		body.appendChild(previewSection());
 	}
 	else if (!state.doc) {
 		body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
@@ -832,7 +857,8 @@ return view.extend({
 		state.preview = true;
 		state.schema = data && data.schema ? data.schema : null;
 		state.pluginTypes = data && data.pluginTypes ? data.pluginTypes : null;
-		state.mode = parseContent(configContent) ? 'guided' : 'advanced';
+		state.mode = 'advanced';
+		parseContent(configContent);
 
 		if (readFailed && !coreInstalled(statusState)) {
 			return E('div', { 'class': 'cbi-map' }, [

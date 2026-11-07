@@ -148,6 +148,9 @@ var YAML = baseclass.extend({
     },
     stringify: function(value, options) {
         return OxiYAML.stringify(value, options);
+    },
+    isMap: function(node) {
+        return OxiYAML.isMap(node);
     }
 });
 

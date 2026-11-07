@@ -929,6 +929,9 @@ msgstr ""
 msgid "Normal mode needs valid YAML. Fix the YAML in advanced mode first."
 msgstr ""
 
+msgid "the top level must be a mapping of keys to values."
+msgstr ""
+
 msgid "This configuration uses YAML anchors, aliases, or merge keys. Normal mode is read-only for this file; edit it in advanced mode."
 msgstr ""
 
@@ -1821,7 +1824,7 @@ msgstr ""
 msgid "Add ad filtering"
 msgstr ""
 
-msgid "Adds subscription downloads, AdGuard rules, and blocking plugins, then inserts the blocking rule at the start of the entry sequence."
+msgid "Adds AdGuard rules and blocking plugins, then inserts the blocking rule at the start of the entry sequence. The subscription download plugin is added when you enter subscription URLs."
 msgstr ""
 
 msgid "Ad filtering"

@@ -57,8 +57,8 @@ Open `Services -> OxiDNS -> DNS Configuration`.
 
 The page has two mode buttons:
 
-- `Normal Mode`: the default. Available only when the YAML parses cleanly.
-- `Advanced Mode`: a full YAML editor.
+- `Advanced Mode`: the default. A full YAML editor.
+- `Normal Mode`: forms; available only when the YAML parses cleanly as a top-level mapping.
 
 Both modes share the same action buttons:
 
@@ -102,7 +102,7 @@ The preview is read-only and never writes the file. Clear the checkbox to hide i
 
 ## 3. Normal Mode Field Reference
 
-Normal Mode is generated from the backend configuration schema plus fixed front-end sections. **It only shows plugin instances that already exist in the configuration** and never creates plugins; the one exception is the `Ad filtering` card, which can create, edit, or remove a fixed-tag `download` / `adguard_rule` / `black_hole` group (see [3.8 Ad Filtering](#38-ad-filtering)). Use Advanced Mode or the WebUI to add or remove other plugins or change sequence rules.
+Normal Mode is generated from the backend configuration schema plus fixed front-end sections. **It only shows plugin instances that already exist in the configuration** and never creates plugins; the one exception is the `Ad filtering` card, which can create, edit, or remove a fixed-tag `adguard_rule` / `black_hole` group and, once subscription URLs are entered, its `download` plugin (see [3.8 Ad Filtering](#38-ad-filtering)). Use Advanced Mode or the WebUI to add or remove other plugins or change sequence rules.
 
 ### 3.1 Log
 
@@ -339,7 +339,7 @@ The backend still runs `oxidns check`, and the core's result is authoritative.
 
 ### 3.8 Ad Filtering
 
-The `Ad filtering` card bundles the common ad-blocking setup. It needs at least one server entry sequence in the configuration; when none exists, `Add ad filtering` stays disabled and the card asks you to configure a server entry in Advanced Mode first. After you click `Add ad filtering`, Normal Mode creates three fixed-tag plugins and inserts the blocking rule at the front of every server entry sequence:
+The `Ad filtering` card bundles the common ad-blocking setup. It needs at least one server entry sequence in the configuration; when none exists, `Add ad filtering` stays disabled and the card asks you to configure a server entry in Advanced Mode first. After you click `Add ad filtering`, Normal Mode creates the fixed-tag `oxidns_ads_rules` and `oxidns_ads_block` plugins and inserts the blocking rule at the front of every server entry sequence. The `oxidns_ads_download` plugin is added when you enter at least one subscription URL:
 
 | Tag | Type | Purpose |
 | --- | --- | --- |
