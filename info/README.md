@@ -375,7 +375,24 @@ api:
 
 这些 tag 是固定的。如果配置中已有同名 tag 但类型不同，卡片会提示冲突且不会覆盖，需要先在高级模式中重命名。普通模式的通用插件字段区域也不会再显示这三个受管理的插件。
 
-### 3.9 常用插件参数
+### 3.9 缓存（Cache）
+
+`缓存` 卡片管理一个固定 tag 的 `cache` 插件：
+
+- 未配置时显示 `启用缓存` 按钮。按钮需要配置中至少有一个 server 入口 sequence；没有可用入口时不可用，并提示先在高级模式配置 server 入口。
+- 点击 `启用缓存` 会创建 `oxidns_cache` 插件，并在每个入口 sequence 中插入：
+
+```yaml
+- exec: $oxidns_cache
+```
+
+  该步骤位于广告过滤拦截步骤之后、`forward` 之前；没有广告过滤时位于 sequence 最前面。启用时会默认写入 `short_circuit: true`，缓存命中后直接结束后续步骤；未命中时继续执行后续步骤。
+- 启用后卡片显示 schema 中的全部缓存字段：`size`、`lazy_cache_ttl`、`dump_file`、`dump_interval`、`short_circuit`、`cache_negative`、`max_negative_ttl`、`negative_ttl_without_soa`、`max_positive_ttl`、`min_positive_ttl` 和 `ecs_in_key`。未修改的字段不会写入配置，默认值由 OxiDNS 核心决定。
+- `移除缓存` 删除 `oxidns_cache` 插件和所有 sequence 中的缓存步骤。
+
+如果配置中已经存在其它 tag 的 `cache` 插件，卡片只提示该插件由高级模式管理，不会重复创建。如果 `oxidns_cache` 已被其它类型插件占用，卡片会提示冲突，需要先在高级模式中重命名。
+
+### 3.10 常用插件参数
 
 普通模式会按插件类型显示 schema 中定义的字段。下面是常见插件的字段和各字段默认值。
 
@@ -592,7 +609,7 @@ plugins:
 
 对象列表字段（例如 `Downloads`、`DoH entries`）可以逐条添加和删除。每条条目的必填项、数值范围和枚举取值都会参与保存前校验；DoH 入口的 `Request path` 必须以 `/` 开头。插件自身要求的必填字段（例如 `fallback` 的主备执行器、`query_recorder` 的数据库路径、`geosite` / `geoip` 的数据文件、`dynamic_domain_set` 的规则文件、`quic_server` 的证书和私钥）缺失时也会直接提示。
 
-### 3.10 插件概览
+### 3.11 插件概览
 
 页面最下方的 `Plugins` 区域只读显示：
 
@@ -639,22 +656,12 @@ plugins:
 
 ### 4.4 启用缓存
 
-1. 确认配置中存在 `cache` 插件。普通模式不会创建新插件；没有时请在高级模式或 WebUI 中添加：
+1. 在普通模式的 `缓存` 卡片中点击 `启用缓存`。没有可用的 server 入口 sequence 时，需要先在高级模式中配置 server 入口。
+2. 卡片会创建 `oxidns_cache` 插件，并把 `- exec: $oxidns_cache` 插入入口 sequence；有广告过滤时位于拦截步骤之后，否则位于 sequence 最前面。
+3. 按需调整缓存大小、TTL 和否定缓存等字段；没有修改的字段不会写入配置。
+4. 点击 `保存并应用`。
 
-```yaml
-- tag: cache_main
-  type: cache
-  args:
-    size: 4096
-    short_circuit: true
-    cache_negative: true
-    max_negative_ttl: 300
-```
-
-2. 回到普通模式，`缓存`（Cache）区域会显示该插件的字段。
-3. 调整缓存大小、TTL、否定缓存等参数。
-4. 确认 sequence 中确实引用了这个 cache 插件。
-5. 点击 `保存并应用`。
+也可以在高级模式中手动添加任意 tag 的 `cache` 插件并在 sequence 中引用；这类插件由高级模式管理，普通模式的缓存卡片不会覆盖。
 
 ### 4.5 添加本地 hosts 记录
 

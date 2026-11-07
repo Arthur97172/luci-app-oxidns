@@ -236,7 +236,20 @@ function saveYaml(restart) {
 	});
 }
 
+function hasUnsavedChanges() {
+	try {
+		return currentContent() !== state.raw;
+	}
+	catch (err) {
+		return true;
+	}
+}
+
 function resetYaml() {
+	if (hasUnsavedChanges() &&
+	    !window.confirm(_('Discard the unsaved changes and reload the last saved configuration?')))
+		return;
+
 	state.serializeError = null;
 	state.advancedDraft = state.raw;
 
@@ -430,6 +443,9 @@ function uploadYaml(file) {
 		return Promise.resolve();
 	}
 
+	if (!window.confirm(_('Uploading config.yaml replaces the saved configuration immediately and discards unsaved changes. Continue?')))
+		return Promise.resolve();
+
 	return Promise.all([
 		readTextFile(file),
 		L.resolveDefault(callStatus(), {})
@@ -494,7 +510,7 @@ function diffLines(oldText, newText) {
 	var after = newText.split('\n');
 
 	if (before.length > DIFF_MAX_LINES || after.length > DIFF_MAX_LINES)
-		return [];
+		return null;
 
 	var n = before.length;
 	var m = after.length;
@@ -590,6 +606,12 @@ function updatePreview() {
 		return;
 
 	var lines = diffLines(state.raw, currentContent());
+
+	if (lines === null) {
+		node.appendChild(E('div', { 'class': 'cbi-value-description' },
+			_('The configuration is too large to preview here. Review the changes in Advanced Mode before saving.')));
+		return;
+	}
 
 	if (!lines.length) {
 		node.appendChild(E('div', { 'class': 'cbi-value-description' }, _('No changes.')));

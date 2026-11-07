@@ -1057,7 +1057,7 @@ function adFilterSection(doc, options) {
 			if (!urls || !rules || !files || !mode || !ips || !dir)
 				return;
 
-			adfilter.sync(doc, {
+			adfilter.syncIfChanged(doc, {
 				'urlsText': urls.value,
 				'rulesText': rules.value,
 				'filesText': files.value,
@@ -1076,6 +1076,10 @@ function adFilterSection(doc, options) {
 			'class': 'btn cbi-button cbi-button-neutral',
 			'click': function(ev) {
 				ev.preventDefault();
+
+				if (!window.confirm(_('Remove the subscription download plugin? Subscription downloads stop and the plugin with all of its download options is removed. The ad filtering rules and downloaded files on disk stay.')))
+					return;
+
 				options.beforeChange();
 				adfilter.removeDownload(doc);
 				options.rerender();
@@ -1101,6 +1105,296 @@ function adFilterSection(doc, options) {
 			_('Ad filtering downloads subscription rules at startup, matches them with AdGuard rules, and answers matching queries locally.'),
 			rows, null, footer),
 		'binding': binding
+	};
+}
+
+/*
+ * Guided cache manages one fixed cache plugin and its sequence step. The
+ * plugin options come from the configuration schema, so enabling the cache
+ * exposes the same fields as Advanced Mode.
+ */
+var CACHE_TAG = 'oxidns_cache';
+var CACHE_TYPE = 'cache';
+var ENTRY_SERVER_TYPES = { udp_server: true, tcp_server: true, quic_server: true };
+
+function findPluginByTag(doc, tag) {
+	var items = pluginItems(doc);
+
+	for (var i = 0; i < items.length; i++) {
+		if (pluginTag(items[i], i) === tag)
+			return { 'item': items[i], 'index': i };
+	}
+
+	return null;
+}
+
+function sequenceTags(doc) {
+	var tags = {};
+
+	pluginItems(doc).forEach(function(item, index) {
+		if (pluginType(item) !== 'sequence')
+			return;
+
+		var tag = pluginTag(item, index);
+		if (tag.charAt(0) !== '#')
+			tags[tag] = true;
+	});
+
+	return tags;
+}
+
+function serverEntryTags(doc) {
+	var entries = [];
+
+	pluginItems(doc).forEach(function(item) {
+		var type = pluginType(item);
+		var args = item && typeof item.get === 'function' ? item.get('args') : null;
+
+		if (!args || typeof args.get !== 'function')
+			return;
+
+		if (type === 'http_server') {
+			var list = args.get('entries');
+
+			if (list && Array.isArray(list.items))
+				list.items.forEach(function(entry) {
+					if (entry && typeof entry.get === 'function')
+						entries.push(text(entry.get('exec')));
+				});
+		}
+		else if (ENTRY_SERVER_TYPES[type]) {
+			entries.push(text(args.get('entry')));
+		}
+	});
+
+	return entries;
+}
+
+function entrySequences(doc) {
+	var known = sequenceTags(doc);
+	var result = [];
+
+	serverEntryTags(doc).forEach(function(tag) {
+		if (tag && known[tag] && result.indexOf(tag) === -1)
+			result.push(tag);
+	});
+
+	if (result.length)
+		return result;
+
+	if (known.main_sequence)
+		return [ 'main_sequence' ];
+
+	var all = Object.keys(known);
+	return all.length === 1 ? all : [];
+}
+
+function sequenceStepExec(step) {
+	return step && typeof step.get === 'function' ? text(step.get('exec')) : '';
+}
+
+function sequenceArgs(doc, tag) {
+	var found = findPluginByTag(doc, tag);
+
+	if (!found || pluginType(found.item) !== 'sequence')
+		return null;
+
+	var args = found.item.get('args');
+	return args && Array.isArray(args.items) ? args : null;
+}
+
+function cacheStep(step) {
+	return sequenceStepExec(step) === '$' + CACHE_TAG;
+}
+
+function ensureCacheWiring(doc, targets) {
+	var adBlockStep = '$' + adfilter.tags.block;
+
+	(targets || []).forEach(function(tag) {
+		var args = sequenceArgs(doc, tag);
+
+		if (!args)
+			return;
+
+		var found = -1;
+
+		for (var i = args.items.length - 1; i >= 0; i--) {
+			if (!cacheStep(args.items[i]))
+				continue;
+
+			if (found !== -1)
+				args.items.splice(i, 1);
+			else
+				found = i;
+		}
+
+		if (found !== -1)
+			return;
+
+		/*
+		 * Run the cache after ad filtering so blocked names are never
+		 * answered from a cached upstream response.
+		 */
+		var position = 0;
+
+		for (var j = 0; j < args.items.length; j++) {
+			if (sequenceStepExec(args.items[j]) === adBlockStep) {
+				position = j + 1;
+				break;
+			}
+		}
+
+		args.items.splice(position, 0, doc.createNode({ 'exec': '$' + CACHE_TAG }));
+	});
+}
+
+function removeCacheWiring(doc) {
+	pluginItems(doc).forEach(function(item) {
+		if (pluginType(item) !== 'sequence')
+			return;
+
+		var args = item.get('args');
+
+		if (!args || !Array.isArray(args.items))
+			return;
+
+		for (var i = args.items.length - 1; i >= 0; i--) {
+			if (cacheStep(args.items[i]))
+				args.items.splice(i, 1);
+		}
+	});
+}
+
+function cacheWiringMissing(doc, targets) {
+	return (targets || []).filter(function(tag) {
+		var args = sequenceArgs(doc, tag);
+		return !args || !args.items.some(cacheStep);
+	});
+}
+
+function cacheSection(doc, bindings, options) {
+	var definitions = schemaDefinitions(options);
+	var definition = definitions ? definitions[CACHE_TYPE] : null;
+	var managed = findPluginByTag(doc, CACHE_TAG);
+	var other = null;
+
+	pluginItems(doc).forEach(function(item, index) {
+		if (pluginType(item) !== CACHE_TYPE || (managed && index === managed.index))
+			return;
+
+		if (!other)
+			other = { 'item': item, 'index': index };
+	});
+
+	if (managed && pluginType(managed.item) !== CACHE_TYPE) {
+		return {
+			'node': section(_('Cache'), null, [
+				noteRow(_('The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling cache.')
+					.format(CACHE_TAG, pluginType(managed.item) || _('unknown')))
+			])
+		};
+	}
+
+	if (!managed) {
+		if (other) {
+			return {
+				'node': section(_('Cache'), null, [
+					noteRow(_('Cache is configured by the %s plugin. Edit it in Advanced Mode.')
+						.format(pluginTag(other.item, other.index)))
+				])
+			};
+		}
+
+		var canEnable = entrySequences(doc).length > 0;
+		var enableRow = E('div', { 'class': 'tr' }, [
+			E('div', {
+				'class': 'td left',
+				'style': 'padding: .5em var(--section-inset, 0);'
+			}, [
+				E('button', {
+					'class': 'btn cbi-button cbi-button-positive',
+					'disabled': canEnable ? null : 'disabled',
+					'click': function(ev) {
+						ev.preventDefault();
+						options.beforeChange();
+
+						var targets = entrySequences(doc);
+
+						if (!targets.length) {
+							ui.addNotification(null, E('p', {},
+								_('No entry sequence was found. Configure a server entry in Advanced Mode first.')), 'danger');
+							return;
+						}
+
+						if (!findPluginByTag(doc, CACHE_TAG)) {
+							if (!doc.getIn([ 'plugins' ], true))
+								doc.setIn([ 'plugins' ], doc.createNode([]));
+
+							doc.addIn([ 'plugins' ], doc.createNode({
+								'tag': CACHE_TAG,
+								'type': CACHE_TYPE,
+								'args': { 'short_circuit': true }
+							}));
+						}
+
+						ensureCacheWiring(doc, targets);
+						options.rerender();
+					}
+				}, _('Enable cache')),
+				E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .35em;' },
+					canEnable
+						? _('Adds a cache plugin and runs it before forwarding in the entry sequence. Cached responses answer repeated queries without contacting upstream servers.')
+						: _('No entry sequence was found. Configure a server entry in Advanced Mode first.'))
+			])
+		]);
+
+		return {
+			'node': section(_('Cache'),
+				_('Cache stores DNS responses locally so repeated queries are answered without contacting upstream servers.'),
+				[ enableRow ])
+		};
+	}
+
+	var rows = [];
+
+	(definition && Array.isArray(definition.fields) ? definition.fields : []).forEach(function(field, fieldIndex) {
+		if (!field || !Array.isArray(field.path) || !field.path.length)
+			return;
+
+		rows.push(row(
+			field.type === 'boolean' ? '' : _(text(field.label) || field.path.join('.')),
+			schemaControl(doc, managed.index, fieldIndex, field, bindings, null, null, options),
+			field.help ? _(field.help) : null
+		));
+	});
+
+	if (!rows.length)
+		rows.push(noteRow(_('No cache options are available in the configuration schema.')));
+
+	var footer = E('div', {
+		'class': 'cbi-button-row',
+		'style': 'display: flex; flex-wrap: wrap; gap: .5em; margin-top: .75em; padding-inline: var(--section-inset, 0);'
+	}, [
+		E('button', {
+			'class': 'btn cbi-button cbi-button-negative',
+			'click': function(ev) {
+				ev.preventDefault();
+
+				if (!window.confirm(_('Remove the cache plugin? Cached responses are discarded and the cache step is removed from the entry sequence.')))
+					return;
+
+				options.beforeChange();
+				removeCacheWiring(doc);
+				doc.deleteIn([ 'plugins', managed.index ]);
+				options.rerender();
+			}
+		}, _('Remove cache'))
+	]);
+
+	return {
+		'node': section(_('Cache'),
+			_('Cache stores DNS responses locally so repeated queries are answered without contacting upstream servers.'),
+			rows, null, footer)
 	};
 }
 
@@ -1310,6 +1604,10 @@ function schemaSections(doc, bindings, options) {
 
 		// The guided ad filtering group has its own section.
 		if (adfilter.manages(tag, type))
+			return;
+
+		// The guided cache plugin has its own section.
+		if (type === CACHE_TYPE && tag === CACHE_TAG)
 			return;
 
 		var definition = definitions[type];
@@ -1661,6 +1959,24 @@ function validateConfig(doc, options) {
 		problems.push(problem);
 	});
 
+	// The managed cache plugin must stay wired into the entry sequences.
+	var cachePlugin = findPluginByTag(doc, CACHE_TAG);
+
+	if (cachePlugin) {
+		if (pluginType(cachePlugin.item) !== CACHE_TYPE) {
+			problems.push(_('The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling cache.')
+				.format(CACHE_TAG, pluginType(cachePlugin.item) || _('unknown')));
+		}
+		else {
+			var cacheTargets = entrySequences(doc);
+
+			if (!cacheTargets.length)
+				problems.push(_('No entry sequence was found. Configure a server entry in Advanced Mode first.'));
+			else if (cacheWiringMissing(doc, cacheTargets).length)
+				problems.push(_('The cache step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode.'));
+		}
+	}
+
 	return problems;
 }
 
@@ -1705,6 +2021,7 @@ return baseclass.extend({
 		var handlers = options || {};
 		var bootstrap = isBootstrapTheme();
 		var adFilter = adFilterSection(doc, handlers);
+		var cache = cacheSection(doc, bindings, handlers);
 
 		var sections = [
 			E('style', {}, UPSTREAM_SELECT_STYLE),
@@ -1716,7 +2033,8 @@ return baseclass.extend({
 			apiSection(doc, bindings, handlers),
 			listenSection(doc, bindings),
 			upstreamSection(doc, bindings, handlers),
-			adFilter.node
+			adFilter.node,
+			cache.node
 		].concat(schemaSections(doc, bindings, handlers));
 
 		/*

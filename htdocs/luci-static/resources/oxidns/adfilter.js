@@ -146,7 +146,7 @@ function serverEntries(doc) {
 			if (list && Array.isArray(list.items))
 				list.items.forEach(function(entry) {
 					if (entry && typeof entry.get === 'function')
-						entries.push(text(entry.get('entry')));
+						entries.push(text(entry.get('exec')));
 				});
 		}
 		else {
@@ -285,6 +285,29 @@ function generatedPaths(downloads) {
 	});
 }
 
+function basename(path) {
+	return String(path || '').substring(String(path || '').lastIndexOf('/') + 1);
+}
+
+/*
+ * Files written by the managed download plugin are identified by the
+ * filename each subscription generates. Matching the basename instead of
+ * the reserved prefix keeps a user file such as oxidns-ads-custom.txt
+ * editable while still hiding files generated for a previous rules
+ * directory.
+ */
+function generatedFilenames(downloads) {
+	var names = {};
+
+	(downloads || []).forEach(function(entry) {
+		var filename = text(entry && entry.filename) || filenameFromUrl(text(entry && entry.url));
+		if (filename)
+			names[filename] = true;
+	});
+
+	return names;
+}
+
 function readValues(doc, state) {
 	var values = {
 		'urlsText': '',
@@ -320,6 +343,7 @@ function readValues(doc, state) {
 	if (state && state.download) {
 		var downloads = currentDownloads(doc, state);
 		var generated = generatedPaths(downloads);
+		var generatedNames = generatedFilenames(downloads);
 
 		values.urlsText = downloads.map(function(entry) {
 			return text(entry && entry.url);
@@ -335,13 +359,12 @@ function readValues(doc, state) {
 
 		/*
 		 * Generated files are derived from the subscription entries. Keep
-		 * only the extra local files in the editable list, using both the
-		 * current paths and the reserved prefix so a changed rules directory
-		 * does not leave stale generated paths behind.
+		 * only the extra local files in the editable list, matching both the
+		 * full current paths and the generated filenames so a changed rules
+		 * directory does not leave stale generated paths behind.
 		 */
 		values.filesText = lines(values.filesText).filter(function(path) {
-			return generated.indexOf(path) === -1 &&
-				path.substring(path.lastIndexOf('/') + 1).indexOf(FILE_PREFIX) !== 0;
+			return generated.indexOf(path) === -1 && !generatedNames[basename(path)];
 		}).join('\n');
 	}
 
@@ -582,6 +605,40 @@ function wiringMissing(doc, targets) {
 	});
 }
 
+function sameLineList(a, b) {
+	if (a.length !== b.length)
+		return false;
+
+	for (var i = 0; i < a.length; i++) {
+		if (a[i] !== b[i])
+			return false;
+	}
+
+	return true;
+}
+
+function normalizedValues(values) {
+	values = values || {};
+
+	return {
+		'urls': lines(values.urlsText),
+		'rules': lines(values.rulesText),
+		'files': lines(values.filesText),
+		'mode': text(values.mode),
+		'ips': addresses(values.ipsText),
+		'dir': text(values.dir).trim() || DEFAULT_DIR
+	};
+}
+
+function sameValues(a, b) {
+	return sameLineList(a.urls, b.urls) &&
+		sameLineList(a.rules, b.rules) &&
+		sameLineList(a.files, b.files) &&
+		sameLineList(a.ips, b.ips) &&
+		a.mode === b.mode &&
+		a.dir === b.dir;
+}
+
 return baseclass.extend({
 	tags: TAGS,
 	modes: BLOCK_MODES,
@@ -638,11 +695,14 @@ return baseclass.extend({
 
 	removeDownload: function(doc) {
 		var state = managedPlugins(doc);
+		var downloads = currentDownloads(doc, state);
+		var generated = generatedPaths(downloads);
+		var generatedNames = generatedFilenames(downloads);
 
 		if (state.rules) {
 			var rulesPath = [ 'plugins', state.rules.index, 'args' ];
 			var files = listValue(at(doc, rulesPath.concat([ 'files' ]))).filter(function(path) {
-				return path.substring(path.lastIndexOf('/') + 1).indexOf(FILE_PREFIX) !== 0;
+				return generated.indexOf(path) === -1 && !generatedNames[basename(path)];
 			});
 
 			setList(doc, rulesPath.concat([ 'files' ]), files);
@@ -650,6 +710,28 @@ return baseclass.extend({
 
 		if (state.download)
 			doc.deleteIn([ 'plugins', state.download.index ]);
+	},
+
+	/*
+	 * Guided mode renders the ad filtering form from the current document
+	 * and applies it on every preview, validation, and save. Only write
+	 * back when the form differs from the document so an untouched form
+	 * never rewrites defaults or drops comments in managed plugins.
+	 */
+	syncIfChanged: function(doc, values) {
+		var state = managedPlugins(doc);
+
+		if (state.collisions.length)
+			return;
+
+		if (!state.download && !state.rules && !state.block)
+			return;
+
+		if (sameValues(normalizedValues(readValues(doc, state)),
+			normalizedValues(values)))
+			return;
+
+		this.sync(doc, values);
 	},
 
 	sync: function(doc, values) {

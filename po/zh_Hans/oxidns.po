@@ -16,6 +16,9 @@ msgstr "当前已配置 Token。输入新值可替换现有 Token。"
 msgid "Add upstream DNS"
 msgstr "添加上游DNS"
 
+msgid "Adds a cache plugin and runs it before forwarding in the entry sequence. Cached responses answer repeated queries without contacting upstream servers."
+msgstr "添加缓存插件，并在转发前运行。缓存响应可在不访问上游服务器的情况下应答重复查询。"
+
 msgid "API"
 msgstr "API"
 
@@ -39,6 +42,12 @@ msgstr "构建信息"
 
 msgid "Boot autostart only affects the next boot."
 msgstr "开机自启仅影响下次开机。"
+
+msgid "Cache is configured by the %s plugin. Edit it in Advanced Mode."
+msgstr "缓存由插件 %s 配置。请在高级模式中编辑。"
+
+msgid "Cache stores DNS responses locally so repeated queries are answered without contacting upstream servers."
+msgstr "缓存将 DNS 响应保存在本地，使重复查询无需访问上游服务器即可得到应答。"
 
 msgid "Cancel"
 msgstr "取消"
@@ -106,6 +115,9 @@ msgstr "删除工作目录"
 msgid "Disable on boot"
 msgstr "取消开机自启"
 
+msgid "Discard the unsaved changes and reload the last saved configuration?"
+msgstr "放弃未保存的更改并重新加载上次保存的配置？"
+
 msgid "Download proxy"
 msgstr "下载代理"
 
@@ -117,6 +129,9 @@ msgstr "下载内核压缩包"
 
 msgid "Download release metadata"
 msgstr "下载 release 元数据"
+
+msgid "Enable cache"
+msgstr "启用缓存"
 
 msgid "Enable on boot"
 msgstr "设为开机自启"
@@ -183,6 +198,18 @@ msgstr "日志路径"
 
 msgid "Log path is required."
 msgstr "日志路径不能为空。"
+
+msgid "No cache options are available in the configuration schema."
+msgstr "配置架构中没有可用的缓存选项。"
+
+msgid "Remove cache"
+msgstr "移除缓存"
+
+msgid "Remove the cache plugin? Cached responses are discarded and the cache step is removed from the entry sequence."
+msgstr "移除缓存插件？已缓存的响应将被丢弃，入口序列中的缓存步骤也会被移除。"
+
+msgid "Remove the subscription download plugin? Subscription downloads stop and the plugin with all of its download options is removed. The ad filtering rules and downloaded files on disk stay."
+msgstr "移除订阅下载插件？订阅下载将停止，插件及其所有下载选项都会被移除。广告过滤规则和磁盘上已下载的文件会保留。"
 
 msgid "Runtime Logs"
 msgstr "运行日志"
@@ -373,6 +400,12 @@ msgstr "已停止"
 msgid "Success TTL (seconds)"
 msgstr "成功 TTL（秒）"
 
+msgid "The cache step could not be inserted into the entry sequence. Check the sequence configuration in Advanced Mode."
+msgstr "无法将缓存步骤插入入口序列。请在高级模式中检查序列配置。"
+
+msgid "The configuration is too large to preview here. Review the changes in Advanced Mode before saving."
+msgstr "配置过大，无法在此预览。保存前请在高级模式中检查更改。"
+
 msgid "The full and standard bundles include OxiDNS WebUI files; the minimal bundle does not."
 msgstr "full 和 standard 归档包含 OxiDNS WebUI 文件，minimal 不包含。"
 
@@ -442,6 +475,9 @@ msgstr "配置文件为空。"
 msgid "The forward plugin %s needs at least one upstream server."
 msgstr "forward 插件 %s 至少需要一个上游服务器。"
 
+msgid "The tag %s is already used by a %s plugin. Rename it in Advanced Mode before enabling cache."
+msgstr "标签 %s 已被 %s 插件使用。请先在高级模式中重命名，再启用缓存。"
+
 msgid "The YAML is invalid: %s"
 msgstr "YAML 无效：%s"
 
@@ -474,6 +510,9 @@ msgstr "上传配置"
 
 msgid "Upload Core"
 msgstr "上传内核"
+
+msgid "Uploading config.yaml replaces the saved configuration immediately and discards unsaved changes. Continue?"
+msgstr "上传 config.yaml 会立即替换已保存的配置并放弃未保存的更改。是否继续？"
 
 msgid "Uploading configuration..."
 msgstr "正在上传配置..."
@@ -1909,3 +1948,5 @@ msgstr "未知"
 
 msgid "Used by custom mode. Separate IPv4 and IPv6 addresses with commas or spaces."
 msgstr "用于自定义模式。IPv4 和 IPv6 地址之间用逗号或空格分隔。"
+
+
