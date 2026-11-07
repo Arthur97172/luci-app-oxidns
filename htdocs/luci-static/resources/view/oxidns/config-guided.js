@@ -2148,7 +2148,7 @@ function argsSummary(item) {
 		args = args.toJSON();
 
 	if (Array.isArray(args))
-		return '%d step(s)'.format(args.length);
+		return _('%d step(s)').format(args.length);
 
 	if (args && typeof args === 'object') {
 		var keys = Object.keys(args);

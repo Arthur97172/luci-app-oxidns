@@ -126,6 +126,21 @@ function parseContent(content) {
 	return !state.parseError;
 }
 
+/*
+ * Normal mode always works on a parsed document and saves its serialized
+ * form, but the serializer rewrites inline comment spacing. Compare the data
+ * instead, so an untouched document keeps its saved text and the preview and
+ * Reset prompt do not report formatting noise as an edit.
+ */
+function sameDocumentData(doc, text) {
+	try {
+		return JSON.stringify(doc.toJSON()) === JSON.stringify(yaml.parse(text || ''));
+	}
+	catch (err) {
+		return false;
+	}
+}
+
 function guidedContent() {
 	state.serializeError = null;
 
@@ -136,6 +151,9 @@ function guidedContent() {
 		return state.parsedContent;
 
 	guidedApply();
+
+	if (sameDocumentData(state.doc, state.raw))
+		return state.raw;
 
 	try {
 		return state.doc.toString({ lineWidth: 0 });

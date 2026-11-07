@@ -10,6 +10,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "%d step(s)"
+msgstr "%d 个步骤"
+
 msgid "A token is currently configured. Enter a new value to replace it."
 msgstr "当前已配置 Token。输入新值可替换现有 Token。"
 
