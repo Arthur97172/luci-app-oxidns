@@ -1835,9 +1835,6 @@ msgstr "广告过滤"
 msgid "Ad filtering downloads subscription rules at startup, matches them with AdGuard rules, and answers matching queries locally."
 msgstr "广告过滤会在启动时下载订阅规则，使用 AdGuard 规则进行匹配，并在本地应答匹配的查询。"
 
-msgid "Ad filtering is not configured."
-msgstr "尚未配置广告过滤。"
-
 msgid "Ad filtering needs at least one subscription URL, inline rule, or local rule file."
 msgstr "广告过滤至少需要一个订阅地址、内联规则或本地规则文件。"
 

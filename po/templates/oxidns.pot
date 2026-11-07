@@ -1833,9 +1833,6 @@ msgstr ""
 msgid "Ad filtering downloads subscription rules at startup, matches them with AdGuard rules, and answers matching queries locally."
 msgstr ""
 
-msgid "Ad filtering is not configured."
-msgstr ""
-
 msgid "Ad filtering needs at least one subscription URL, inline rule, or local rule file."
 msgstr ""
 

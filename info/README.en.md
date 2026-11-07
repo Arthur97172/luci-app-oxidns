@@ -356,7 +356,7 @@ The inserted sequence rule is fixed:
 
 It sits at the front of each entry sequence, so ad domains are blocked before `forward` runs.
 
-Before configuration the card shows the `Ad filtering is not configured.` note and the `Add ad filtering` button; the button stays disabled when no server entry sequence exists. Once configured it offers:
+Before configuration the card shows the `Add ad filtering` button; it stays disabled when no server entry sequence exists. Once configured it offers:
 
 | Field | Description |
 | --- | --- |

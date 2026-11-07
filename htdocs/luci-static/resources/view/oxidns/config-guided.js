@@ -938,9 +938,9 @@ function upstreamSection(doc, bindings, options) {
 function adFilterTextarea(id, value, placeholder) {
 	return E('textarea', {
 		'id': id,
-		'class': 'cbi-input-text oxidns-control',
-		'rows': '3',
-		'style': 'width: 100%; max-width: 520px; font-family: monospace; box-sizing: border-box;',
+		'class': 'cbi-input-textarea',
+		'rows': 3,
+		'style': 'width: calc(100% / 3); font-family: monospace;',
 		'placeholder': placeholder || null,
 		'spellcheck': 'false'
 	}, value || '');
@@ -985,27 +985,34 @@ function adFilterSection(doc, options) {
 	if (!state.configured) {
 		var canEnable = state.targets.length > 0;
 
-		rows.push(noteRow(_('Ad filtering is not configured.')));
-		rows.push(row(_('Ad filtering'), E('button', {
-			'class': 'btn cbi-button cbi-button-positive',
-			'disabled': canEnable ? null : 'disabled',
-			'click': function(ev) {
-				ev.preventDefault();
-				options.beforeChange();
+		rows.push(E('div', { 'class': 'tr' }, [
+			E('div', {
+				'class': 'td left',
+				'style': 'padding: .5em var(--section-inset, 0);'
+			}, [
+				E('button', {
+					'class': 'btn cbi-button cbi-button-positive',
+					'disabled': canEnable ? null : 'disabled',
+					'click': function(ev) {
+						ev.preventDefault();
+						options.beforeChange();
 
-				var result = adfilter.enable(doc);
+						var result = adfilter.enable(doc);
 
-				if (!result.ok) {
-					ui.addNotification(null, E('p', {}, result.problems.join(' ')), 'danger');
-					return;
-				}
+						if (!result.ok) {
+							ui.addNotification(null, E('p', {}, result.problems.join(' ')), 'danger');
+							return;
+						}
 
-				options.rerender();
-			}
-		}, _('Add ad filtering')),
-		canEnable
-			? _('Adds AdGuard rules and blocking plugins, then inserts the blocking rule at the start of the entry sequence. The subscription download plugin is added when you enter subscription URLs.')
-			: _('No entry sequence was found. Configure a server entry in Advanced Mode first.')));
+						options.rerender();
+					}
+				}, _('Add ad filtering')),
+				E('div', { 'class': 'cbi-value-description', 'style': 'margin-top: .35em;' },
+					canEnable
+						? _('Adds AdGuard rules and blocking plugins, then inserts the blocking rule at the start of the entry sequence. The subscription download plugin is added when you enter subscription URLs.')
+						: _('No entry sequence was found. Configure a server entry in Advanced Mode first.'))
+			])
+		]));
 
 		return {
 			'node': section(_('Ad filtering'),
