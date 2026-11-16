@@ -38,11 +38,6 @@ var dnsIntegrationUpdatedAt = null;
 var dnsIntegrationRefreshing = false;
 var statusRefreshInFlight = null;
 
-/* The DNS card follows dnsmasq, which the user may change from another LuCI
- * page or over SSH. Poll it on its own short interval instead of waiting for
- * the heavier status call, so the card converges within a few seconds. */
-var DNS_POLL_SECONDS = 3;
-
 function valueOrDash(value) {
 	if (value === null || value === undefined || value === '')
 		return '-';
@@ -627,7 +622,7 @@ function updateDnsIntegration() {
 	replaceContent(node, dnsIntegrationBody(dnsIntegrationState));
 }
 
-/* Guarded so the 3 s poll and the manual Refresh button never stack requests.
+/* Guarded so the status poll and the manual Refresh button never stack requests.
  * The timestamp only advances on success, so a stale card is visible. A forced
  * refresh ignores the guard: after enabling or disabling forwarding a request
  * that started earlier may still describe the previous state. */
@@ -832,7 +827,6 @@ return view.extend({
 		dnsIntegrationKey = dnsIntegrationStateKey(dnsIntegrationState);
 		dnsIntegrationUpdatedAt = new Date();
 		poll.add(refreshStatus, 5);
-		poll.add(refreshDnsIntegration, DNS_POLL_SECONDS);
 
 		return E('div', { 'class': 'cbi-map' }, [
 			E('div', { 'class': 'cbi-section' }, [

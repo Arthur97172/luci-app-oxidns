@@ -811,7 +811,7 @@ Steps:
    - `dnsmasq upstream` lists what dnsmasq actually uses, not just the `list server` entries in `/etc/config/dhcp`. On many routers the upstreams arrive over WAN (DHCP/PPPoE) in `/tmp/resolv.conf.d/resolv.conf.auto` and no UCI `server` entry exists at all; those servers are listed too, with a note naming the file they came from.
    - While the integration is enabled this row shows the forwarding entry that points at OxiDNS, with the pre-enable upstreams noted underneath for comparison.
    - With `noresolv=1` the resolv file is ignored, so the card lists only the UCI upstreams and says so.
-2. The card refreshes every 3 seconds; `Refresh` reads it immediately. The `Updated at HH:MM:SS` note is the last successful read, so a timestamp that stops advancing means the backend query is failing. Changes made elsewhere on the system show up without reloading the page.
+2. The card refreshes every 5 seconds with the status poll; `Refresh` reads it immediately. The `Updated at HH:MM:SS` note is the last successful read, so a timestamp that stops advancing means the backend query is failing. Changes made elsewhere on the system show up without reloading the page.
 3. Click `Enable dnsmasq forwarding`. The confirmation dialog lists the changes:
    - remove the current generic upstreams, recording their original values;
    - add a forwarding entry pointing at OxiDNS, for example `127.0.0.1#5335`;
