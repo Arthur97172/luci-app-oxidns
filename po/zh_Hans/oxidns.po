@@ -2058,9 +2058,6 @@ msgstr "当前配置通过 include 引入外部插件，无法在这里创建。
 msgid "A new sequence named %s will be created."
 msgstr "将创建名为 %s 的新 sequence。"
 
-msgid "Refreshing..."
-msgstr "刷新中…"
-
 msgid "Updated at %s"
 msgstr "更新于 %s"
 

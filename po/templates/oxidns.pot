@@ -2056,9 +2056,6 @@ msgstr ""
 msgid "A new sequence named %s will be created."
 msgstr ""
 
-msgid "Refreshing..."
-msgstr ""
-
 msgid "Updated at %s"
 msgstr ""
 

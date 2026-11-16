@@ -35,7 +35,6 @@ var dnsIntegrationBusy = false;
 var dnsIntegrationKey = null;
 var dnsIntegrationInFlight = null;
 var dnsIntegrationUpdatedAt = null;
-var dnsIntegrationRefreshing = false;
 var statusRefreshInFlight = null;
 
 function valueOrDash(value) {
@@ -501,25 +500,6 @@ function dnsIntegrationRows(state) {
 	];
 }
 
-function dnsIntegrationRefreshButton() {
-	return E('button', {
-		'id': 'oxidns-dns-integration-refresh',
-		'class': 'btn cbi-button cbi-button-neutral',
-		'type': 'button',
-		'click': function(ev) {
-			ev.preventDefault();
-			if (dnsIntegrationRefreshing)
-				return Promise.resolve();
-			dnsIntegrationRefreshing = true;
-			updateDnsIntegrationUpdatedAt();
-			return refreshDnsIntegration().then(function() {
-				dnsIntegrationRefreshing = false;
-				updateDnsIntegrationUpdatedAt();
-			});
-		}
-	}, _('Refresh'));
-}
-
 function dnsIntegrationButtons(state) {
 	var hint = dnsIntegrationNote(state);
 	var actions = [];
@@ -560,8 +540,6 @@ function dnsIntegrationButtons(state) {
 		actions.push(button);
 	}
 
-	actions.push(dnsIntegrationRefreshButton());
-
 	return actions;
 }
 
@@ -590,8 +568,6 @@ function padClockValue(value) {
 }
 
 function dnsIntegrationUpdatedText() {
-	if (dnsIntegrationRefreshing)
-		return _('Refreshing...');
 	if (!dnsIntegrationUpdatedAt)
 		return '';
 	return _('Updated at %s').format('%s:%s:%s'.format(
@@ -622,7 +598,7 @@ function updateDnsIntegration() {
 	replaceContent(node, dnsIntegrationBody(dnsIntegrationState));
 }
 
-/* Guarded so the status poll and the manual Refresh button never stack requests.
+/* Guarded so the status poll never stacks requests.
  * The timestamp only advances on success, so a stale card is visible. A forced
  * refresh ignores the guard: after enabling or disabling forwarding a request
  * that started earlier may still describe the previous state. */
