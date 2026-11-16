@@ -2059,16 +2059,16 @@ msgstr ""
 msgid "Updated at %s"
 msgstr ""
 
-msgid "dnsmasq forwards every query to OxiDNS. Servers used before enabling: %s."
+msgid "%s (all queries are forwarded to OxiDNS; before enabling: %s)"
 msgstr ""
 
-msgid "dnsmasq forwards every query to OxiDNS."
+msgid "%s (all queries are forwarded to OxiDNS)"
 msgstr ""
 
-msgid "Servers from %s are added automatically from the WAN connection and are not stored in UCI."
+msgid "%s (from %s, added by the WAN connection, not stored in UCI)"
 msgstr ""
 
-msgid "noresolv is set, so servers from the resolv file are ignored."
+msgid "%s (resolv file ignored because noresolv is set)"
 msgstr ""
 
 msgid "Stop using the WAN-provided servers in %s."

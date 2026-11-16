@@ -410,32 +410,26 @@ function dnsIntegrationTargetText(state) {
 function dnsIntegrationUpstreamText(state) {
 	if (!state || !state.supported)
 		return '-';
-	if (state.managed)
-		return state.forward || _('None');
-
-	var list = dnsEffectiveUpstreams(state);
-	return list.length ? list.join(', ') : _('None');
-}
-
-function dnsIntegrationUpstreamHint(state) {
-	if (!state || !state.supported)
-		return '';
 
 	if (state.managed) {
+		var forward = state.forward || _('None');
 		if (Array.isArray(state.previous_servers) && state.previous_servers.length)
-			return _('dnsmasq forwards every query to OxiDNS. Servers used before enabling: %s.')
-				.format(state.previous_servers.join(', '));
-		return _('dnsmasq forwards every query to OxiDNS.');
+			return _('%s (all queries are forwarded to OxiDNS; before enabling: %s)')
+				.format(forward, state.previous_servers.join(', '));
+		return _('%s (all queries are forwarded to OxiDNS)').format(forward);
 	}
 
+	var list = dnsEffectiveUpstreams(state);
+	var text = list.length ? list.join(', ') : _('None');
+
 	if (state.auto_active && state.auto_source)
-		return _('Servers from %s are added automatically from the WAN connection and are not stored in UCI.')
-			.format(state.auto_source);
+		return _('%s (from %s, added by the WAN connection, not stored in UCI)')
+			.format(text, state.auto_source);
 
 	if (state.noresolv_set && state.noresolv === '1')
-		return _('noresolv is set, so servers from the resolv file are ignored.');
+		return _('%s (resolv file ignored because noresolv is set)').format(text);
 
-	return '';
+	return text;
 }
 
 function dnsIntegrationDomainText(state) {
@@ -470,25 +464,12 @@ function dnsIntegrationNote(state) {
 		_('When enabled, dnsmasq forwards generic DNS queries to OxiDNS. Domain-specific upstreams are kept.');
 }
 
-function dnsIntegrationUpstreamCell(state) {
-	var text = dnsIntegrationUpstreamText(state);
-	var hint = dnsIntegrationUpstreamHint(state);
-
-	if (!hint)
-		return text;
-
-	return E('div', {}, [
-		E('div', {}, text),
-		E('div', { 'class': 'cbi-value-description' }, hint)
-	]);
-}
-
 function dnsIntegrationRows(state) {
 	return [
 		renderRow(_('dnsmasq'), dnsmasqStatusBadge(state), 'oxidns-dnsmasq-status'),
 		renderRow(_('DNS integration'), dnsIntegrationBadge(state), 'oxidns-dns-integration-badge'),
 		renderRow(_('OxiDNS DNS listener'), dnsIntegrationTargetText(state), 'oxidns-dns-integration-target'),
-		renderRow(_('dnsmasq upstream'), dnsIntegrationUpstreamCell(state), 'oxidns-dns-integration-upstream'),
+		renderRow(_('dnsmasq upstream'), dnsIntegrationUpstreamText(state), 'oxidns-dns-integration-upstream'),
 		renderRow(_('Domain-specific upstreams'), dnsIntegrationDomainCell(state), 'oxidns-dns-integration-domain'),
 		renderRow(_('dnsmasq noresolv'),
 			state && state.noresolv_set ? state.noresolv : '-',

@@ -113,7 +113,7 @@ const CASES = [
 		}),
 		expect: [
 			'223.5.5.5, 119.29.29.29',
-			'Servers from /tmp/resolv.conf.d/resolv.conf.auto'
+			'from /tmp/resolv.conf.d/resolv.conf.auto, added by the WAN connection, not stored in UCI'
 		]
 	},
 	{
@@ -134,7 +134,7 @@ const CASES = [
 			noresolv_set: true
 		}),
 		expect: [
-			'noresolv is set, so servers from the resolv file are ignored.',
+			'resolv file ignored because noresolv is set',
 			'None (all domains use the upstreams above)'
 		]
 	},
@@ -154,7 +154,7 @@ const CASES = [
 		}),
 		expect: [
 			'127.0.0.1#5335',
-			'Servers used before enabling: 1.1.1.1, 9.9.9.9',
+			'all queries are forwarded to OxiDNS; before enabling: 1.1.1.1, 9.9.9.9',
 			'/example.com/8.8.8.8'
 		]
 	},
