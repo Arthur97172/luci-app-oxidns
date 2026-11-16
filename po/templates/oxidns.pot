@@ -2074,6 +2074,6 @@ msgstr ""
 msgid "Stop using the WAN-provided servers in %s."
 msgstr ""
 
-msgid "No domain-specific upstreams are configured, so every domain uses the upstreams above."
+msgid "None (all domains use the upstreams above)"
 msgstr ""
 

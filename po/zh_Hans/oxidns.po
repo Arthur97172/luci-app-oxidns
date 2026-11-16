@@ -2076,6 +2076,6 @@ msgstr "已设置 noresolv，resolv 文件中的上游将被忽略。"
 msgid "Stop using the WAN-provided servers in %s."
 msgstr "停止使用 %s 中由 WAN 提供的上游。"
 
-msgid "No domain-specific upstreams are configured, so every domain uses the upstreams above."
-msgstr "未配置特定域名上游，所有域名都使用上面的上游。"
+msgid "None (all domains use the upstreams above)"
+msgstr "无（所有域名使用上述上游）"
 

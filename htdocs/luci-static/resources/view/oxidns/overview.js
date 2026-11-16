@@ -450,11 +450,7 @@ function dnsIntegrationDomainCell(state) {
 	if (Array.isArray(state.domain_servers) && state.domain_servers.length)
 		return dnsIntegrationDomainText(state);
 
-	return E('div', {}, [
-		E('div', {}, _('None')),
-		E('div', { 'class': 'cbi-value-description' },
-			_('No domain-specific upstreams are configured, so every domain uses the upstreams above.'))
-	]);
+	return _('None (all domains use the upstreams above)');
 }
 
 function dnsIntegrationNote(state) {

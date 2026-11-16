@@ -135,7 +135,7 @@ const CASES = [
 		}),
 		expect: [
 			'noresolv is set, so servers from the resolv file are ignored.',
-			'No domain-specific upstreams are configured'
+			'None (all domains use the upstreams above)'
 		]
 	},
 	{
