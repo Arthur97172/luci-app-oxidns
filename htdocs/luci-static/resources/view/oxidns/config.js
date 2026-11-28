@@ -49,11 +49,13 @@ var DIFF_MAX_LINES = 800;
 var DIFF_CONTEXT = 3;
 
 /*
- * Argon renders inline alert messages flush with the section card while the
- * rest of the section content is inset, so give the boxes the same horizontal
- * spacing. Other themes fall back to 1em.
+ * Argon gives every alert message left: 50%, width: 100% and a
+ * translate(-50%, 0), and the section card itself has no horizontal padding.
+ * Margins alone therefore leave the right edge outside the card, so reset the
+ * theme positioning and let the block fill the space between the margins.
+ * Other themes fall back to 1em.
  */
-var INLINE_ALERT_STYLE = 'margin: 1em var(--section-inset, 1em);';
+var INLINE_ALERT_STYLE = 'margin: 1em var(--section-inset, 1em); width: auto; left: auto; transform: none;';
 
 var state = {
 	raw: '',
