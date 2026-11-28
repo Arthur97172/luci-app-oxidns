@@ -48,6 +48,13 @@ var callConfigSave = rpc.declare({
 var DIFF_MAX_LINES = 800;
 var DIFF_CONTEXT = 3;
 
+/*
+ * Argon renders inline alert messages flush with the section card while the
+ * rest of the section content is inset, so give the boxes the same horizontal
+ * spacing. Other themes fall back to 1em.
+ */
+var INLINE_ALERT_STYLE = 'margin: 1em var(--section-inset, 1em);';
+
 var state = {
 	raw: '',
 	doc: null,
@@ -752,7 +759,7 @@ function fillBody(body) {
 		parseContent(state.advancedDraft);
 
 		if (state.parseError) {
-			body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
+			body.appendChild(E('div', { 'class': 'alert-message warning', 'style': INLINE_ALERT_STYLE },
 				_('Normal mode is unavailable: %s').format(state.parseError)));
 		}
 
@@ -767,7 +774,7 @@ function fillBody(body) {
 		body.appendChild(previewSection());
 	}
 	else if (!state.doc) {
-		body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
+		body.appendChild(E('div', { 'class': 'alert-message warning', 'style': INLINE_ALERT_STYLE },
 			_('Normal mode needs valid YAML. Fix the YAML in advanced mode first.')));
 	}
 	else {
@@ -784,7 +791,7 @@ function fillBody(body) {
 
 		if (state.readOnly) {
 			lockGuidedForm(rendered.node);
-			body.appendChild(E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
+			body.appendChild(E('div', { 'class': 'alert-message warning', 'style': INLINE_ALERT_STYLE },
 				_('This configuration uses YAML anchors, aliases, or merge keys. Normal mode is read-only for this file; edit it in advanced mode.')));
 		}
 
@@ -908,7 +915,7 @@ return view.extend({
 		if (readFailed && !coreInstalled(statusState)) {
 			return E('div', { 'class': 'cbi-map' }, [
 				E('div', { 'class': 'cbi-section' }, [
-					E('div', { 'class': 'alert-message warning', 'style': 'margin: 1em 0;' },
+					E('div', { 'class': 'alert-message warning', 'style': INLINE_ALERT_STYLE },
 						_('Install the OxiDNS core before editing the configuration.')),
 					E('p', { 'class': 'cbi-section-descr' },
 						_('Install it from Services → OxiDNS → Installation and Deployment, then return to this page.'))
@@ -926,7 +933,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-section' }, [
 				readFailed ? E('div', {
 					'class': 'alert-message warning',
-					'style': 'margin: 1em 0;'
+					'style': INLINE_ALERT_STYLE
 				}, configMessage) : '',
 				E('div', {
 					'id': 'oxidns-config-modes',
